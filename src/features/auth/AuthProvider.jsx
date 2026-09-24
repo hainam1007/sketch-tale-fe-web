@@ -24,6 +24,15 @@ export default function AuthProvider({ children }) {
     };
   }, []);
 
+  useEffect(() => {
+    function handleInvalidSession() {
+      queryClient.clear();
+      setSession({ status: "anonymous", user: null });
+    }
+    window.addEventListener("sketchtale:auth-invalid", handleInvalidSession);
+    return () => window.removeEventListener("sketchtale:auth-invalid", handleInvalidSession);
+  }, [queryClient]);
+
   const login = useCallback(async (credentials) => {
     try {
       const user = await authService.login(credentials);

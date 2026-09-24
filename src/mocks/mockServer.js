@@ -453,14 +453,32 @@ function requireRole(user, role, message) {
   }
 }
 
-function publicUser(user) {
+function publicUser(user, actor) {
   const { id, email, name, role, plan, status, updatedAt } = user;
-  return { id, email, name, role, plan, status, updatedAt };
+  const isSelf = actor?.id === id;
+  const allowedActions = isSelf
+    ? status === "locked" ? ["view", "unlock"] : ["view"]
+    : ["view", "lock", "unlock", "change_role"];
+  return { id, email, name, role, plan, status, updatedAt, revision: user.revision || 1, allowedActions };
+}
+
+function appendAuditEvent(database, { actor, action, targetType, target, status = "success" }) {
+  database.auditEvents.unshift({
+    id: `audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    actor: actor.email,
+    actorName: actor.name,
+    action,
+    targetType,
+    target,
+    status,
+    createdAt: new Date().toISOString(),
+  });
 }
 
 function ensureContentCollections(database) {
   database.users.forEach((user) => {
     user.status ||= "active";
+    user.revision ||= 1;
   });
   database.assets ||= clone(seedDatabase.assets);
   database.stories ||= clone(seedDatabase.stories);
@@ -745,12 +763,17 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const search = params.get("search")?.toLowerCase() || "";
     const role = params.get("role") || "all";
     const status = params.get("status") || "all";
+    const page = Math.max(1, Number(params.get("page") || 1));
+    const pageSize = Math.min(50, Math.max(1, Number(params.get("pageSize") || 10)));
+    const sort = params.get("sort") || "name_asc";
     const items = database.users
       .filter((candidate) => !search || `${candidate.name} ${candidate.email}`.toLowerCase().includes(search))
       .filter((candidate) => role === "all" || candidate.role === role)
       .filter((candidate) => status === "all" || candidate.status === status)
-      .map(publicUser);
-    return { items, total: items.length };
+      .sort((left, right) => sort === "email_asc" ? left.email.localeCompare(right.email) : left.name.localeCompare(right.name));
+    const total = items.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    return { items: items.slice((page - 1) * pageSize, page * pageSize).map((item) => publicUser(item, user)), total, page, pageSize, totalPages };
   }
 
   const adminUserMatch = pathname.match(/^\/admin\/users\/([^/]+)$/);
@@ -758,7 +781,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     requireRole(user, "admin", "Chỉ quản trị viên mới có thể quản lý tài khoản.");
     const targetIndex = database.users.findIndex((candidate) => candidate.id === adminUserMatch[1]);
     if (targetIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy tài khoản." });
-    if (method === "GET") return publicUser(database.users[targetIndex]);
+    if (method === "GET") return publicUser(database.users[targetIndex], user);
     if (method === "PATCH") {
       if (database.users[targetIndex].id === user.id && body?.status === "locked") {
         throw new ApiError({ status: 409, code: "SELF_LOCK_NOT_ALLOWED", message: "Không thể tự khóa tài khoản quản trị đang đăng nhập." });
@@ -766,9 +789,14 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       if (!["active", "locked"].includes(body?.status)) {
         fieldError("Trạng thái tài khoản chưa hợp lệ.", { status: "Chọn trạng thái active hoặc locked." });
       }
-      database.users[targetIndex] = { ...database.users[targetIndex], status: body.status, updatedAt: new Date().toISOString() };
+      const target = database.users[targetIndex];
+      if (body?.revision !== undefined && body.revision !== target.revision) {
+        throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Tài khoản đã được cập nhật. Hãy tải lại trước khi thao tác." });
+      }
+      database.users[targetIndex] = { ...target, status: body.status, revision: (target.revision || 1) + 1, updatedAt: new Date().toISOString() };
+      appendAuditEvent(database, { actor: user, action: body.status === "locked" ? "user.locked" : "user.unlocked", targetType: "user", target: target.email });
       writeDatabase(database);
-      return publicUser(database.users[targetIndex]);
+      return publicUser(database.users[targetIndex], user);
     }
   }
 
@@ -777,8 +805,14 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const params = new URLSearchParams(queryString);
     const status = params.get("status") || "all";
     const search = params.get("search")?.toLowerCase() || "";
-    const items = database.reports.filter((report) => (status === "all" || report.status === status) && (!search || `${report.targetTitle} ${report.reason} ${report.reporter}`.toLowerCase().includes(search))).map(clone);
-    return { items, total: items.length };
+    const page = Math.max(1, Number(params.get("page") || 1));
+    const pageSize = Math.min(50, Math.max(1, Number(params.get("pageSize") || 10)));
+    const items = database.reports
+      .filter((report) => (status === "all" || report.status === status) && (!search || `${report.targetTitle} ${report.reason} ${report.reporter}`.toLowerCase().includes(search)))
+      .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+    const total = items.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    return { items: items.slice((page - 1) * pageSize, page * pageSize).map(clone), total, page, pageSize, totalPages };
   }
 
   const reportMatch = pathname.match(/^\/admin\/reports\/([^/]+)$/);
@@ -789,14 +823,24 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     if (method === "GET") return clone(database.reports[reportIndex]);
     if (method === "PATCH") {
       const report = database.reports[reportIndex];
-      if (body?.revision && body.revision !== report.revision) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Báo cáo đã được cập nhật. Hãy tải lại trước khi xử lý." });
+      if (body?.revision !== undefined && body.revision !== report.revision) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Báo cáo đã được cập nhật. Hãy tải lại trước khi xử lý." });
       const nextStatus = { start_review: "under_review", resolve: "resolved", reject: "rejected", reopen: "open" }[body?.action];
       if (!nextStatus) fieldError("Thao tác báo cáo chưa hợp lệ.", { action: "Chọn thao tác được phép." });
+      const allowedActions = {
+        open: ["start_review"],
+        under_review: ["resolve", "reject"],
+        resolved: ["reopen"],
+        rejected: ["reopen"],
+      }[report.status] || [];
+      if (!allowedActions.includes(body.action)) {
+        throw new ApiError({ status: 422, code: "INVALID_REPORT_TRANSITION", message: "Trạng thái hiện tại không cho phép thao tác này." });
+      }
       report.status = nextStatus;
       report.assignee = user.email;
       if (body.note?.trim()) report.notes = [...(report.notes || []), { text: body.note.trim(), author: user.email, createdAt: new Date().toISOString() }];
       report.revision += 1;
       report.updatedAt = new Date().toISOString();
+      appendAuditEvent(database, { actor: user, action: `report.${nextStatus}`, targetType: "report", target: report.targetTitle });
       writeDatabase(database);
       return clone(report);
     }
@@ -804,7 +848,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
 
   if (pathname === "/admin/permissions" && method === "GET") {
     requireRole(user, "admin", "Chỉ quản trị viên mới có thể xem permission.");
-    return { users: database.users.map(publicUser), roles: ["parent", "content_manager", "admin"] };
+    return { users: database.users.map((item) => publicUser(item, user)), roles: ["parent", "content_manager", "admin"], roleCatalog: ["parent", "content_manager", "admin"] };
   }
 
   const permissionMatch = pathname.match(/^\/admin\/permissions\/([^/]+)$/);
@@ -815,9 +859,14 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     if (database.users[index].id === user.id) throw new ApiError({ status: 409, code: "SELF_ROLE_CHANGE_NOT_ALLOWED", message: "Không thể tự đổi role của tài khoản đang đăng nhập." });
     if (!["parent", "content_manager", "admin"].includes(body?.role)) fieldError("Role chưa hợp lệ.", { role: "Chọn role được server hỗ trợ." });
     if (database.users[index].role === "admin" && body.role !== "admin" && database.users.filter((candidate) => candidate.role === "admin").length === 1) throw new ApiError({ status: 409, code: "LAST_ADMIN_NOT_ALLOWED", message: "Không thể hạ role của admin cuối cùng." });
-    database.users[index] = { ...database.users[index], role: body.role, updatedAt: new Date().toISOString() };
+    const target = database.users[index];
+    if (body?.revision !== undefined && body.revision !== target.revision) {
+      throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Role đã được cập nhật. Hãy tải lại trước khi lưu." });
+    }
+    database.users[index] = { ...target, role: body.role, revision: (target.revision || 1) + 1, updatedAt: new Date().toISOString() };
+    appendAuditEvent(database, { actor: user, action: "permission.updated", targetType: "user", target: target.name });
     writeDatabase(database);
-    return publicUser(database.users[index]);
+    return publicUser(database.users[index], user);
   }
 
   if (pathname === "/admin/system-limits" && method === "GET") {
@@ -883,10 +932,14 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const action = params.get("action") || "all";
     const search = params.get("search")?.toLowerCase() || "";
     const range = params.get("range") || "30d";
+    const page = Math.max(1, Number(params.get("page") || 1));
+    const pageSize = Math.min(50, Math.max(1, Number(params.get("pageSize") || 10)));
     const days = range === "7d" ? 7 : range === "30d" ? 30 : null;
     const cutoff = days ? Date.now() - days * 24 * 60 * 60 * 1000 : null;
     const items = database.auditEvents.filter((item) => (!cutoff || new Date(item.createdAt).getTime() >= cutoff) && (actor === "all" || item.actor === actor) && (action === "all" || item.action === action) && (!search || `${item.actorName} ${item.action} ${item.target}`.toLowerCase().includes(search)));
-    return { range, items: clone(items), total: items.length, filters: { actors: [...new Set(database.auditEvents.map((item) => item.actor))], actions: [...new Set(database.auditEvents.map((item) => item.action))] } };
+    const total = items.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    return { range, items: clone(items.slice((page - 1) * pageSize, page * pageSize)), total, page, pageSize, totalPages, filters: { actors: [...new Set(database.auditEvents.map((item) => item.actor))], actions: [...new Set(database.auditEvents.map((item) => item.action))] } };
   }
 
   if (pathname === "/content/stories" && method === "GET") {
@@ -921,6 +974,18 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
   if (pathname === "/content/assets" && method === "GET") {
     requireRole(user, "content_manager", "Chỉ Content Manager mới có thể xem asset.");
     return { items: clone(database.assets), total: database.assets.length };
+  }
+
+  const assetDetailMatch = pathname.match(/^\/content\/assets\/([^/]+)$/);
+  if (assetDetailMatch && method === "DELETE") {
+    requireRole(user, "content_manager", "Chỉ Content Manager mới có thể xóa asset.");
+    const assetIndex = database.assets.findIndex((asset) => asset.id === assetDetailMatch[1]);
+    if (assetIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy asset." });
+    const referenced = database.stories.some((story) => story.coverAssetId === assetDetailMatch[1] || story.pages?.some((page) => page.backgroundAssetId === assetDetailMatch[1]) || story.roles?.some((role) => role.defaultAssetId === assetDetailMatch[1] || role.slots?.some((slot) => slot.assetId === assetDetailMatch[1])));
+    if (referenced) throw new ApiError({ status: 409, code: "ASSET_IN_USE", message: "Asset đang được story tham chiếu, không thể xóa." });
+    const [removed] = database.assets.splice(assetIndex, 1);
+    writeDatabase(database);
+    return clone(removed);
   }
 
   if (pathname === "/content/statistics" && method === "GET") {
@@ -1017,6 +1082,17 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       role.slots.push({ id: `slot-${Date.now()}`, pageId: body.pageId, x, y, scale, flip: Boolean(body.flip), layer: Number(body.layer || 1) });
       storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story);
     }
+    if (method === "PATCH" && slotMatch[3]) {
+      assertStoryRevision(story, body?.revision);
+      const slotIndex = role.slots.findIndex((slot) => slot.id === slotMatch[3]);
+      if (slotIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy slot." });
+      const next = { ...role.slots[slotIndex], ...mutationPayload(body) };
+      const x = Number(next.x); const y = Number(next.y); const scale = Number(next.scale);
+      if ([x, y, scale].some((value) => !Number.isFinite(value)) || x < 0 || x > 100 || y < 0 || y > 100 || scale <= 0) fieldError("Tọa độ slot chưa hợp lệ.", { coordinates: "X/Y trong khoảng 0–100, scale lớn hơn 0." });
+      if (!story.pages.some((page) => page.id === next.pageId)) fieldError("Slot chưa hợp lệ.", { pageId: "Chọn một page có trong story." });
+      role.slots[slotIndex] = { ...next, x, y, scale, flip: Boolean(next.flip), layer: Number(next.layer || 1) };
+      storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story);
+    }
     if (method === "DELETE" && slotMatch[3]) {
       assertStoryRevision(story, body?.revision);
       role.slots = role.slots.filter((slot) => slot.id !== slotMatch[3]);
@@ -1045,17 +1121,35 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
   }
 
   const vocabularyDetailMatch = pathname.match(/^\/content\/stories\/([^/]+)\/vocabulary\/([^/]+)$/);
-  if (vocabularyDetailMatch && method === "DELETE") {
+  if (vocabularyDetailMatch && (method === "PATCH" || method === "DELETE")) {
     requireRole(user, "content_manager", "Chỉ Content Manager mới có thể xóa từ vựng.");
     const { story } = findStory(database, vocabularyDetailMatch[1]);
-    assertStoryRevision(story, body?.revision); story.vocabulary = story.vocabulary.filter((item) => item.id !== vocabularyDetailMatch[2]); storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story);
+    assertStoryRevision(story, body?.revision);
+    const vocabularyIndex = story.vocabulary.findIndex((item) => item.id === vocabularyDetailMatch[2]);
+    if (vocabularyIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy từ vựng." });
+    if (method === "PATCH") {
+      validateVocabulary(body);
+      story.vocabulary[vocabularyIndex] = { ...story.vocabulary[vocabularyIndex], ...mutationPayload(body), word: body.word.trim(), meaning: body.meaning.trim(), audioUrl: body.audioUrl?.trim() || "" };
+    } else {
+      story.vocabulary.splice(vocabularyIndex, 1);
+    }
+    storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story);
   }
 
   const quizDetailMatch = pathname.match(/^\/content\/stories\/([^/]+)\/quizzes\/([^/]+)$/);
-  if (quizDetailMatch && method === "DELETE") {
+  if (quizDetailMatch && (method === "PATCH" || method === "DELETE")) {
     requireRole(user, "content_manager", "Chỉ Content Manager mới có thể xóa quiz.");
     const { story } = findStory(database, quizDetailMatch[1]);
-    assertStoryRevision(story, body?.revision); story.quizzes = story.quizzes.filter((item) => item.id !== quizDetailMatch[2]); storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story);
+    assertStoryRevision(story, body?.revision);
+    const quizIndex = story.quizzes.findIndex((item) => item.id === quizDetailMatch[2]);
+    if (quizIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy quiz." });
+    if (method === "PATCH") {
+      validateQuiz(body);
+      story.quizzes[quizIndex] = { ...story.quizzes[quizIndex], ...mutationPayload(body), pageId: body.pageId, question: body.question.trim(), options: body.options.map((option) => option.trim()), correctIndex: body.correctIndex, feedback: body.feedback?.trim() || "", audioUrl: body.audioUrl?.trim() || "" };
+    } else {
+      story.quizzes.splice(quizIndex, 1);
+    }
+    storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story);
   }
 
   const storyCollectionMatch = pathname.match(/^\/content\/stories\/([^/]+)\/(pages|roles|vocabulary|quizzes)$/);
@@ -1070,7 +1164,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       if (collection === "pages") { validatePage(body); item = { id: `page-${Date.now()}`, order: story.pages.length + 1, title: body.title.trim(), text: body.text.trim(), backgroundAssetId: body.backgroundAssetId || null, narration: body.narration?.trim() || "" }; }
       if (collection === "roles") { validateRole(body); item = { id: `role-${Date.now()}`, name: body.name.trim(), custom: body.custom !== false, sensitive: Boolean(body.sensitive), defaultAssetId: body.defaultAssetId || null, slots: [] }; }
       if (collection === "vocabulary") { validateVocabulary(body); item = { id: `vocab-${Date.now()}`, pageId: body.pageId, word: body.word.trim(), meaning: body.meaning.trim(), audioUrl: body.audioUrl?.trim() || "" }; }
-      if (collection === "quizzes") { validateQuiz(body); item = { id: `quiz-${Date.now()}`, pageId: body.pageId, question: body.question.trim(), options: body.options.map((option) => option.trim()), correctIndex: body.correctIndex, feedback: body.feedback?.trim() || "" }; }
+      if (collection === "quizzes") { validateQuiz(body); item = { id: `quiz-${Date.now()}`, pageId: body.pageId, question: body.question.trim(), options: body.options.map((option) => option.trim()), correctIndex: body.correctIndex, feedback: body.feedback?.trim() || "", audioUrl: body.audioUrl?.trim() || "" }; }
       story[collection].push(item); storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story);
     }
   }

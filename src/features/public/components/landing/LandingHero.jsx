@@ -52,6 +52,7 @@ export default function LandingHero() {
         <Reveal className="landing-hero-art" delay={160} direction="right">
           <div className="landing-art-backdrop" aria-hidden="true" />
           <img
+            className="landing-hero-illustration"
             src="/images/hero.webp"
             alt="Mèo linh vật SketchTale vẫy chào bên cuốn sách mở, bạn Thỏ và mầm cây nhỏ."
             width="960"

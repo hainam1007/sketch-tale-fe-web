@@ -16,6 +16,7 @@ import {
 import { useAuth } from "../../features/auth/AuthProvider";
 import BrandLogo from "../../components/branding/BrandLogo";
 import { ROLES, roleHome, roleLabels } from "../../lib/permissions/roles";
+import { confirmContentEditorNavigation } from "../../features/content/hooks/useEditorSaveState";
 import "./workspace.css";
 import "../../features/parent/parent.css";
 
@@ -49,6 +50,7 @@ export default function WorkspaceLayout() {
   const navigation = roleNavigation[user.role] || roleNavigation[ROLES.PARENT];
 
   async function handleLogout() {
+    if (!confirmContentEditorNavigation({ defaultPrevented: false, button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false })) return;
     navigate("/", { replace: true });
     await logout();
   }
@@ -67,13 +69,13 @@ export default function WorkspaceLayout() {
         <div className="workspace-role-label">{roleLabels[user.role]}</div>
         <nav className="workspace-nav" aria-label="Điều hướng khu vực làm việc">
           {navigation.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} onClick={() => setMobileOpen(false)}>
+            <NavLink key={to} to={to} end={end} onClick={(event) => { if (!confirmContentEditorNavigation(event)) event.preventDefault(); else setMobileOpen(false); }}>
               <Icon size={20} aria-hidden="true" /> {label}
             </NavLink>
           ))}
         </nav>
         <div className="workspace-sidebar-bottom">
-          <NavLink to="/profile" onClick={() => setMobileOpen(false)}>
+          <NavLink to="/profile" onClick={(event) => { if (!confirmContentEditorNavigation(event)) event.preventDefault(); else setMobileOpen(false); }}>
             <UserCircle size={20} aria-hidden="true" /> Hồ sơ tài khoản
           </NavLink>
           <button className="workspace-logout" type="button" onClick={handleLogout}>

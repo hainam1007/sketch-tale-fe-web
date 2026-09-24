@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { FloppyDisk, Plus, Trash, UserCircle } from "@phosphor-icons/react";
+import { FloppyDisk, PencilSimple, Plus, Trash, UserCircle, X } from "@phosphor-icons/react";
 import { EditorField, EditorMutationMessage, EditorPanel } from "../components/StoryEditorParts";
+import AssetPicker from "../components/AssetPicker";
 import { useContentAssets, useStoryEditorData, useStoryEditorMutation } from "../hooks/useStoryEditor";
 import { useEditorSaveState } from "../hooks/useEditorSaveState";
 import { contentService } from "../services/contentService";
@@ -33,9 +34,11 @@ export default function StoryRolesPage() {
   const { story, storyId, setEditorDirty } = useStoryEditorData();
   const assetsQuery = useContentAssets();
   const [roleDraft, setRoleDraft] = useState(emptyRole);
+  const [editingRoleId, setEditingRoleId] = useState(null);
   const [slotDrafts, setSlotDrafts] = useState({});
   const mutation = useStoryEditorMutation(({ action, roleId, slotId, payload, revision }) => {
     if (action === "add-role") return contentService.addRole({ storyId, revision, ...payload });
+    if (action === "update-role") return contentService.updateRole({ storyId, roleId, revision, ...payload });
     if (action === "delete-role") return contentService.deleteRole({ storyId, roleId, revision });
     if (action === "add-slot") return contentService.addSlot({ storyId, roleId, revision, ...payload });
     return contentService.deleteSlot({ storyId, roleId, slotId, revision });
@@ -56,8 +59,14 @@ export default function StoryRolesPage() {
     setSlotDrafts((current) => ({ ...current, [roleId]: { ...slotFor(roleId), [name]: value } }));
   }
 
-  function addRole() {
-    mutation.mutate({ action: "add-role", payload: roleDraft }, { onSuccess: () => setRoleDraft(emptyRole) });
+  function saveRole() {
+    const action = editingRoleId ? "update-role" : "add-role";
+    mutation.mutate({ action, roleId: editingRoleId, payload: roleDraft }, { onSuccess: () => { setRoleDraft(emptyRole); setEditingRoleId(null); } });
+  }
+
+  function beginRoleEdit(role) {
+    setEditingRoleId(role.id);
+    setRoleDraft({ name: role.name, custom: role.custom !== false, sensitive: Boolean(role.sensitive), defaultAssetId: role.defaultAssetId || "" });
   }
 
   function addSlot(roleId) {
@@ -67,23 +76,19 @@ export default function StoryRolesPage() {
   return (
     <EditorPanel eyebrow="ROLES / SLOTS" title="Nhân vật và vị trí xuất hiện" description="Role là dữ liệu ổn định của story. Slot đặt asset theo page bằng tọa độ phần trăm, scale, flip và layer; backend sẽ kiểm tra giới hạn trước khi lưu." action={<span className="story-editor-count"><UserCircle size={17} aria-hidden="true" /> {story.roles.length} roles</span>}>
       <div className="editor-form-card">
-        <h3>Thêm role</h3>
+        <h3>{editingRoleId ? "Sửa role" : "Thêm role"}</h3>
         <div className="editor-form-grid">
           <EditorField label="Tên role" name="role-name" value={roleDraft.name} onChange={(value) => updateRole("name", value)} placeholder="Ví dụ: Mầm xanh" />
-          <EditorField label="Default asset" name="role-asset" value={roleDraft.defaultAssetId} onChange={(value) => updateRole("defaultAssetId", value)}>
-            <select id="story-editor-role-asset" value={roleDraft.defaultAssetId} onChange={(event) => updateRole("defaultAssetId", event.target.value)}>
-              <option value="">Chưa chọn asset mặc định</option>
-              {assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.name}</option>)}
-            </select>
-          </EditorField>
+          <div className="editor-field"><AssetPicker assets={assets} id="story-editor-role-asset" label="Default asset" value={roleDraft.defaultAssetId} onChange={(value) => updateRole("defaultAssetId", value)} /></div>
         </div>
         <div className="editor-checkboxes"><label className="editor-checkbox"><input type="checkbox" checked={roleDraft.custom} onChange={(event) => updateRole("custom", event.target.checked)} /> Role custom</label><label className="editor-checkbox"><input type="checkbox" checked={roleDraft.sensitive} onChange={(event) => updateRole("sensitive", event.target.checked)} /> Nội dung nhạy cảm</label></div>
-        <button className="workspace-button" type="button" onClick={addRole} disabled={mutation.isPending}><FloppyDisk size={16} aria-hidden="true" /> Thêm role</button>
+        <button className="workspace-button" type="button" onClick={saveRole} disabled={mutation.isPending}><FloppyDisk size={16} aria-hidden="true" /> {editingRoleId ? "Lưu role" : "Thêm role"}</button>
+        {editingRoleId && <button className="workspace-button workspace-button-quiet" type="button" onClick={() => { setEditingRoleId(null); setRoleDraft(emptyRole); }}><X size={16} aria-hidden="true" /> Huỷ sửa</button>}
       </div>
       <EditorMutationMessage mutation={mutation} />
       {story.roles.length ? <div className="role-list">{story.roles.map((role) => (
         <article className="role-card" key={role.id}>
-          <div className="role-card-heading"><div><span className="editor-item-index">ROLE</span><h3>{role.name}</h3><p>{role.custom ? "Custom role" : "Role hệ thống"}{role.sensitive ? " · sensitive" : ""}</p></div><button className="icon-button icon-button-danger" type="button" aria-label={`Xoá role ${role.name}`} onClick={() => { if (window.confirm(`Xoá role “${role.name}” và toàn bộ slot?`)) mutation.mutate({ action: "delete-role", roleId: role.id }); }}><Trash size={17} aria-hidden="true" /></button></div>
+          <div className="role-card-heading"><div><span className="editor-item-index">ROLE</span><h3>{role.name}</h3><p>{role.custom ? "Custom role" : "Role hệ thống"}{role.sensitive ? " · sensitive" : ""}</p></div><div className="editor-item-actions"><button className="icon-button" type="button" aria-label={`Sửa role ${role.name}`} onClick={() => beginRoleEdit(role)}><PencilSimple size={17} aria-hidden="true" /></button><button className="icon-button icon-button-danger" type="button" aria-label={`Xoá role ${role.name}`} onClick={() => { if (window.confirm(`Xoá role “${role.name}” và toàn bộ slot?`)) mutation.mutate({ action: "delete-role", roleId: role.id }); }}><Trash size={17} aria-hidden="true" /></button></div></div>
           <div className="slot-list">{role.slots?.length ? role.slots.map((slot) => <div className="slot-row" key={slot.id}><span><strong>{story.pages.find((page) => page.id === slot.pageId)?.title || "Page không còn tồn tại"}</strong><small>X {slot.x}% · Y {slot.y}% · scale {slot.scale} · layer {slot.layer}{slot.flip ? " · flipped" : ""}</small></span><button className="icon-button icon-button-danger" type="button" aria-label="Xoá slot" onClick={() => mutation.mutate({ action: "delete-slot", roleId: role.id, slotId: slot.id })}><Trash size={15} aria-hidden="true" /></button></div>) : <p className="editor-help">Role này chưa có slot.</p>}</div>
           {story.pages.length ? <SlotForm values={slotFor(role.id)} pages={story.pages} onChange={(name, value) => updateSlot(role.id, name, value)} onSubmit={() => addSlot(role.id)} isSaving={mutation.isPending} /> : <p className="editor-help">Tạo ít nhất một page trước khi đặt slot.</p>}
         </article>

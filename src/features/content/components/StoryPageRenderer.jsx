@@ -1,4 +1,5 @@
 import { SpeakerHigh } from "@phosphor-icons/react";
+import { useState } from "react";
 
 /**
  * Render one page using every role/slot attached to that page.
@@ -6,11 +7,11 @@ import { SpeakerHigh } from "@phosphor-icons/react";
  * Missing assets stay visible as an error state; a fallback image would hide
  * a contract problem that must be fixed before publish.
  */
-export default function StoryPageRenderer({ story, page, assets }) {
+export default function StoryPageRenderer({ story, page, assets, onSlotSelect, selectedSlotId }) {
   if (!page) return null;
 
   const assetById = new Map((assets || []).map((asset) => [asset.id, asset]));
-  const background = assetById.get(page.backgroundAssetId) || assetById.get(story.coverAssetId);
+  const background = assetById.get(page.backgroundAssetId || story.coverAssetId);
   const placements = (story.roles || [])
     .flatMap((role) => (role.slots || [])
       .filter((slot) => slot.pageId === page.id)
@@ -32,16 +33,24 @@ export default function StoryPageRenderer({ story, page, assets }) {
       </div>
       {placements.map(({ role, slot }) => {
         const roleAsset = assetById.get(slot.assetId || role.defaultAssetId);
-        const transform = `translate(-50%, -50%) scale(${slot.scale || 1}) ${slot.flip ? "scaleX(-1)" : ""}`;
+        const anchor = slot.anchor || "center";
+        const translate = anchor === "top-left" ? "translate(0, 0)" : anchor === "top-right" ? "translate(-100%, 0)" : anchor === "bottom-left" ? "translate(0, -100%)" : anchor === "bottom-right" ? "translate(-100%, -100%)" : "translate(-50%, -50%)";
+        const transform = `${translate} scale(${slot.scale || 1}) ${slot.flip ? "scaleX(-1)" : ""}`;
         return (
           <div
-            className={`story-preview-slot${roleAsset ? "" : " story-preview-slot-missing"}`}
+            className={`story-preview-slot${roleAsset?.url ? "" : " story-preview-slot-missing"}${selectedSlotId === slot.id ? " story-preview-slot-selected" : ""}`}
             key={slot.id}
             style={{ left: `${slot.x}%`, top: `${slot.y}%`, transform, zIndex: Number(slot.layer || 0) + 1 }}
             aria-label={`${role.name} slot`}
             data-role-id={role.id}
+            data-slot-id={slot.id}
+            role={onSlotSelect ? "button" : undefined}
+            tabIndex={onSlotSelect ? 0 : undefined}
+            aria-pressed={onSlotSelect ? selectedSlotId === slot.id : undefined}
+            onClick={onSlotSelect ? () => onSlotSelect(slot.id) : undefined}
+            onKeyDown={onSlotSelect ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSlotSelect(slot.id); } } : undefined}
           >
-            {roleAsset ? <img src={roleAsset.url} alt={role.name} /> : <span>{role.name}<small>Missing asset</small></span>}
+            {roleAsset?.url ? <AssetImage src={roleAsset.url} alt={role.name} missingLabel={role.name} /> : <span>{role.name}<small>Missing asset</small></span>}
           </div>
         );
       })}
@@ -50,3 +59,8 @@ export default function StoryPageRenderer({ story, page, assets }) {
   );
 }
 
+function AssetImage({ src, alt, missingLabel }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span>{missingLabel}<small>Asset không tải được</small></span>;
+  return <img src={src} alt={alt} onError={() => setFailed(true)} />;
+}

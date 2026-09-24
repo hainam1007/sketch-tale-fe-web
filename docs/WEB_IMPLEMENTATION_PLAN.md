@@ -1,6 +1,7 @@
 # SketchTale — Kế hoạch triển khai Web cho Parent, Content Manager và Admin
 
 > Ngày lập: 18/09/2026.
+> Cập nhật 23/09/2026: ưu tiên khung công cụ Content Manager trên frontend theo mục 7; chưa thay đổi tiêu chí nghiệm thu API của G2/G3.
 > Phạm vi: một lập trình viên chịu trách nhiệm Web Frontend cho ba role; phối hợp Backend, Mobile và AI/Media của nhóm.
 > Trạng thái: kế hoạch đề xuất để triển khai, không phải xác nhận API/nghiệp vụ đã được Backend cung cấp.
 > Nguồn nghiệp vụ: `PROJECT_SUMMARY.md`. Tài liệu này là kế hoạch tổng thể; `PARENT_IMPLEMENTATION_PLAN.md` chỉ là phân rã tham khảo riêng cho Parent. Khi thứ tự, kiến trúc hoặc ước lượng khác nhau, dùng kế hoạch tổng thể này.
@@ -254,6 +255,12 @@ Kế hoạch code chi tiết và audit hiện trạng: [CONTENT_MANAGER_IMPLEMEN
 
 ### Cách triển khai editor để kiểm soát độ phức tạp
 
+**Ưu tiên hiện tại — frontend trước:** triển khai F0–F5 trong [kế hoạch Content Manager, mục 10](CONTENT_MANAGER_IMPLEMENTATION_PLAN.md#10-đợt-ưu-tiên-bộ-công-cụ-dựng-truyện-trên-frontend-23092026): baseline/contract tạm → kho asset local giữ đúng file qua refresh → picker dùng chung → workspace Pages → role/slot → preview và kiểm tra. Tận dụng các route, service, renderer và save-state đã có; audit Content ngày 23/09 trong tài liệu chi tiết thay cho mô tả baseline cũ khi triển khai phần này.
+
+Đầu ra là một công cụ nhập asset có sẵn và dựng truyện demo hoạt động được, chưa gồm AI tạo asset, vẽ/chỉnh ảnh, drag/drop hay narration generation. Có thể bắt đầu bằng fixture và quy ước frontend trong [CONTENT_MANAGER_CONTRACT.md](CONTENT_MANAGER_CONTRACT.md), không chờ upload API. Chưa tuyên bố khớp Mobile khi schema chưa được review.
+
+Đợt này ước lượng 8–13 ngày công (dự phòng 10–16), là phân rã ưu tiên của C-01–04/C-07/C-09 và một phần validation; không cộng cơ học vào tổng Web. Demo frontend không đóng G2/G3: upload/storage, quyền, revision và publish snapshot thật vẫn phải nghiệm thu với Backend/Mobile. Các domain khác tiếp tục theo phụ thuộc riêng, không cần chờ toàn bộ Content hoàn tất.
+
 1. Prototype kỹ thuật sớm bằng một truyện nhỏ: nhiều trang, một role, một slot và một quiz. Kiểm chứng payload, tọa độ và preview với Mobile trước khi xây đủ UI.
 2. Tách metadata, pages, roles, vocabulary và quiz thành form/tab. Dùng ID ổn định, không dùng array index làm định danh entity.
 3. Làm Save draft tường minh trước. Khi save/revision ổn định, bổ sung autosave có debounce, lưu tuần tự và trạng thái `chưa lưu/đang lưu/đã lưu/lưu lỗi`; response cũ không ghi đè form mới.
@@ -389,7 +396,7 @@ Giữ `npm test` cho Playwright hiện có; khi thêm Vitest dùng script riêng
 | Auth/session/verify | Auth thật | Dùng mock rõ ràng, không coi là đã xác thực production |
 | Fields child, age validation, avatar | P-01 | Prototype field tối thiểu; chưa hardcode quy tắc tuổi ngoài phạm vi |
 | Role sở hữu category và Free/premium catalog | C-01/C-08 | Catalog fixture read-only; chưa thêm CRUD tùy tiện |
-| Story draft/version/revision và slot schema | G3 | Spike sớm; không xây editor đầy đủ trên schema chưa được review |
+| Story draft/version/revision và slot schema | Nghiệm thu G3 với BE/Mobile | Dựng khung F0–F5 với contract frontend tạm, cô lập adapter; review trước khi chốt fidelity Mobile/canvas nâng cao |
 | Lý do reject và sensitive permission qua version | P-03/P-04 | Ghi giả định mock, chờ rule trước nghiệm thu thật |
 | Foreground/background, timezone, daily character limit | P-02 | Tách settings UI khỏi thực thi usage; hoãn field chưa chốt |
 | Gói theo account/child, quota/reset/regenerate | P-08 và enforce thật | Đọc entitlement response; không tự tính quyền từ bảng giá |

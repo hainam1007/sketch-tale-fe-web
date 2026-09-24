@@ -1,6 +1,7 @@
 # SketchTale — Kế hoạch code cho Content Manager
 
 > Ngày lập: 18/09/2026.
+> Cập nhật 23/09/2026: ưu tiên bộ công cụ frontend dựng truyện và quản lý asset. Mục 10 là thứ tự thực hiện hiện hành cho đợt frontend; M0–M5 vẫn là mốc hoàn thiện/tích hợp toàn module.
 > Phạm vi: Web Frontend, một lập trình viên; phối hợp Backend và Mobile về contract, media và preview.
 > Tài liệu tổng thể: [WEB_IMPLEMENTATION_PLAN.md](WEB_IMPLEMENTATION_PLAN.md), đặc biệt C-01–C-10 và G2/G3/G5/G6. Nghiệp vụ nguồn: [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md).
 > Đây là kế hoạch hoàn thiện code hiện có. Có màn hình/mock không đồng nghĩa đã tích hợp API hoặc nghiệm thu. Khi có khác biệt về phạm vi/thứ tự tổng thể, ưu tiên kế hoạch Web; hiện trạng kỹ thuật dưới đây căn cứ repository tại ngày lập.
@@ -17,22 +18,22 @@ Hoàn thiện luồng **tạo draft → chọn/upload asset → pages → roles/
 
 ## 2. Hiện trạng và khoảng trống phải xử lý
 
-Đã đọc service, hook, layout, các màn danh sách/pages/preview/assets/statistics, mock handlers và test G3. Đây là kiểm tra mã nguồn; chưa chạy lại test trong đợt lập kế hoạch này.
+Baseline lập ngày 18/09; các mục asset, revision, preview và save-state được rà lại ngày 23/09 bằng mã nguồn. Đây là kiểm tra mã nguồn; chưa chạy lại test trong đợt lập kế hoạch này. Xem mục 10 để biết khoảng trống và thứ tự ưu tiên hiện hành.
 
 | Hạng mục | Bằng chứng hiện có | Việc cần code tiếp |
 | --- | --- | --- |
 | Shared | AuthProvider, role guards, workspace, HTTP wrapper, query keys | Xác nhận auth thật, quyền thao tác và cấu hình production; không làm lại shell |
 | C-01 | `ContentStoriesPage`, `StoryForm`, metadata và service list/create/update | Pagination/sort/filter trên URL; catalog từ API; field errors và dirty-state |
-| C-02 | `AssetsPage` chọn ảnh, preview và gửi metadata | Hiện chưa gửi bytes file; progress 15/100 là mô phỏng. Cần upload thật, cancel/retry, audio theo contract và AssetPicker |
-| C-03 | `StoryPagesPage` thêm/sửa/xóa/reorder bằng ID | Revision cho mutation, xóa có kiểm soát tham chiếu, lưu an toàn; narration hiện là text |
+| C-02 | `AssetsPage`, `AssetPicker`, `assetService` đã có FormData/file, abort và retry | Mock chỉ đọc metadata, trả `/images/hero.webp`; cần giữ đúng file local qua refresh, picker trực quan, audio và kiểm chứng upload API thật |
+| C-03 | `StoryPagesPage` thêm/sửa/xóa/reorder bằng ID; service/hook đã truyền revision | Kiểm chứng conflict/xóa có kiểm soát tham chiếu và bảo vệ form; narration hiện là text |
 | C-04 | Roles/slots và service thêm/xóa slot, cập nhật role | Bổ sung cập nhật slot; chốt tọa độ/anchor/layer với Mobile, validation và quyền vai nhạy cảm |
 | C-05/C-06 | Màn vocabulary/quiz; service thêm/xóa | Bổ sung sửa vocabulary/quiz, audio, validation và giữ đáp án đúng khi sửa options |
-| C-07 | `StoryPreviewPage` render nền/text/slot | Hiện chỉ render slots của role đang chọn; cần render tất cả role trên trang, đúng tỷ lệ, media/audio và lỗi asset rõ |
+| C-07 | `StoryPageRenderer` đã render mọi role/slot theo page, sort layer, X/Y phần trăm; fixture nhiều role | Cần kiểm chứng tỷ lệ/anchor/kích thước với Mobile, lỗi tải media; bỏ fallback che tham chiếu asset hỏng |
 | C-08/C-09 | Layout validate/publish/hide; mock revision/version snapshot | Chặn publish khi chưa lưu/đang lưu; conflict cho mọi mutation; lỗi dẫn về field; kiểm chứng snapshot với API thật |
 | C-10 | Statistics 7/30 ngày, aggregate query và partial warning | Chốt định nghĩa chỉ số/timezone; empty/null/error và dữ liệu thực |
 | Test | `tests/g3.spec.js` có luồng tạo nội dung/publish và preview seed | Bổ sung race/conflict/dirty/multi-role/upload và kiểm thử tích hợp |
 
-`httpClient.js` hiện gửi JSON, mock trực tiếp qua `mockRequest`, mặc định mock khi `VITE_API_MODE` khác `real`. MSW, React Hook Form, Zod và Vitest trong kế hoạch tổng thể chưa có trong package hiện tại. Chỉ bổ sung theo ticket shared thống nhất; không giả định đã dùng MSW hoặc phải viết lại tất cả form ngay.
+Service dùng JSON cho nội dung và FormData cho upload, mock trực tiếp qua `mockRequest`; cần kiểm tra cấu hình mode tại HTTP boundary khi tích hợp. MSW, React Hook Form, Zod và Vitest trong kế hoạch tổng thể chưa có trong package hiện tại. Chỉ bổ sung theo ticket shared thống nhất; không giả định đã dùng MSW hoặc phải viết lại tất cả form ngay.
 
 ## 3. Routes và phân quyền
 
@@ -106,7 +107,7 @@ src/features/content/
   pages/                            # hoàn thiện các file hiện có
 ```
 
-- Query keys chứa user/story/filter; preview thêm revision hoặc được invalidate khi draft thay đổi. Hook hiện mới invalidate list, cần tránh preview cache cũ sau save.
+- Query keys chứa user/story/filter; hook hiện đã invalidate list và preview sau mutation. Cần kiểm chứng preview đúng revision và không bị response cũ ghi đè.
 - Server state ở Query; local form state độc lập, không reset khi refetch nền nếu đang dirty. Đổi story ID phải reset đúng phạm vi.
 - Mỗi story chỉ một mutation ghi đang chạy; khóa hoặc xếp hàng rõ ràng. Response cũ không được ghi đè input mới hay revision mới.
 - Dùng Save tường minh. Lỗi mạng giữ input; mutation không rõ đã thành công thì đối chiếu revision trước retry, không tự replay publish/upload finalize.
@@ -141,7 +142,7 @@ Mỗi ticket khoảng 0,5–2 ngày; thời gian nằm trong milestone ở trên
 | CM-003 | M1 / C-01 | List pagination/filter/sort trên URL; adapter response | CM-001 |
 | CM-004 | M1 / C-01 | Metadata/category/cover, field errors và draft redirect | CM-003 |
 | CM-005 | M1 / C-02 | Upload bytes, validate MIME/size, cancel/retry, trạng thái thật | Upload contract |
-| CM-006 | M1 / C-02 | AssetPicker và query/filter/cache dùng chung | CM-005 |
+| CM-006 | M1 / C-02 | AssetPicker và query/filter/cache dùng chung | Asset contract/fixture; không chờ CM-005 tích hợp thật |
 | CM-007 | M2 / C-09 | Dirty-state, save trạng thái, route guard và mutation coordination | CM-004 |
 | CM-008 | M2 / C-03/09 | Revision/ETag, conflict, invalidation và giữ input khi lỗi | CM-007 |
 | CM-009 | M2 / C-03 | Pages CRUD/reorder/delete có reference checks | CM-008 |
@@ -155,7 +156,7 @@ Mỗi ticket khoảng 0,5–2 ngày; thời gian nằm trong milestone ở trên
 | CM-017 | M5 / C-10 | Statistics/overview đúng định nghĩa, empty/null/partial errors | Aggregate contract |
 | CM-018 | M5 / toàn bộ | E2E hồi quy, keyboard/axe/responsive, staging evidence | Các ticket trên |
 
-Test hành vi quan trọng đi cùng từng ticket; CM-018 dành cho luồng liên module và release, không dồn toàn bộ test về cuối. Ưu tiên bắt đầu **CM-001 → CM-002 → CM-003/004 → CM-005/006 → CM-007/008**.
+Test hành vi quan trọng đi cùng từng ticket; CM-018 dành cho luồng liên module và release, không dồn toàn bộ test về cuối. Đợt frontend hiện tại ưu tiên F0–F5 tại mục 10; CM-005 upload thật không chặn dựng editor bằng asset local.
 
 ## 7. Validation, preview và vòng đời publish
 
@@ -194,10 +195,65 @@ Mỗi ticket theo **Backlog → Ready → In progress → Review → Done**, kè
 | --- | --- | --- |
 | Quyền sửa template và quyền publish/hide | API integration | Mapping role hiện tại, fixture 403 và scope giả định được ghi rõ |
 | Draft revision, delete cascade, response mutation | M2 | Save-state/component tests với contract nháp |
-| Canvas/anchor/layer/aspect ratio | CM-010/013 | Spike CM-002, chưa triển khai full editor trên giả định chưa review |
+| Canvas/anchor/layer/aspect ratio | Nghiệm thu CM-010/013 với Mobile | Dựng khung F0–F5 bằng quy ước frontend tạm trong contract; chưa chốt fidelity Mobile hoặc công cụ canvas nâng cao |
 | Audio upload/narration segments | M3 | CRUD text, media adapter và UI loading/error |
 | Category/Free/premium ownership | Metadata/catalog thật | Catalog read-only bằng fixture; không thêm trang quản trị tùy tiện |
 | Hide/republish và GeneratedStory cũ | M4 | Version UI và fixture bất biến; tích hợp vẫn pending |
 | Định nghĩa statistics | M5 | Bảng/empty/error, chưa gán ý nghĩa chỉ số chưa thống nhất |
 
 Nếu thiếu thời gian, hoãn autosave, drag/drop, bulk action, chart và dashboard nâng cao trước. Giữ upload thật tối thiểu, editor CRUD, bảo vệ draft/revision, preview đúng, publish/version và kiểm thử phân quyền. Không đánh dấu role Content Manager hoàn thành nếu luồng chính vẫn chỉ chạy mock.
+
+## 10. Đợt ưu tiên: bộ công cụ dựng truyện trên frontend (23/09/2026)
+
+### Kết quả cần đạt và giới hạn
+
+**Có thể triển khai trước Backend:** Content Manager tạo một truyện mẫu, đưa ảnh của mình vào kho, chọn cover/background/nhân vật, dựng nhiều trang, đặt vai vào từng trang, lưu và xem lại đúng nội dung sau refresh trong cùng trình duyệt. Đây là công cụ authoring hoạt động với mock, chưa phải truyện đã phát hành cho Mobile.
+
+“Xây dựng asset” trong đợt này nghĩa là nhập file có sẵn, xem trước, phân loại và gắn vào truyện. Chưa gồm vẽ ảnh, AI sinh ảnh, xóa nền, chỉnh sửa ảnh, tạo giọng đọc hoặc một editor kiểu Canva. Asset nhân vật nên dùng ảnh có nền trong suốt; frontend không tự tách nền. Audio làm sau luồng ảnh, tận dụng cùng picker/adapter khi contract sẵn sàng.
+
+### Bố cục và thao tác
+
+- Giữ route/tab hiện có. Trong tab Pages: danh sách trang bên trái, vùng xem trang ở giữa, form thuộc tính bên phải; laptop hẹp chuyển thuộc tính xuống dưới, luôn truy cập được nút lưu.
+- Thanh trên có tên truyện, revision, trạng thái lưu, Lưu và Xem trước. Hiển thị rõ chế độ demo local và giới hạn lưu trên thiết bị.
+- Kho asset và hộp chọn asset dùng chung: thumbnail, tên, loại file, công dụng, tìm kiếm, bộ lọc, trạng thái rỗng/lỗi, xem chi tiết và chọn. Mở picker từ cover/background/default asset của role và quay lại đúng form.
+- Vùng trang cho phép chọn slot để sửa bằng form X/Y/scale/flip/layer. Danh sách lớp sắp theo layer; nút lên/xuống cập nhật thứ tự xác định. Chưa kéo thả/resize trực tiếp ở đợt đầu.
+- Phân biệt **xem thử form chưa lưu** ngay trong editor và route **Preview draft đã lưu**. Cả hai dùng `StoryPageRenderer`; preview chưa lưu không sửa query cache và không được dùng để publish.
+
+### Nền tảng tận dụng và phần thiếu
+
+Audit mã nguồn ngày 23/09 cho thấy đã có `models.js`, `AssetPicker`, `assetService`, `StoryPageRenderer`, mutation scope theo story, invalidate preview và dirty guard cho metadata. Có `tests/content-contract.spec.js` và `tests/content-save-state.spec.js`; đợt lập kế hoạch này chưa chạy lại test nên không đánh dấu chúng đã pass.
+
+Khoảng trống chính: mock upload bỏ qua bytes và trả ảnh cố định; picker dùng select và ảnh fallback; renderer dùng kích thước slot CSS có `min-width`, chưa xử lý anchor khác tâm hoặc lỗi tải URL. Service chưa có PATCH slot/vocabulary/quiz. Dirty-state chưa được chứng minh cho mọi form; guard link hiện tại chưa đủ chứng minh chặn Back/sidebar/mọi chuyển route. Vì vậy không làm lại shell hoặc coi nền hiện tại đã hoàn thiện.
+
+Luồng dữ liệu: **UI → hooks → content/asset service → mock hoặc real adapter**. Không đọc IndexedDB hay gọi endpoint trực tiếp trong component. Giữ mock boundary hiện tại; chưa cần thêm MSW, thư viện canvas hoặc đổi toàn bộ form stack.
+
+### Backlog thực hiện theo thứ tự
+
+Các ticket F dưới đây là phân rã ưu tiên từ CM, chưa triển khai trong lần cập nhật tài liệu này. Mỗi ticket lớn chia nhỏ thành phần việc tối đa hai ngày trước khi code.
+
+| Ticket | Kết quả và tiêu chí đạt | Map / phụ thuộc | Ngày công |
+| --- | --- | --- | --- |
+| F0 | Rà baseline, cố định fixture 3 trang/2 role, quy ước canvas tạm và adapter; lưu ảnh đối chiếu để kiểm tra resize | CM-001/002; không chờ API | 0,5–1 |
+| F1 | Local asset store lưu Blob bằng IndexedDB, metadata/ID ổn định; upload đúng ảnh, refresh vẫn mở được, reset demo dọn dữ liệu; lỗi quota/hủy giữ file và không báo thành công giả | CM-005 phần mock; F0 | 1,5–2 |
+| F2 | Nâng AssetPicker thành hộp chọn có thumbnail, search/filter, chi tiết; chọn cover/background/role đúng ID, giữ lựa chọn khi lọc, thiếu asset có lỗi rõ | CM-004/006; F1 | 1–2 |
+| F3 | Workspace Pages có danh sách + renderer + thuộc tính; thêm/sửa/reorder/xóa có reference check; Save và dirty guard cho page, input không mất khi lỗi | CM-007/008/009; F2 | 2–3 |
+| F4 | Role/slot CRUD gồm PATCH slot; chọn slot, sửa số/flip/layer, ảnh mặc định; resize giữ bố cục, nhiều role trên một trang | CM-010/013; F3 | 2–3 |
+| F5 | Preview draft đúng revision, danh sách lỗi đi tới page/slot/field; demo xuyên luồng, kiểm tra refresh/dirty/conflict/ảnh hỏng và responsive | CM-013/014/018 phần frontend; F4 | 1–2 |
+
+Ước lượng **8–13 ngày công**, dự phòng khoảng **10–16 ngày** cho một frontend developer. Đây là ước lượng riêng cho khung frontend từ code hiện có, có thể hiệu chỉnh sau F0; không cộng nguyên khối vào 16–22 ngày M0–M5 hoặc 47–65 ngày Web. Phần local Blob store phát sinh cần cập nhật lại ước lượng tích hợp sau đợt này.
+
+Mốc demo sớm sau F2: nhập ảnh thật ở local → chọn làm cover/background → refresh còn đúng ảnh. Mốc demo khung sau F5: truyện 3 trang, 2 role, ít nhất một trang có nhiều slot; reorder không mất liên kết, lưu và preview đúng, thiếu asset báo lỗi thay vì đổi ảnh khác.
+
+### Lưu local và đường chuyển sang API
+
+- Chỉ bật local asset store trong mock/dev. Lưu Blob theo asset ID với namespace tài khoản demo; metadata tham chiếu cùng ID. Tạo object URL khi đọc, thu hồi khi không còn người dùng; không lưu chuỗi `blob:` vào draft/snapshot hoặc giả lập URL dùng được trên Mobile.
+- Dùng mock database hiện tại cho draft demo; adapter phải có rollback/cleanup nếu ghi metadata và Blob không thành công đồng bộ. Reset demo xóa cả hai; xử lý mất Blob hoặc quota bằng trạng thái lỗi có thể khôi phục/chọn lại.
+- Real mode không âm thầm fallback local. Giữ multipart hiện có hoặc đổi sang presigned theo Backend; chỉ nhận asset sẵn sàng khi server hoàn tất. Backend quyết định MIME/size/ownership, giới hạn 5MB hiện tại chỉ là cấu hình prototype cần xác nhận.
+- Không tự chuyển draft/asset demo lên production. Dữ liệu kiểm thử tích hợp được tạo qua API thật; nếu cần migration local sau này, lập ticket riêng.
+- Publish mock hiện có chỉ phục vụ kiểm tra version. Nghiệm thu upload tải lại được, phân quyền, revision nguyên tử, snapshot và bố cục Mobile vẫn nằm ở M1–M4.
+
+### Kiểm chứng trước khi nhận khung
+
+Chạy lint/build và các Playwright spec Content liên quan sau khi code. Bổ sung test upload hai ảnh khác nhau rồi refresh, missing Blob/URL, picker giữ selection, reorder giữ page ID, PATCH slot, preview nhiều role, save lỗi/conflict giữ input và rời trang dirty bằng tab/sidebar/Back. Kiểm tra bằng bàn phím và laptop/màn hẹp; không yêu cầu viết test mới cho lần chỉ chỉnh tài liệu này.
+
+Sau F5, tiếp tục sửa vocabulary/quiz, audio theo contract, publish/version với API rồi statistics. Trạng thái bàn giao chỉ là **Frontend/mock complete** sau khi đạt tiêu chí; `API integrated` và `Verified on staging` vẫn theo dõi riêng.

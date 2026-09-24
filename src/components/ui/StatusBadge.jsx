@@ -24,6 +24,6 @@ const labels = {
   resolved: "Đã giải quyết",
 };
 
-export default function StatusBadge({ value, tone = "neutral" }) {
-  return <span className={`workspace-badge workspace-badge-${tone}`}>{labels[value] || value}</span>;
+export default function StatusBadge({ value, tone = "neutral", label }) {
+  return <span className={`workspace-badge workspace-badge-${tone}`}>{label || labels[value] || value}</span>;
 }

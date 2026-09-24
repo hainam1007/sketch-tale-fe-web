@@ -1,5 +1,5 @@
 import { apiRequest } from "../../../lib/api/httpClient";
-import { uploadAsset } from "./assetService";
+import { deleteAsset, listAssets, uploadAsset } from "./assetService";
 
 function revisionBody(payload, revision) {
   return revision === undefined ? payload : { ...payload, revision };
@@ -25,19 +25,22 @@ export const contentService = {
   updateRole: ({ storyId, roleId, revision, ...payload }) => apiRequest({ path: `/content/stories/${storyId}/roles/${roleId}`, method: "PATCH", body: revisionBody(payload, revision) }),
   deleteRole: ({ storyId, roleId, revision }) => apiRequest({ path: `/content/stories/${storyId}/roles/${roleId}`, method: "DELETE", body: revisionBody({}, revision) }),
   addSlot: ({ storyId, roleId, revision, ...payload }) => apiRequest({ path: `/content/stories/${storyId}/roles/${roleId}/slots`, method: "POST", body: revisionBody(payload, revision) }),
+  updateSlot: ({ storyId, roleId, slotId, revision, ...payload }) => apiRequest({ path: `/content/stories/${storyId}/roles/${roleId}/slots/${slotId}`, method: "PATCH", body: revisionBody(payload, revision) }),
   deleteSlot: ({ storyId, roleId, slotId, revision }) => apiRequest({ path: `/content/stories/${storyId}/roles/${roleId}/slots/${slotId}`, method: "DELETE", body: revisionBody({}, revision) }),
   listVocabulary: ({ storyId, signal }) => apiRequest({ path: `/content/stories/${storyId}/vocabulary`, signal }),
   addVocabulary: ({ storyId, revision, ...payload }) => apiRequest({ path: `/content/stories/${storyId}/vocabulary`, method: "POST", body: revisionBody(payload, revision) }),
+  updateVocabulary: ({ storyId, vocabularyId, revision, ...payload }) => apiRequest({ path: `/content/stories/${storyId}/vocabulary/${vocabularyId}`, method: "PATCH", body: revisionBody(payload, revision) }),
   deleteVocabulary: ({ storyId, vocabularyId, revision }) => apiRequest({ path: `/content/stories/${storyId}/vocabulary/${vocabularyId}`, method: "DELETE", body: revisionBody({}, revision) }),
   listQuizzes: ({ storyId, signal }) => apiRequest({ path: `/content/stories/${storyId}/quizzes`, signal }),
   addQuiz: ({ storyId, revision, ...payload }) => apiRequest({ path: `/content/stories/${storyId}/quizzes`, method: "POST", body: revisionBody(payload, revision) }),
+  updateQuiz: ({ storyId, quizId, revision, ...payload }) => apiRequest({ path: `/content/stories/${storyId}/quizzes/${quizId}`, method: "PATCH", body: revisionBody(payload, revision) }),
   deleteQuiz: ({ storyId, quizId, revision }) => apiRequest({ path: `/content/stories/${storyId}/quizzes/${quizId}`, method: "DELETE", body: revisionBody({}, revision) }),
   previewStory: ({ storyId, signal }) => apiRequest({ path: `/content/stories/${storyId}/preview`, signal }),
   validateStory: ({ storyId, revision }) => apiRequest({ path: `/content/stories/${storyId}/validate`, method: "POST", body: revisionBody({}, revision) }),
   publishStory: ({ storyId, revision }) => apiRequest({ path: `/content/stories/${storyId}/publish`, method: "POST", body: { revision } }),
   hideStory: ({ storyId, revision }) => apiRequest({ path: `/content/stories/${storyId}/hide`, method: "POST", body: { revision } }),
-  listAssets: ({ signal } = {}) => apiRequest({ path: "/content/assets", signal }),
+  listAssets,
   getStatistics: ({ range = "7d", signal } = {}) => apiRequest({ path: `/content/statistics?range=${range}`, signal }),
   uploadAsset,
+  deleteAsset,
 };
-

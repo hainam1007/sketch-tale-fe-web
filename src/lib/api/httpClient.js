@@ -37,6 +37,14 @@ async function realRequest({ path, method, body, signal }) {
  * the backend without changing pages or hooks.
  */
 export async function apiRequest({ path, method = "GET", body, signal }) {
-  if (useMock) return mockRequest({ path, method, body, signal });
-  return realRequest({ path, method, body, signal });
+  try {
+    if (useMock) return await mockRequest({ path, method, body, signal });
+    return await realRequest({ path, method, body, signal });
+  } catch (error) {
+    const normalized = normalizeApiError(error);
+    if (typeof window !== "undefined" && [401, 423].includes(normalized.status)) {
+      window.dispatchEvent(new CustomEvent("sketchtale:auth-invalid", { detail: normalized }));
+    }
+    throw normalized;
+  }
 }

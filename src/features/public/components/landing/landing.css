@@ -312,6 +312,11 @@
   width: 100%;
   z-index: 1;
 }
+.landing-hero-illustration {
+  animation: landing-hero-float 5s ease-in-out 900ms infinite;
+  transform-origin: 50% 78%;
+  will-change: transform;
+}
 .landing-art-backdrop {
   background: var(--color-primary);
   border-radius: 48% 52% 44% 56%;
@@ -348,6 +353,15 @@
   bottom: 13%;
   left: 20%;
   transform: rotate(-4deg);
+}
+@keyframes landing-hero-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -8px, 0) rotate(0.6deg);
+  }
 }
 .landing-feature-section {
   background: white;
@@ -1191,6 +1205,10 @@
     opacity: 1;
     transform: none;
     transition: none;
+  }
+  .landing-hero-illustration {
+    animation: none;
+    transform: none;
   }
   .landing-button,
   .landing-button:hover {
