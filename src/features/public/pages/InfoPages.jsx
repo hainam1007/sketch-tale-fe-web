@@ -1,51 +1,10 @@
 import { Sparkle } from "@phosphor-icons/react";
 import {
   ActionLink,
-  DataState,
   FinalCta,
   PageIntro,
 } from "../components/Common";
 import FaqAccordion from "../components/FaqAccordion";
-import ParentDemo from "../components/ParentDemo";
-import { usePublicData } from "../components/usePublicData";
-import PlanComparison from "../components/PlanComparison";
-
-export function PricingPage() {
-  const result = usePublicData("getPlanAvailability");
-  return (
-    <>
-      <div className="container page-space">
-        <PageIntro
-          label="Hành trình của gia đình"
-          title="Gói sử dụng SketchTale"
-        >
-          Từ câu chuyện đầu tiên đến những sáng tạo của cả gia đình.
-        </PageIntro>
-        {result.loading || result.error ? (
-          <DataState {...result} />
-        ) : (
-          <>
-            <p className="form-notice pricing-notice">{result.data.message}</p>
-            <PlanComparison plans={result.data.plans} />
-            <p className="small muted">
-              Ba truyện công khai là nội dung demo, không phải danh sách 5
-              truyện thuộc gói Free. Điều kiện gia hạn, hủy, hoàn tiền và cách
-              tính lượt sẽ được bổ sung trước khi mở thanh toán.
-            </p>
-          </>
-        )}
-        <div className="section narrow">
-          <h2>Về gói sử dụng</h2>
-          <p>
-            Free có 1 hồ sơ, Pro tối đa 3 và Family tối đa 5 hồ sơ. Mỗi bé có
-            cài đặt riêng trong tài khoản phụ huynh.
-          </p>
-          <FaqAccordion />
-        </div>
-      </div>
-    </>
-  );
-}
 export function FaqPage() {
   return (
     <div className="container page-space narrow">
@@ -61,53 +20,6 @@ export function FaqPage() {
         </ActionLink>
       </div>
     </div>
-  );
-}
-export function ParentsPage() {
-  return (
-    <>
-      <div className="container page-space">
-        <PageIntro
-          label="Dành cho phụ huynh"
-          title="Cùng bé khám phá, theo cách của gia đình."
-        >
-          Một tài khoản phụ huynh, những không gian riêng cho từng bé. Bố mẹ
-          luôn là người đồng hành trong hành trình đọc.
-        </PageIntro>
-        <ParentDemo />
-        <div className="parent-explainer">
-          <article>
-            <span className="eyebrow">Hồ sơ riêng</span>
-            <h2>Mỗi bé, một thế giới.</h2>
-            <p>
-              Một phụ huynh có thể quản lý nhiều hồ sơ trẻ. Mỗi hồ sơ thuộc một
-              tài khoản phụ huynh, với lựa chọn nội dung và cài đặt riêng.
-            </p>
-          </article>
-          <article>
-            <span className="eyebrow">Cùng lựa chọn</span>
-            <h2>Nội dung và nhịp sử dụng.</h2>
-            <p>
-              Theo thiết kế, bố mẹ chọn danh mục cho từng bé, thiết lập thời
-              gian và ứng dụng nhắc trước khi hết giờ 5 phút.
-            </p>
-          </article>
-          <article>
-            <span className="eyebrow">Cùng nhìn lại</span>
-            <h2>Theo dõi hành trình của bé.</h2>
-            <p>
-              Sản phẩm dự kiến hỗ trợ xem lịch sử đọc, nghe và trả lời. Bản trải
-              nghiệm công khai không thu thập hay lưu tiến trình thật của trẻ.
-            </p>
-          </article>
-        </div>
-        <div className="narrow section">
-          <h2>Những điều bố mẹ muốn biết</h2>
-          <FaqAccordion />
-        </div>
-      </div>
-      <FinalCta />
-    </>
   );
 }
 export function AboutPage() {

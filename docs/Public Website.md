@@ -4,7 +4,7 @@
 > Phạm vi: website giới thiệu sản phẩm dành cho khách chưa đăng nhập, ưu tiên phụ huynh có con 3–6 tuổi.  
 > Công nghệ triển khai: React + Vite, JavaScript/JSX; dựng giao diện và dữ liệu mẫu trước, tích hợp API sau.  
 > Trạng thái: kế hoạch thiết kế và cấu hình ba gói được cập nhật ngày 17/09/2026; frontend prototype đang triển khai, chưa có thanh toán thật.
-> Cập nhật mới nhất: mô tả tạo nhân vật AI và giá gói bên dưới thay thế các giới hạn nội dung của bản kế hoạch trước. Family còn cần chốt fair usage.
+> Cập nhật mới nhất: tên gói, hạn mức tạo nhân vật và quyền lợi đã được tinh chỉnh ngày 17/09/2026. Family dùng 100 lượt tạo nhân vật AI/tháng.
 
 **Đọc nhanh:** mục 2–5 chốt phong cách và hệ thiết kế; mục 6–8 mô tả các trang và nội dung; mục 9–10 hướng dẫn tổ chức frontend; mục 12 là thứ tự triển khai và checklist nghiệm thu. Các lựa chọn chưa được xác nhận nằm ở mục 13.
 
@@ -20,24 +20,24 @@ Trong lần truy cập đầu tiên, phụ huynh cần trả lời được:
 4. Có thể xem thử ở đâu, cần tài khoản khi nào?
 5. Free, Pro và Family khác nhau về giá, hồ sơ, tạo nhân vật và xuất video như thế nào?
 
-Luồng ưu tiên: **Trang chủ → Truyện mẫu → Trải nghiệm nội dung → Tìm hiểu dành cho phụ huynh → Tạo tài khoản khi chức năng sẵn sàng.**
+Luồng ưu tiên: **Trang chủ → Kệ truyện minh họa → Dành cho phụ huynh → Bảng giá → Tạo tài khoản khi chức năng sẵn sàng.**
 
 Public website là nơi giới thiệu và trải nghiệm mẫu, không phải toàn bộ ứng dụng đọc truyện của trẻ hoặc dashboard của ba role.
 
 ### 1.2. Căn cứ và các giới hạn cần giữ
 
-| Nội dung | Trạng thái áp dụng |
-|---|---|
-| Tên sản phẩm SketchTale; nhóm người dùng trẻ 3–6 tuổi | Đã xác nhận |
-| Phụ huynh đăng nhập cho trẻ; Parent–Child là quan hệ 1–N | Đã xác nhận; không dùng nội dung mô tả một trẻ có nhiều Parent |
-| Web có Parent, Content Manager và Admin | Đã xác nhận; dashboard nằm ngoài phạm vi thiết kế chi tiết của file này |
-| Màu UI và tỷ lệ 60/30/10 | Theo bảng màu mới nhất người dùng cung cấp |
-| Logo và mèo linh vật | Theo hai ảnh người dùng cung cấp; không thiết kế lại thương hiệu |
-| Frontend dùng JavaScript, API sẽ cung cấp sau | Đã xác nhận |
-| Tạo nhân vật bằng AI | Người dùng cập nhật ngày 17/09/2026: đưa vào mô tả và quyền lợi gói theo mục 8.3; không giả lập đã tích hợp AI trong demo |
-| Luồng tranh vẽ → nhân vật → gán vào truyện | Có mô tả tạo nhân vật hoạt hình từ tranh trong gói; chi tiết tích hợp vẫn cần khớp backend |
-| Gói, giá, hạn mức và xuất video | Đã cung cấp Free / Pro 35.000đ/tháng / Family 89.000đ/tháng; fair usage Family và giao dịch thật cần chốt, xem mục 8.3 |
-| Truyện mẫu, trang hỗ trợ, bố cục và nội dung bên dưới | Đề xuất thiết kế, không mặc định là nghiệp vụ đã được nhóm duyệt |
+| Nội dung                                                 | Trạng thái áp dụng                                                                                                        |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Tên sản phẩm SketchTale; nhóm người dùng trẻ 3–6 tuổi    | Đã xác nhận                                                                                                               |
+| Phụ huynh đăng nhập cho trẻ; Parent–Child là quan hệ 1–N | Đã xác nhận; không dùng nội dung mô tả một trẻ có nhiều Parent                                                            |
+| Web có Parent, Content Manager và Admin                  | Đã xác nhận; dashboard nằm ngoài phạm vi thiết kế chi tiết của file này                                                   |
+| Màu UI và tỷ lệ 60/30/10                                 | Theo bảng màu mới nhất người dùng cung cấp                                                                                |
+| Logo và mèo linh vật                                     | Theo hai ảnh người dùng cung cấp; không thiết kế lại thương hiệu                                                          |
+| Frontend dùng JavaScript, API sẽ cung cấp sau            | Đã xác nhận                                                                                                               |
+| Tạo nhân vật bằng AI                                     | Người dùng cập nhật ngày 17/09/2026: đưa vào mô tả và quyền lợi gói theo mục 8.3; không giả lập đã tích hợp AI trong demo |
+| Luồng tranh vẽ → nhân vật → gán vào truyện               | Có mô tả tạo nhân vật hoạt hình từ tranh trong gói; chi tiết tích hợp vẫn cần khớp backend                                |
+| Gói, giá, hạn mức và xuất video                          | Đã cung cấp Free / Pro 35.000đ/tháng / Family 89.000đ/tháng; giao dịch thật cần tích hợp, xem mục 8.3                     |
+| Truyện mẫu, trang hỗ trợ, bố cục và nội dung bên dưới    | Đề xuất thiết kế, không mặc định là nghiệp vụ đã được nhóm duyệt                                                          |
 
 `docs/PROJECT_SUMMARY.md` và tài liệu này đã đồng bộ thông tin gói mới nhất ngày 17/09/2026. Mô tả AI trong quyền lợi gói được phép theo cập nhật này; không biến mô tả quyền lợi thành tuyên bố đã có chức năng thật trên prototype.
 
@@ -76,9 +76,9 @@ Public website là nơi giới thiệu và trải nghiệm mẫu, không phải 
 
 ### 3.1. Nguồn hiện có
 
-| Tài nguyên | Nội dung quan sát được | Cách dùng |
-|---|---|---|
-| `C:\Users\pc\Downloads\tải xuống.png` | Logo ngang, logo xếp dọc, biểu tượng sách/bút trên nền vàng | Nguồn nhận diện chính |
+| Tài nguyên                                | Nội dung quan sát được                                                            | Cách dùng                             |
+| ----------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------- |
+| `C:\Users\pc\Downloads\tải xuống.png`     | Logo ngang, logo xếp dọc, biểu tượng sách/bút trên nền vàng                       | Nguồn nhận diện chính                 |
 | `C:\Users\pc\Downloads\tải xuống (1).png` | Mèo trắng–vàng, khăn coral, huy hiệu ngôi sao; nhiều góc nhìn, biểu cảm và tư thế | Nguồn linh vật và phong cách minh họa |
 
 Hai file hiện là **bảng tổng hợp thương hiệu**, chưa phải bộ asset tách riêng có nền trong suốt. Không đưa nguyên bảng vào header hoặc hero. Giữ nguyên ảnh gốc; bước triển khai cần có bản xuất riêng từ nguồn thiết kế, hoặc phương án xử lý ảnh được thống nhất.
@@ -99,17 +99,17 @@ Mã màu in trên bảng hình có vài khác biệt với CSS được cung c�
 
 Đây là tên file đích dự kiến, không phải các file đã tồn tại trong dự án.
 
-| Asset dự kiến | Vị trí | Yêu cầu |
-|---|---|---|
-| `logo-horizontal.svg` hoặc PNG trong suốt | Header/footer | SVG từ file gốc; nếu PNG thì xuất ít nhất 2× kích thước hiển thị |
-| `brand-mark.svg` và các cỡ favicon | Tab trình duyệt | Biểu tượng sách/bút, rõ ở cỡ nhỏ |
-| `mascot-wave.webp` | Hero | Mèo chào; nền trong suốt, không kèm chữ trên bảng |
-| `mascot-read.webp` | Trải nghiệm truyện | Mèo đọc sách |
-| `mascot-guide.webp` | Cách hoạt động | Mèo hướng dẫn |
-| `mascot-curious.webp` | FAQ hoặc trạng thái trống | Dùng tiết chế, không che nội dung |
-| `mascot-celebrate.webp` | CTA cuối | Một tư thế vui, không lặp animation liên tục |
-| 3 bìa truyện mẫu và tranh từng trang | Thư viện/demo | Cùng phong cách 2D với thương hiệu; có quyền sử dụng |
-| `og-public-home.jpg` | Chia sẻ trang | Bản thiết kế riêng 1200×630; logo, tiêu đề ngắn, linh vật |
+| Asset dự kiến                             | Vị trí                    | Yêu cầu                                                          |
+| ----------------------------------------- | ------------------------- | ---------------------------------------------------------------- |
+| `logo-horizontal.svg` hoặc PNG trong suốt | Header/footer             | SVG từ file gốc; nếu PNG thì xuất ít nhất 2× kích thước hiển thị |
+| `brand-mark.svg` và các cỡ favicon        | Tab trình duyệt           | Biểu tượng sách/bút, rõ ở cỡ nhỏ                                 |
+| `mascot-wave.webp`                        | Hero                      | Mèo chào; nền trong suốt, không kèm chữ trên bảng                |
+| `mascot-read.webp`                        | Trải nghiệm truyện        | Mèo đọc sách                                                     |
+| `mascot-guide.webp`                       | Cách hoạt động            | Mèo hướng dẫn                                                    |
+| `mascot-curious.webp`                     | FAQ hoặc trạng thái trống | Dùng tiết chế, không che nội dung                                |
+| `mascot-celebrate.webp`                   | CTA cuối                  | Một tư thế vui, không lặp animation liên tục                     |
+| 3 bìa truyện mẫu và tranh từng trang      | Thư viện/demo             | Cùng phong cách 2D với thương hiệu; có quyền sử dụng             |
+| `og-public-home.jpg`                      | Chia sẻ trang             | Bản thiết kế riêng 1200×630; logo, tiêu đề ngắn, linh vật        |
 
 Không sử dụng ảnh stock ngẫu nhiên thay cho minh họa truyện. Trước khi có asset hoàn chỉnh, có thể dùng bản dựng khung trong môi trường nội bộ, nhưng phải đánh dấu chưa đạt tiêu chí bàn giao hình ảnh.
 
@@ -120,55 +120,55 @@ Không sử dụng ảnh stock ngẫu nhiên thay cho minh họa truyện. Trư�
 ```css
 :root {
   /* Brand */
-  --color-primary: #F7BD35;
-  --color-primary-light: #F9C42A;
-  --color-primary-dark: #F0B630;
+  --color-primary: #f7bd35;
+  --color-primary-light: #f9c42a;
+  --color-primary-dark: #f0b630;
 
   /* Background */
-  --color-background: #FFF9EC;
-  --color-surface: #FFFFFF;
-  --color-surface-soft: #FFF4FA;
+  --color-background: #fff9ec;
+  --color-surface: #ffffff;
+  --color-surface-soft: #fff4fa;
 
   /* Text */
   --color-text-primary: #001050;
-  --color-text-secondary: #6B7280;
+  --color-text-secondary: #6b7280;
 
   /* Accent */
-  --color-blue: #46DCF7;
-  --color-blue-dark: #48BCFC;
-  --color-coral: #FC6C78;
-  --color-yellow-accent: #FCD800;
-  --color-mint: #44F8E0;
+  --color-blue: #46dcf7;
+  --color-blue-dark: #48bcfc;
+  --color-coral: #fc6c78;
+  --color-yellow-accent: #fcd800;
+  --color-mint: #44f8e0;
 
   /* Border */
-  --color-border: #E9E9EF;
+  --color-border: #e9e9ef;
 }
 ```
 
 ### 4.2. Phân bổ 60% / 30% / 10%
 
-| Tỷ lệ định hướng | Áp dụng |
-|---|---|
-| 60% trắng/kem | Nền trang, khoảng trống, nền nội dung, khu vực đọc |
-| 30% vàng | Mảng minh họa hero, bìa/chi tiết sách, CTA chính, mảng kết trang |
-| 10% accent | Nhãn chủ đề, điểm nhấn minh họa, phản hồi và chi tiết nhỏ |
+| Tỷ lệ định hướng | Áp dụng                                                          |
+| ---------------- | ---------------------------------------------------------------- |
+| 60% trắng/kem    | Nền trang, khoảng trống, nền nội dung, khu vực đọc               |
+| 30% vàng         | Mảng minh họa hero, bìa/chi tiết sách, CTA chính, mảng kết trang |
+| 10% accent       | Nhãn chủ đề, điểm nhấn minh họa, phản hồi và chi tiết nhỏ        |
 
 Đây là tỷ lệ cảm nhận trên tổng thể thiết kế, không phải yêu cầu tô vàng đúng 30% từng màn hình. Các trang FAQ, pháp lý và liên hệ cần nhẹ màu hơn trang chủ. Navy là màu chữ/đường nét, không dùng để tạo sidebar trong public website.
 
 ### 4.3. Ánh xạ màu vào component
 
-| Thành phần | Nền | Chữ/viền |
-|---|---|---|
-| Primary button | Primary; hover primary-dark | Navy |
-| Secondary button | Trắng hoặc trong suốt | Navy, viền navy rõ |
-| Link trong đoạn văn | Nền hiện có | Navy, có gạch chân; không dùng vàng nhạt làm chữ |
-| Header | Trắng | Navy; phân cách nhẹ |
-| Badge chủ đề | Blue, coral hoặc mint | Navy; mỗi chủ đề có quy tắc nhất quán |
-| FAQ/thông tin dịu | Trắng hoặc surface-soft | Navy, mô tả secondary khi đủ tương phản |
-| Input | Trắng | Navy; viền tương tác dùng secondary, không chỉ border nhạt |
-| Lỗi form | Coral làm nền nhấn nhẹ | Navy + biểu tượng + thông báo cụ thể |
-| Hoàn tất thao tác mẫu | Mint làm nền nhấn | Navy + nội dung phản hồi |
-| Focus | Nền hiện có | Outline navy 3 px, offset 3 px |
+| Thành phần            | Nền                         | Chữ/viền                                                   |
+| --------------------- | --------------------------- | ---------------------------------------------------------- |
+| Primary button        | Primary; hover primary-dark | Navy                                                       |
+| Secondary button      | Trắng hoặc trong suốt       | Navy, viền navy rõ                                         |
+| Link trong đoạn văn   | Nền hiện có                 | Navy, có gạch chân; không dùng vàng nhạt làm chữ           |
+| Header                | Trắng                       | Navy; phân cách nhẹ                                        |
+| Badge chủ đề          | Blue, coral hoặc mint       | Navy; mỗi chủ đề có quy tắc nhất quán                      |
+| FAQ/thông tin dịu     | Trắng hoặc surface-soft     | Navy, mô tả secondary khi đủ tương phản                    |
+| Input                 | Trắng                       | Navy; viền tương tác dùng secondary, không chỉ border nhạt |
+| Lỗi form              | Coral làm nền nhấn nhẹ      | Navy + biểu tượng + thông báo cụ thể                       |
+| Hoàn tất thao tác mẫu | Mint làm nền nhấn           | Navy + nội dung phản hồi                                   |
+| Focus                 | Nền hiện có                 | Outline navy 3 px, offset 3 px                             |
 
 Không dùng màu coral/mint đơn độc để diễn đạt sai/đúng; luôn có chữ hoặc icon. Nếu sau này bổ sung màu semantic mới, phải ghi riêng, không thay giá trị palette gốc.
 
@@ -176,16 +176,16 @@ Không dùng màu coral/mint đơn độc để diễn đạt sai/đúng; luôn 
 
 Tỷ lệ dưới đây được tính trên các mã màu đặc, chưa có opacity hoặc ảnh nền.
 
-| Cặp chữ / nền | Tỷ lệ xấp xỉ | Quyết định |
-|---|---|---|
-| Navy / vàng primary | 10.32:1 | Dùng cho nút chính |
-| Trắng / vàng primary | 1.71:1 | Không dùng cho nhãn nút hoặc nội dung |
-| Navy / cream | 16.82:1 | Dùng cho tiêu đề và đoạn văn |
-| Secondary / trắng | 4.83:1 | Dùng cho mô tả |
-| Secondary / cream | 4.61:1 | Đạt ngưỡng chữ thường; không giảm opacity thêm |
-| Secondary / vàng primary | 2.83:1 | Không dùng cho chữ thường |
-| Navy / blue, coral, mint | 10.79:1 / 6.35:1 / 13.24:1 | Phù hợp cho nhãn chữ |
-| Border / trắng | 1.21:1 | Chỉ phân cách trang trí; không là dấu hiệu duy nhất nhận biết input |
+| Cặp chữ / nền            | Tỷ lệ xấp xỉ               | Quyết định                                                          |
+| ------------------------ | -------------------------- | ------------------------------------------------------------------- |
+| Navy / vàng primary      | 10.32:1                    | Dùng cho nút chính                                                  |
+| Trắng / vàng primary     | 1.71:1                     | Không dùng cho nhãn nút hoặc nội dung                               |
+| Navy / cream             | 16.82:1                    | Dùng cho tiêu đề và đoạn văn                                        |
+| Secondary / trắng        | 4.83:1                     | Dùng cho mô tả                                                      |
+| Secondary / cream        | 4.61:1                     | Đạt ngưỡng chữ thường; không giảm opacity thêm                      |
+| Secondary / vàng primary | 2.83:1                     | Không dùng cho chữ thường                                           |
+| Navy / blue, coral, mint | 10.79:1 / 6.35:1 / 13.24:1 | Phù hợp cho nhãn chữ                                                |
+| Border / trắng           | 1.21:1                     | Chỉ phân cách trang trí; không là dấu hiệu duy nhất nhận biết input |
 
 Mục tiêu chữ thường tối thiểu 4.5:1; chữ lớn tối thiểu 3:1 theo [WCAG — Contrast Minimum](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html). Những phần đồ họa cần thiết để nhận biết điều khiển/trạng thái cần được kiểm tra mức 3:1 với màu liền kề theo [WCAG — Non-text Contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html).
 
@@ -200,15 +200,15 @@ Chọn **Nunito** cho cả heading và body: nét bo tròn hợp logo, đủ th�
 - Fallback: `"Nunito", system-ui, sans-serif`.
 - Không dùng font viết tay cho đoạn văn, form hoặc nhãn điều hướng.
 
-| Cấp chữ | Desktop | Mobile | Line-height |
-|---|---|---|---|
-| H1 hero | 56 px, 800 | 36 px, 800 | 1.12–1.2 |
-| H1 trang con | 44 px, 800 | 32 px, 800 | 1.2 |
-| H2 section | 36 px, 800 | 28 px, 800 | 1.25 |
-| H3 | 24 px, 700 | 22 px, 700 | 1.35 |
-| Lead | 18 px | 17 px | 1.6 |
-| Body | 16 px | 16 px | 1.65 |
-| Label/caption | 14 px, 600 | 14 px, 600 | 1.5 |
+| Cấp chữ       | Desktop    | Mobile     | Line-height |
+| ------------- | ---------- | ---------- | ----------- |
+| H1 hero       | 56 px, 800 | 36 px, 800 | 1.12–1.2    |
+| H1 trang con  | 44 px, 800 | 32 px, 800 | 1.2         |
+| H2 section    | 36 px, 800 | 28 px, 800 | 1.25        |
+| H3            | 24 px, 700 | 22 px, 700 | 1.35        |
+| Lead          | 18 px      | 17 px      | 1.6         |
+| Body          | 16 px      | 16 px      | 1.65        |
+| Label/caption | 14 px, 600 | 14 px, 600 | 1.5         |
 
 Kiểm tra dấu tiếng Việt, đặc biệt các chữ như “trưởng thành”, “trí tưởng tượng”, “phụ huynh”; không cắt dấu bằng line-height hoặc overflow. Đoạn văn dài giới hạn khoảng 60–70 ký tự mỗi dòng.
 
@@ -242,32 +242,28 @@ Kiểm tra dấu tiếng Việt, đặc biệt các chữ như “trưởng thà
 
 Các route dưới đây là đề xuất frontend, không phải endpoint backend.
 
-| Route | Trang | Mức triển khai |
-|---|---|---|
-| `/` | Trang chủ/landing | Đợt 1 |
-| `/stories` | Thư viện truyện mẫu | Đợt 2 |
-| `/stories/:slug` | Chi tiết và trải nghiệm một truyện mẫu | Đợt 2 |
-| `/pricing` | So sánh Free / Starter, Pro 35.000đ/tháng và Family 89.000đ/tháng; chưa thanh toán thật | Đợt 3 |
-| `/faq` | Câu hỏi thường gặp | Đợt 3 |
-| `/contact` | Liên hệ/hỗ trợ | Đợt 3 |
-| `/for-parents` | Giải thích chi tiết vai trò phụ huynh | Đợt 3 |
-| `/about` | Giới thiệu SketchTale | Đợt 3 |
-| `/child-safety` | Cách đồng hành và nguyên tắc bảo vệ trẻ | Đợt 4, duyệt nội dung trước ra mắt |
-| `/privacy` | Chính sách quyền riêng tư | Đợt 4, cần nội dung chính thức trước thu thập dữ liệu thật |
-| `/terms` | Điều khoản sử dụng | Đợt 4, cần nội dung chính thức trước ra mắt |
-| `/auth/login` | Giao diện đăng nhập chung | Ranh giới sang module Auth; prototype trước, tích hợp sau |
-| `/auth/register` | Giao diện tạo tài khoản Parent | Ranh giới sang module Auth; không cho tự chọn Admin/Content Manager |
-| `/auth/forgot-password` | Giao diện quên mật khẩu | Prototype khi làm Auth |
-| Route không khớp | Trang 404 thân thiện | Đợt 1 |
+| Route                   | Trang                                                                         | Mức triển khai                                                      |
+| ----------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `/`                     | Trang chủ/landing                                                             | Đợt 1                                                               |
+| `/faq`                  | Câu hỏi thường gặp                                                            | Đợt 3                                                               |
+| `/contact`              | Liên hệ/hỗ trợ                                                                | Đợt 3                                                               |
+| `/about`                | Giới thiệu SketchTale                                                         | Đợt 3                                                               |
+| `/child-safety`         | Cách đồng hành và nguyên tắc bảo vệ trẻ                                       | Đợt 4, duyệt nội dung trước ra mắt                                  |
+| `/privacy`              | Chính sách quyền riêng tư                                                     | Đợt 4, cần nội dung chính thức trước thu thập dữ liệu thật          |
+| `/terms`                | Điều khoản sử dụng                                                            | Đợt 4, cần nội dung chính thức trước ra mắt                         |
+| `/auth/login`           | Giao diện đăng nhập chung                                                     | Ranh giới sang module Auth; prototype trước, tích hợp sau           |
+| `/auth/register`        | Giao diện tạo tài khoản Parent                                                | Ranh giới sang module Auth; không cho tự chọn Admin/Content Manager |
+| `/auth/forgot-password` | Giao diện quên mật khẩu                                                       | Prototype khi làm Auth                                              |
+| Route không khớp        | Trang 404 thân thiện                                                          | Đợt 1                                                               |
 
-Không tạo trang riêng cho “Cách hoạt động” ở bản đầu; dùng anchor `/#how-it-works`. Không thêm blog khi chưa có người và quy trình duy trì nội dung.
+Không tạo trang riêng cho các section landing; dùng anchor `/#features`, `/#stories`, `/#parents` và `/#pricing`. Không thêm blog khi chưa có người và quy trình duy trì nội dung.
 
 ### 6.2. Header và footer
 
-**Header desktop:** logo → Cách hoạt động → Truyện mẫu → Dành cho phụ huynh → Gói sử dụng → Đăng nhập.
+**Header desktop:** logo → Cách hoạt động → Truyện → Dành cho phụ huynh → Bảng giá → Đăng nhập. Các mục này đều cuộn tới section tương ứng trên landing; không có trang public riêng cho truyện mẫu, phụ huynh hoặc gói sử dụng.
 
 - Logo về `/`.
-- “Dành cho phụ huynh” trỏ `/#for-parents` lúc trang chi tiết chưa làm; chuyển sang `/for-parents` khi route sẵn sàng.
+- “Truyện”, “Dành cho phụ huynh” và “Bảng giá” dùng lần lượt `/#stories`, `/#parents` và `/#pricing`.
 - “Đăng nhập” là hành động tài khoản phụ, không cạnh tranh bằng nhiều nút vàng với CTA khám phá.
 - Sticky header nhẹ; anchor phải có khoảng bù để tiêu đề không bị che.
 - Chỉ hiển thị liên kết đã có đích sử dụng được; không dùng `href="#"` thay cho route chưa làm.
@@ -294,7 +290,7 @@ Không thêm địa chỉ, hotline, mạng xã hội hoặc huy hiệu App Store
 - Nhãn nhỏ: “Cùng bé 3–6 tuổi khám phá”.
 - H1: “Mở trang sách. Mở trí tưởng tượng.”
 - Mô tả: “Cùng bé đọc, nghe và khám phá những câu chuyện theo cách riêng.”
-- CTA chính: **Khám phá truyện** → `/stories`.
+- CTA chính: **Khám phá truyện** → `/#stories`.
 - CTA phụ: **Cách hoạt động** → `/#how-it-works`.
 
 Không thêm dòng đánh giá sao hoặc “hàng nghìn gia đình” thiếu dữ liệu. Hero vẫn ưu tiên đọc truyện; thông tin tạo nhân vật AI được giới thiệu đúng phạm vi gói ở mục 8.3.
@@ -305,11 +301,11 @@ Không thêm dòng đánh giá sao hoặc “hàng nghìn gia đình” thiếu 
 
 H2: **“Bắt đầu từ một câu chuyện.”**
 
-| Bước | Tiêu đề | Nội dung |
-|---|---|---|
-| 01 | Chọn điều bé yêu thích | Khám phá những câu chuyện về thiên nhiên, tình bạn và thế giới quanh bé. |
-| 02 | Cùng bé đọc và nghe | Đi qua từng trang truyện, lắng nghe lời kể và khám phá những từ mới. |
-| 03 | Trò chuyện sau mỗi trang sách | Những câu hỏi nhỏ mở ra cơ hội để bé nhớ lại và chia sẻ điều mình nghĩ. |
+| Bước | Tiêu đề                       | Nội dung                                                                 |
+| ---- | ----------------------------- | ------------------------------------------------------------------------ |
+| 01   | Chọn điều bé yêu thích        | Khám phá những câu chuyện về thiên nhiên, tình bạn và thế giới quanh bé. |
+| 02   | Cùng bé đọc và nghe           | Đi qua từng trang truyện, lắng nghe lời kể và khám phá những từ mới.     |
+| 03   | Trò chuyện sau mỗi trang sách | Những câu hỏi nhỏ mở ra cơ hội để bé nhớ lại và chia sẻ điều mình nghĩ.  |
 
 Phần này mô tả hành trình đọc, không thay thế màn hình onboarding thật. Chỉ mở nút nghe trong demo khi đã có tệp âm thanh phù hợp.
 
@@ -321,10 +317,10 @@ H2: **“Một thế giới nhỏ, nhiều điều để khám phá.”**
 
 Mô tả: “Xem thử những câu chuyện và tìm chủ đề bé yêu thích.”
 
-- Mỗi mục có bìa, tên truyện, chủ đề và liên kết “Đọc truyện mẫu”.
+- Mỗi mục có bìa, tên truyện và chủ đề; nội dung là preview tĩnh trên landing.
 - Nhãn “Truyện mẫu” hiển thị rõ; không nói đây là toàn bộ kho truyện thật.
 - Không gán thời lượng, lượt đọc, điểm đánh giá hoặc trạng thái “bán chạy” khi không có dữ liệu.
-- CTA toàn section: **Khám phá truyện** → `/stories`.
+- CTA toàn section: **Khám phá truyện** → `/#stories`.
 
 Tên và nội dung mẫu được đề xuất ở mục 8.1.
 
@@ -348,25 +344,25 @@ H2: **“Thế giới của bé, có bố mẹ đồng hành.”**
 
 Mô tả: “Mỗi bé có không gian riêng; bố mẹ cùng chọn nội dung và nhịp sử dụng phù hợp.”
 
-| Tab | Nội dung giới thiệu | Demo frontend |
-|---|---|---|
-| Hồ sơ của bé | Quản lý từng hồ sơ trong cùng tài khoản phụ huynh | Chuyển giữa hai hồ sơ hư cấu “Mây” và “Nắng”; thể hiện quan hệ 1–N |
-| Nội dung phù hợp | Lựa chọn danh mục được phép cho từng bé | Toggle danh mục; thay đổi chỉ ở state demo của hồ sơ đang chọn |
-| Thời gian sử dụng | Thiết lập thời gian cho từng hồ sơ | Điều chỉnh giá trị mẫu; chú thích ứng dụng cảnh báo trước khi hết thời gian 5 phút |
+| Tab               | Nội dung giới thiệu                               | Demo frontend                                                                      |
+| ----------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Hồ sơ của bé      | Quản lý từng hồ sơ trong cùng tài khoản phụ huynh | Chuyển giữa hai hồ sơ hư cấu “Mây” và “Nắng”; thể hiện quan hệ 1–N                 |
+| Nội dung phù hợp  | Lựa chọn danh mục được phép cho từng bé           | Toggle danh mục; thay đổi chỉ ở state demo của hồ sơ đang chọn                     |
+| Thời gian sử dụng | Thiết lập thời gian cho từng hồ sơ                | Điều chỉnh giá trị mẫu; chú thích ứng dụng cảnh báo trước khi hết thời gian 5 phút |
 
 - Luôn có nhãn “Minh họa giao diện phụ huynh — thay đổi không được lưu”.
 - Giá trị thời gian demo không được mô tả là hạn mức gói hoặc chính sách mặc định.
 - Tab có thể tương tác bằng bàn phím; thay đổi hồ sơ không ghi đè cài đặt mẫu của hồ sơ còn lại.
 - Không nhập tên, ngày sinh hoặc dữ liệu thật của trẻ vào public demo.
-- Liên kết “Tìm hiểu dành cho phụ huynh” → `/for-parents` khi trang đã sẵn sàng.
+- Liên kết “Tìm hiểu dành cho phụ huynh” → `/#parents`.
 
 ### 7.6. Gói sử dụng — Lựa chọn cho gia đình
 
 H2: **“Lựa chọn phù hợp cho hành trình của gia đình.”**
 
-Giới thiệu ba gói: Free / Starter miễn phí, Pro Creator / Explorer **35.000đ/tháng**, Family / Unlimited **89.000đ/tháng**. Nêu số hồ sơ tương ứng **1 / tối đa 3 / tối đa 5**; liên kết “Xem gói sử dụng” → `/pricing` để xem đầy đủ hạn mức, tính năng và lưu ý.
+Giới thiệu ba gói: Free miễn phí, Pro **35.000đ/tháng**, Family **89.000đ/tháng**. Nêu số hồ sơ tương ứng **1 / tối đa 3 / tối đa 5**; liên kết “Xem gói sử dụng” → `/#pricing` để xem đầy đủ hạn mức, tính năng và lưu ý.
 
-Không thêm nhãn “phổ biến nhất”, giá gạch ngang hoặc khuyến mãi thiếu dữ liệu. Không quảng cáo tạo nhân vật Family vô hạn khi fair usage chưa chốt. CTA demo dẫn tới đọc truyện mẫu, không thu tiền hoặc cấp gói giả.
+Không thêm nhãn “phổ biến nhất”, giá gạch ngang hoặc khuyến mãi thiếu dữ liệu. CTA demo chỉ cuộn giữa các section landing, không thu tiền hoặc cấp gói giả.
 
 ### 7.7. FAQ — Những điều bố mẹ muốn biết
 
@@ -382,91 +378,20 @@ Hiển thị 4–5 câu hỏi nổi bật từ mục 8.4. Mỗi câu hỏi là b
 
 - H2: **“Cùng bé mở câu chuyện đầu tiên.”**
 - Nội dung: “Bắt đầu bằng một câu chuyện nhỏ, dành thời gian khám phá cùng nhau.”
-- CTA: **Khám phá truyện** → `/stories`.
+- CTA: **Khám phá truyện** → `/#stories`.
 - Button tại nền vàng dùng nền navy/chữ trắng để tách khỏi section; đây là biến thể đảo màu có chủ đích.
 
 Không ép đăng ký hoặc thanh toán trước khi xem mẫu. Sau khi Auth hoạt động thật, có thể thử thêm link phụ “Tạo tài khoản phụ huynh”, nhưng không thay đổi luồng chính khi chưa đánh giá.
 
 ## 8. Các trang con — bố cục, nội dung và hành vi
 
-### 8.1. Thư viện truyện mẫu — `/stories`
+### 8.1. Nội dung truyện trên landing — `/#stories`
 
-**H1:** “Cùng bé chọn một câu chuyện.”
+Kệ truyện hiển thị ba truyện minh họa ngay trên trang chủ. Đây là nội dung giới thiệu, không mở trang chi tiết public; trải nghiệm đọc đầy đủ thuộc ứng dụng sau khi đăng nhập.
 
-**Mô tả:** “Khám phá các truyện mẫu theo chủ đề bé yêu thích.”
+Không có route `/stories` hoặc `/stories/:slug` trong public website. Các link khám phá truyện chỉ cuộn về section `/#stories`.
 
-Thứ tự nội dung:
-
-1. Tiêu đề, mô tả và nhãn “Nội dung minh họa”.
-2. Ô tìm kiếm “Tìm theo tên truyện”.
-3. Bộ lọc chủ đề: Tất cả, Tình bạn, Thiên nhiên, Khám phá.
-4. Lưới truyện: 3 cột desktop, 2 cột tablet, 1 cột mobile.
-5. Thông tin về trải nghiệm mẫu và liên kết dành cho phụ huynh.
-
-Không thêm lọc độ tuổi 3/4/5/6 khi nghiệp vụ chỉ có nhóm chung 3–6. Với ba truyện mẫu, chưa cần phân trang hoặc infinite scroll.
-
-**Dữ liệu sáng tác mẫu đề xuất — không phải nội dung đã được xuất bản:**
-
-| Tên truyện | Slug dự kiến | Chủ đề | Mô tả ngắn |
-|---|---|---|---|
-| Chiếc ô của bạn Thỏ | `chiec-o-cua-ban-tho` | Tình bạn | Một cơn mưa nhỏ mang đến cơ hội để Thỏ chia sẻ chiếc ô của mình. |
-| Hạt mầm nhỏ | `hat-mam-nho` | Thiên nhiên | Cùng một hạt mầm khám phá nắng, nước và niềm vui lớn lên từng ngày. |
-| Mèo tìm ngôi sao | `meo-tim-ngoi-sao` | Khám phá | Một chuyến đi nhỏ để Mèo tìm hiểu ánh sáng lấp lánh trên bầu trời. |
-
-Truyện chỉ được đưa vào danh sách có nút đọc khi đã có đủ nội dung mẫu của chính truyện đó. Không dùng ba bìa khác nhau cùng mở một nội dung lặp lại.
-
-**Tương tác và trạng thái:**
-
-- Tìm kiếm và lọc kết hợp được; giữ lựa chọn trong query string nếu triển khai routing hỗ trợ.
-- Loading: khung bìa có kích thước cố định và mô tả trạng thái cho công nghệ hỗ trợ.
-- Không có kết quả: “Chưa tìm thấy câu chuyện phù hợp.” + “Xóa bộ lọc”.
-- Lỗi tải: “Chưa tải được truyện mẫu. Bạn thử lại nhé.” + nút “Thử lại”.
-- Mỗi truyện dùng liên kết HTML thực, không gắn click cho toàn bộ div thiếu semantics.
-
-### 8.2. Chi tiết/trải nghiệm truyện mẫu — `/stories/:slug`
-
-**Vai trò:** một phần trải nghiệm công khai đã chọn riêng; không phải toàn bộ thư viện cá nhân hay bản generated story của một trẻ.
-
-**Bố cục:**
-
-- Breadcrumb: Trang chủ / Truyện mẫu / Tên truyện.
-- Phần đầu: bìa, H1 là tên truyện, chủ đề, mô tả, badge “Truyện mẫu”.
-- CTA “Đọc truyện mẫu” đưa focus tới khung đọc.
-- Khung đọc: tranh, đoạn văn ngắn, chỉ báo “Trang 1 / 3”, nút trang trước/trang sau.
-- Cuối truyện: một câu hỏi trắc nghiệm đơn giản, nút đọc lại và liên kết về thư viện.
-- Desktop: tranh và nội dung trong một khung rộng; mobile: tranh trên, chữ và điều khiển dưới.
-- Không tự chuyển trang hoặc tự đọc thành tiếng.
-
-**Nội dung fixture ban đầu cho “Chiếc ô của bạn Thỏ”:**
-
-| Trang | Chữ trên trang | Gợi ý tranh |
-|---|---|---|
-| 1 | Sáng nay, Thỏ mang chiếc ô vàng ra vườn. Bỗng những hạt mưa tí tách rơi xuống. | Thỏ, chiếc ô vàng, khu vườn và mưa nhẹ |
-| 2 | Dưới gốc cây, Sóc đang nép mình tránh mưa. “Bạn đi cùng mình nhé!” Thỏ gọi. | Thỏ nghiêng ô mời Sóc |
-| 3 | Thỏ và Sóc cùng bước dưới chiếc ô. Con đường về nhà bỗng vui hơn nhiều. | Hai bạn đi bên nhau, trời dần sáng |
-
-Quiz: **“Thỏ đã làm gì khi thấy Sóc tránh mưa?”**
-
-- A. Rủ Sóc đi chung ô. — Đáp án đúng.
-- B. Chạy về nhà một mình.
-- C. Cất chiếc ô vào túi.
-
-Phản hồi đúng: “Đúng rồi! Thỏ đã chia sẻ chiếc ô với Sóc.”
-
-Phản hồi chưa đúng: “Mình cùng xem lại trang Thỏ gặp Sóc nhé.” Có nút về trang 2; không chấm điểm gây áp lực.
-
-Đây là copy mẫu do kế hoạch đề xuất, cần Content Manager duyệt trước khi dùng như truyện chính thức.
-
-**Giới hạn demo:**
-
-- Đến trang cuối chỉ đánh dấu hoàn tất trong phiên demo; không ghi learning progress thật.
-- Quiz là multiple choice một đáp án, có button xác nhận; tránh gửi đáp án ngay khi vô tình chọn.
-- Nếu chưa có audio thật, không dựng thanh thời gian giả hoặc giả lập lời kể đang chạy.
-- Highlight theo câu chỉ bật khi có nguồn đồng bộ phù hợp; không tự bịa timestamp.
-- Không yêu cầu tải tranh, nhập thông tin trẻ hoặc gán nhân vật cá nhân trong public sample.
-- Slug không tồn tại hiển thị “Không tìm thấy truyện mẫu” và link về `/stories`.
-
-### 8.3. Gói sử dụng — `/pricing`
+### 8.2. Gói sử dụng trên landing — `/#pricing`
 
 **H1:** “Gói sử dụng SketchTale”.
 
@@ -476,41 +401,40 @@ Phản hồi chưa đúng: “Mình cùng xem lại trang Thỏ gặp Sóc nhé.
 
 Giá tính bằng VND theo tháng. Đây là cấu hình sản phẩm được cung cấp, không phải xác nhận chức năng thanh toán hay quyền lợi đã được triển khai. Hạn mức thương mại phải do backend kiểm tra khi tích hợp; frontend không tự cấp quyền.
 
-| Nội dung | Free / Starter | Pro Creator / Explorer | Family / Unlimited |
-|---|---|---|---|
-| Giá | Miễn phí | 35.000đ/tháng | 89.000đ/tháng |
-| Hồ sơ trẻ em | 1 | Tối đa 3 | Tối đa 5 |
-| Tạo nhân vật AI | 5 lượt/tháng | 30 lượt/tháng | Không giới hạn **hoặc** fair usage 100 lượt/tháng — cần chốt |
-| Tạo lại (regenerate) | Tối đa 1 lần/hình | Không giới hạn cho mỗi tranh | Kế thừa Pro |
-| Thư viện | 5 truyện miễn phí cơ bản | Toàn bộ mẫu truyện và chủ đề | Trọn bộ cao cấp, cập nhật mới hàng tuần |
-| Xuất video | Không hỗ trợ | 5 lượt/tháng | Không giới hạn |
+| Nội dung             | Free                     | Pro                          | Family                                  |
+| -------------------- | ------------------------ | ---------------------------- | --------------------------------------- |
+| Giá                  | Miễn phí                 | 35.000đ/tháng                | 89.000đ/tháng                           |
+| Hồ sơ trẻ em         | 1                        | Tối đa 3                     | Tối đa 5                                |
+| Tạo nhân vật AI      | 5 lượt/tháng             | 30 lượt/tháng                | 100 lượt/tháng                          |
+| Tạo lại (regenerate) | Tối đa 1 lần/hình        | Tối đa 1 lần mỗi tranh       | Tối đa 1 lần mỗi tranh                  |
+| Thư viện             | 5 truyện miễn phí cơ bản | Toàn bộ mẫu truyện và chủ đề | Trọn bộ cao cấp, cập nhật mới hàng tuần |
+| Xuất video           | Không hỗ trợ             | 5 lượt/tháng                 | Không giới hạn                          |
 
-##### Gói 1: Free / Starter
+##### Gói 1: Free
 
 - **Mục tiêu:** Phụ huynh mới muốn dùng thử hệ thống, cho con trải nghiệm biến hình vẽ thành nhân vật hoạt hình.
 - **Tính năng:** Vẽ trực tiếp hoặc chụp/tải ảnh vẽ tay; tạo nhân vật hoạt hình từ tranh vẽ bằng AI; đặt tên và chỉnh sửa màu sắc cơ bản; đọc truyện tương tác với giọng đọc, tô sáng chữ và câu hỏi sau truyện; Parent Portal cơ bản để quản lý thời gian, duyệt nhân vật.
 - **Giới hạn:** Không xuất video, không xem báo cáo từ vựng chuyên sâu, thư viện giới hạn ở 5 truyện cơ bản.
 
-##### Gói 2: Pro Creator / Explorer — 35.000đ/tháng
+##### Gói 2: Pro — 35.000đ/tháng
 
 - **Mục tiêu:** Gia đình có 1–2 trẻ em muốn con sáng tạo hằng ngày và học qua truyện đọc. Số hồ sơ được cấp vẫn là tối đa 3, không giới hạn ở 2 theo mô tả khách hàng mục tiêu.
-- **Tính năng:** Toàn bộ tính năng Free; lưu kho nhân vật và thư viện truyện yêu thích (Favorites) không giới hạn; báo cáo Parent Portal chi tiết gồm số truyện đã đọc, từ vựng học được, kết quả câu hỏi; phân vai nâng cao gồm nhân vật chính, bạn đồng hành, vai phụ; phê duyệt vai nhạy cảm từ Parent Portal.
-- **Giới hạn:** 5 lượt xuất video/tháng; không tạo truyện tùy chỉnh riêng theo yêu cầu.
+- **Tính năng:** Toàn bộ tính năng Free; lưu trữ kho nhân vật và thư viện truyện yêu thích (Favorites) không giới hạn.
+- **Giới hạn:** 1 lần regenerate mỗi tranh; 5 lượt xuất video/tháng.
 
-##### Gói 3: Family / Unlimited — 89.000đ/tháng
+##### Gói 3: Family — 89.000đ/tháng
 
 - **Mục tiêu:** Gia đình đông con hoặc phụ huynh muốn sự tự do sáng tạo và lưu giữ kỷ niệm.
-- **Tính năng:** Toàn bộ tính năng Pro; ưu tiên hàng đợi xử lý tạo nhân vật AI (Fast Queue); đánh dấu và xuất báo cáo học tập định kỳ hằng tháng gửi email phụ huynh; tải video chất lượng cao HD/4K để chia sẻ mạng xã hội hoặc lưu kỷ niệm.
-- **Điểm cần chốt:** Giữ nguyên hai phương án tạo nhân vật mà người dùng cung cấp: không giới hạn hoặc fair usage 100 lượt/tháng. Không diễn giải “Unlimited” thành cam kết tạo vô hạn trước khi chốt. Khả năng xuất HD/4K, điều kiện vận hành cập nhật hằng tuần và gửi email cần kiểm chứng khi tích hợp.
+- **Tính năng:** Toàn bộ tính năng Pro; đánh dấu và xuất báo cáo học tập định kỳ hằng tháng gửi về email phụ huynh.
+- **Giới hạn:** 100 lượt tạo nhân vật AI/tháng, 1 lần regenerate mỗi tranh. Xuất truyện thành video không giới hạn.
 
 ##### Quy tắc tích hợp và các câu hỏi còn mở
 
-- Các gói có giá và quyền lợi nêu trên; public prototype chỉ giới thiệu và cho đọc truyện mẫu, chưa thu tiền, đăng ký gói hoặc cấp quyền thật.
-- Ba truyện public demo không phải danh sách 5 truyện của gói Free. Danh sách 5 truyện và thư viện cao cấp cần Content Manager xác nhận.
+- Các gói có giá và quyền lợi nêu trên; public prototype chỉ giới thiệu trên landing, chưa thu tiền, đăng ký gói hoặc cấp quyền thật.
+- Ba truyện preview trên landing không phải danh sách 5 truyện của gói Free. Danh sách 5 truyện và thư viện cao cấp cần Content Manager xác nhận.
 - Cần chốt gói gắn với Parent hay từng Child, cách chia sẻ hạn mức giữa các hồ sơ, ngày reset theo tháng và timezone.
 - Cần chốt regenerate có trừ lượt tạo chính không, lượt lỗi có hoàn lại không, cách đếm xuất video và tải lại file.
 - Chưa có giá năm, thời gian dùng thử, phương thức thanh toán, điều kiện gia hạn/hủy/hoàn tiền hay quy tắc nâng/hạ gói; không tự bổ sung.
-- Không suy diễn Family hỗ trợ sinh cốt truyện tùy chỉnh từ việc “kế thừa Pro”; tính năng này chưa được xác nhận.
 
 ### 8.4. Câu hỏi thường gặp — `/faq`
 
@@ -518,14 +442,14 @@ Giá tính bằng VND theo tháng. Đây là cấu hình sản phẩm được c
 
 Chia nhóm Bắt đầu, Dành cho phụ huynh, Gói sử dụng. Bản đầu dùng khoảng 6 câu hỏi; chưa cần ô tìm kiếm cho lượng nội dung ít.
 
-| Câu hỏi | Câu trả lời đề xuất |
-|---|---|
-| SketchTale dành cho trẻ bao nhiêu tuổi? | SketchTale hướng tới trẻ từ 3 đến 6 tuổi, với sự đồng hành của phụ huynh. |
-| Bé sử dụng ở đâu, bố mẹ quản lý ở đâu? | Sản phẩm được thiết kế với ứng dụng di động cho trải nghiệm của bé và website cho phụ huynh quản lý. Trang này giới thiệu sản phẩm và cung cấp truyện mẫu. |
-| Bé có cần tự tạo tài khoản không? | Phụ huynh đăng nhập và quản lý hồ sơ của bé. Bé không cần tự tạo tài khoản riêng. |
-| Một phụ huynh có thể quản lý nhiều bé không? | Có. Mỗi hồ sơ trẻ thuộc một tài khoản phụ huynh và có cài đặt riêng. Free có 1 hồ sơ, Pro tối đa 3, Family tối đa 5 hồ sơ. |
-| Bố mẹ có thể chọn nội dung và thời gian sử dụng không? | Chức năng dành cho phụ huynh được thiết kế để quản lý danh mục nội dung và thời gian theo từng hồ sơ. Phần trình diễn trên website dùng dữ liệu minh họa. |
-| SketchTale có thu phí không? | Có gói Free / Starter miễn phí, Pro Creator / Explorer 35.000đ/tháng và Family / Unlimited 89.000đ/tháng. Hạn mức tạo nhân vật Family còn cần chốt; prototype chưa hỗ trợ thanh toán. |
+| Câu hỏi                                                | Câu trả lời đề xuất                                                                                                                                        |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SketchTale dành cho trẻ bao nhiêu tuổi?                | SketchTale hướng tới trẻ từ 3 đến 6 tuổi, với sự đồng hành của phụ huynh.                                                                                  |
+| Bé sử dụng ở đâu, bố mẹ quản lý ở đâu?                 | Sản phẩm được thiết kế với ứng dụng di động cho trải nghiệm của bé và website cho phụ huynh quản lý. Trang này giới thiệu sản phẩm và cung cấp truyện mẫu. |
+| Bé có cần tự tạo tài khoản không?                      | Phụ huynh đăng nhập và quản lý hồ sơ của bé. Bé không cần tự tạo tài khoản riêng.                                                                          |
+| Một phụ huynh có thể quản lý nhiều bé không?           | Có. Mỗi hồ sơ trẻ thuộc một tài khoản phụ huynh và có cài đặt riêng. Free có 1 hồ sơ, Pro tối đa 3, Family tối đa 5 hồ sơ.                                 |
+| Bố mẹ có thể chọn nội dung và thời gian sử dụng không? | Chức năng dành cho phụ huynh được thiết kế để quản lý danh mục nội dung và thời gian theo từng hồ sơ. Phần trình diễn trên website dùng dữ liệu minh họa.  |
+| SketchTale có thu phí không?                           | Có gói Free miễn phí, Pro 35.000đ/tháng và Family 89.000đ/tháng. Family có 100 lượt tạo nhân vật AI/tháng; prototype chưa hỗ trợ thanh toán.               |
 
 Cuối trang: “Bạn còn câu hỏi khác?” → “Liên hệ” → `/contact`. Trước khi ra mắt phải cập nhật các câu đang mô tả kế hoạch để khớp đúng trạng thái tính năng thực tế.
 
@@ -549,20 +473,9 @@ Form gồm:
 
 **Khi nối backend:** thêm loading, thành công thực, lỗi mạng và retry; không xóa nội dung người dùng khi gửi thất bại. Email/hotline hỗ trợ chỉ hiện khi có đầu mối thật.
 
-### 8.6. Dành cho phụ huynh — `/for-parents`
+### 8.6. Dành cho phụ huynh trên landing — `/#parents`
 
-**H1:** “Cùng bé khám phá, theo cách của gia đình.”
-
-Thứ tự nội dung:
-
-1. Giới thiệu sự đồng hành giữa Parent và Child.
-2. Hồ sơ riêng cho từng bé: mô tả quan hệ một Parent–nhiều Child.
-3. Nội dung phù hợp: quản lý theo danh mục và cài đặt từng hồ sơ.
-4. Nhịp sử dụng: thời gian và nhắc trước 5 phút theo thiết kế nghiệp vụ.
-5. Theo dõi hành trình: giới thiệu lịch sử đọc, nghe và trả lời; không dùng chỉ số mẫu như bằng chứng hiệu quả.
-6. FAQ và CTA “Khám phá truyện”.
-
-Dùng một demo tương tác tái sử dụng từ trang chủ, không chép thành hai bộ dữ liệu khác nhau. Luồng duyệt nhân vật, recolor hoặc chỉnh sửa chỉ bổ sung sau khi quy tắc đã được làm rõ.
+Nội dung đồng hành của phụ huynh được trình bày trực tiếp trong section `/#parents`, gồm demo quản lý hồ sơ, duyệt nhân vật, giới hạn thời gian, kiểm soát nhóm truyện và theo dõi tiến độ. Không tạo route `/for-parents` riêng; điều hướng về section này bằng anchor.
 
 ### 8.7. Giới thiệu và các trang chính sách
 
@@ -601,28 +514,28 @@ Auth dùng cùng màu, font và logo nhưng bố cục tập trung: form dễ đ
 
 ### 9.1. Bộ component dùng chung
 
-| Nhóm | Component dự kiến |
-|---|---|
+| Nhóm         | Component dự kiến                                              |
+| ------------ | -------------------------------------------------------------- |
 | Khung public | PublicLayout, PublicHeader, MobileMenu, PublicFooter, SkipLink |
-| Cơ bản | Button, TextLink, Container, SectionHeading, Badge, FormField |
-| Truyện mẫu | StoryCard, StoryFilters, SampleReader, SampleQuiz |
-| Nội dung | FaqAccordion, ParentDemoTabs, PlanAvailabilityNotice |
-| Trạng thái | LoadingState, EmptyState, ErrorState, PrototypeNotice |
+| Cơ bản       | Button, TextLink, Container, SectionHeading, Badge, FormField  |
+| Truyện mẫu   | StoryCard, StoryFilters, SampleReader, SampleQuiz              |
+| Nội dung     | FaqAccordion, ParentDemoTabs, PlanAvailabilityNotice           |
+| Trạng thái   | LoadingState, EmptyState, ErrorState, PrototypeNotice          |
 
 Giữ API component đơn giản. Không tạo design-system package riêng hoặc abstraction phức tạp cho số trang ban đầu.
 
 ### 9.2. Quy tắc hành động
 
-| Nhãn | Đích/hành vi | Điều kiện |
-|---|---|---|
-| Khám phá truyện | `/stories` | CTA khám phá chính, thống nhất giữa hero và cuối trang |
-| Đọc truyện mẫu | `/stories/:slug` hoặc bắt đầu reader trên trang chi tiết | Truyện có đầy đủ nội dung mẫu |
-| Cách hoạt động | `/#how-it-works` | Cuộn tới section, có bù header |
-| Xem gói sử dụng | `/pricing` | So sánh ba gói theo thông tin mới; ghi rõ chưa tích hợp thanh toán |
-| Đăng nhập | `/auth/login` | Chỉ hiện khi giao diện Auth đã tồn tại; có nhãn prototype nếu chưa tích hợp |
-| Tạo tài khoản | `/auth/register` | Không hứa đăng ký thật khi chưa có API |
-| Liên hệ | `/contact` | Prototype không báo gửi thật |
-| Tải ứng dụng | URL store thật | Chưa có URL thì không hiển thị nút/huy hiệu |
+| Nhãn            | Đích/hành vi                                             | Điều kiện                                                                   |
+| --------------- | -------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Khám phá truyện | `/#stories`                                               | Cuộn tới kệ truyện trên landing                                      |
+| Đọc truyện       | Ứng dụng sau khi đăng nhập                                | Public website chỉ giới thiệu kệ truyện minh họa                              |
+| Cách hoạt động  | `/#how-it-works`                                         | Cuộn tới section, có bù header                                              |
+| Xem gói sử dụng | `/#pricing`                                               | Cuộn tới bảng giá trên landing; chưa tích hợp thanh toán          |
+| Đăng nhập       | `/auth/login`                                            | Chỉ hiện khi giao diện Auth đã tồn tại; có nhãn prototype nếu chưa tích hợp |
+| Tạo tài khoản   | `/auth/register`                                         | Không hứa đăng ký thật khi chưa có API                                      |
+| Liên hệ         | `/contact`                                               | Prototype không báo gửi thật                                                |
+| Tải ứng dụng    | URL store thật                                           | Chưa có URL thì không hiển thị nút/huy hiệu                                 |
 
 - Link để điều hướng; button để đổi state, mở menu, gửi form hoặc chuyển trang reader.
 - Nút có disabled/loading khi có lý do thực tế; không dùng một CTA nổi bật nhưng bấm không làm gì.
@@ -711,7 +624,7 @@ Mỗi page có ID ổn định, số thứ tự, văn bản, ảnh/alt; audio/ti
 2. Tìm kiếm/lọc/phân trang nếu kho mẫu tăng; shape response và lỗi.
 3. Auth Parent, xác minh email, quên mật khẩu và phân luồng role.
 4. Đầu nhận form liên hệ, giới hạn gửi và xử lý spam.
-5. API gói và quyền lợi theo mục 8.3; fair usage Family, tính regenerate, reset và cấp quyền sau thanh toán.
+5. API gói và quyền lợi theo mục 8.3; hạn mức Family 100 lượt, tính regenerate, reset và cấp quyền sau thanh toán.
 6. URL domain, cấu hình route khi refresh và chiến lược SEO trước ra mắt.
 
 Không cần backend để hoàn thành bố cục, copy, responsive hoặc tương tác demo trong kế hoạch này.
@@ -783,7 +696,7 @@ Không cần backend để hoàn thành bố cục, copy, responsive hoặc tư�
 - Dựng giao diện Auth theo phạm vi thống nhất; phân biệt prototype với chức năng thật.
 - Kiểm tra toàn bộ CTA/route, empty/error/loading và hành vi back/forward của trình duyệt.
 
-**Đạt khi:** các trang thống nhất typography/màu; form không báo gửi hoặc tạo tài khoản giả; giá và quyền lợi đúng thông tin đã cung cấp; Family ghi rõ fair usage cần chốt, chưa có giao dịch thật.
+**Đạt khi:** các trang thống nhất typography/màu; form không báo gửi hoặc tạo tài khoản giả; giá và quyền lợi đúng thông tin đã cung cấp; Family ghi rõ 100 lượt tạo nhân vật/tháng, chưa có giao dịch thật.
 
 ### Đợt 4 — Chuẩn bị phát hành và tích hợp
 
@@ -813,15 +726,15 @@ Không cần backend để hoàn thành bố cục, copy, responsive hoặc tư�
 
 ## 13. Những điểm cần chốt tiếp — không chặn dựng giao diện
 
-| Cần xác nhận | Mặc định để tiếp tục thiết kế |
-|---|---|
-| Luồng cá nhân hóa từ tranh/nhân vật hiện chính xác ra sao? | Giới thiệu tạo nhân vật AI theo gói mới; chức năng demo chỉ mở khi tích hợp thật |
-| Có file logo/linh vật tách riêng, nền trong suốt hay nguồn thiết kế không? | Giữ hai bảng làm tham chiếu; chưa coi chúng là asset production |
-| Tên linh vật chính thức? | Gọi là “mèo linh vật SketchTale”, không tự đặt tên |
-| Có truyện và audio được phép công khai chưa? | Dùng nội dung mẫu đã đánh dấu; audio chỉ bật khi có file thật |
-| Đã có bản app và URL store chưa? | Ẩn CTA tải app |
-| Family dùng không giới hạn hay fair usage 100 lượt/tháng? | Hiển thị cả hai phương án với nhãn cần chốt; các giá và hạn mức khác theo mục 8.3; không khóa demo bằng paywall giả |
-| Domain, email hỗ trợ và thông tin đơn vị vận hành? | Không bịa thông tin; chỉ hoàn thiện khi có nguồn thật |
-| Khi nào tích hợp Auth/API? | Frontend JavaScript/JSX, service mock và dữ liệu tách biệt |
+| Cần xác nhận                                                               | Mặc định để tiếp tục thiết kế                                                                                                                          |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Luồng cá nhân hóa từ tranh/nhân vật hiện chính xác ra sao?                 | Giới thiệu tạo nhân vật AI theo gói mới; chức năng demo chỉ mở khi tích hợp thật                                                                       |
+| Có file logo/linh vật tách riêng, nền trong suốt hay nguồn thiết kế không? | Giữ hai bảng làm tham chiếu; chưa coi chúng là asset production                                                                                        |
+| Tên linh vật chính thức?                                                   | Gọi là “mèo linh vật SketchTale”, không tự đặt tên                                                                                                     |
+| Có truyện và audio được phép công khai chưa?                               | Dùng nội dung mẫu đã đánh dấu; audio chỉ bật khi có file thật                                                                                          |
+| Đã có bản app và URL store chưa?                                           | Ẩn CTA tải app                                                                                                                                         |
+| Family có những hạn mức nào?                                               | Family có tối đa 5 hồ sơ, 100 lượt tạo nhân vật AI/tháng, 1 lần regenerate mỗi tranh và không giới hạn lượt xuất video. Prototype chưa cấp quyền thật. |
+| Domain, email hỗ trợ và thông tin đơn vị vận hành?                         | Không bịa thông tin; chỉ hoàn thiện khi có nguồn thật                                                                                                  |
+| Khi nào tích hợp Auth/API?                                                 | Frontend JavaScript/JSX, service mock và dữ liệu tách biệt                                                                                             |
 
 **Thứ tự bắt đầu được đề xuất:** asset thương hiệu → tokens và khung public → hero/trang chủ → một truyện mẫu hoàn chỉnh → các trang thông tin → API và phát hành. Không cần làm dashboard ba role hoặc thanh toán trước để bắt đầu public website.

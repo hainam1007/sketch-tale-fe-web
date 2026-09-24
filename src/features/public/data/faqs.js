@@ -39,6 +39,6 @@ export const faqs = [
     group: "Gói sử dụng",
     question: "SketchTale có thu phí không?",
     answer:
-      "Có gói Free / Starter miễn phí, Pro Creator / Explorer 35.000đ/tháng và Family / Unlimited 89.000đ/tháng. Hạn mức tạo nhân vật Family còn cần chốt. Bản trải nghiệm chưa hỗ trợ thanh toán hoặc đăng ký gói.",
+      "Có gói Free miễn phí, Pro 35.000đ/tháng và Family 89.000đ/tháng. Family có 100 lượt tạo nhân vật AI/tháng. Bản trải nghiệm chưa hỗ trợ thanh toán hoặc đăng ký gói.",
   },
 ];

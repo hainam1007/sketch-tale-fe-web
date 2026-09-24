@@ -21,7 +21,7 @@ Nguồn dùng để tổng hợp:
 - Use case diagram của SketchTale Mobile App.
 - ERD được cung cấp.
 - Trạng thái hiện tại của repository `SEP490sketchtale`.
-- Thông tin ba gói Free / Starter, Pro Creator / Explorer và Family / Unlimited do người dùng bổ sung ngày 17/09/2026.
+- Thông tin ba gói Free, Pro và Family do người dùng tinh chỉnh ngày 17/09/2026.
 
 ## 2. Tóm tắt điều hành
 
@@ -54,15 +54,15 @@ Giá trị chính của sản phẩm là kết hợp ba yếu tố:
 
 ### 4.1. Actors
 
-| Actor | Vai trò chính |
-|---|---|
-| User | Nhóm chức năng dùng chung: đăng ký, đăng nhập, đăng xuất, quên mật khẩu và hồ sơ cá nhân. |
-| Parent | Quản lý hồ sơ trẻ, giới hạn sử dụng, thư viện, phê duyệt nhân vật và tiến độ học tập. |
-| Child | Tạo nhân vật từ tranh, chọn/đọc truyện, làm quiz và xem thư viện cá nhân trên mobile. |
-| Content Manager | Xây dựng, chỉnh sửa, xuất bản và theo dõi hiệu quả nội dung truyện. |
-| Admin | Quản trị tài khoản, phân quyền, giới hạn hệ thống, từ khóa hạn chế, báo cáo và an toàn nội dung. |
-| AI Generation Service | Tạo phiên bản nhân vật hoạt hình từ tranh của trẻ. |
-| Cloud Storage | Lưu hình vẽ, nhân vật, nền, tài sản truyện, audio và file xuất. |
+| Actor                 | Vai trò chính                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| User                  | Nhóm chức năng dùng chung: đăng ký, đăng nhập, đăng xuất, quên mật khẩu và hồ sơ cá nhân.        |
+| Parent                | Quản lý hồ sơ trẻ, giới hạn sử dụng, thư viện, phê duyệt nhân vật và tiến độ học tập.            |
+| Child                 | Tạo nhân vật từ tranh, chọn/đọc truyện, làm quiz và xem thư viện cá nhân trên mobile.            |
+| Content Manager       | Xây dựng, chỉnh sửa, xuất bản và theo dõi hiệu quả nội dung truyện.                              |
+| Admin                 | Quản trị tài khoản, phân quyền, giới hạn hệ thống, từ khóa hạn chế, báo cáo và an toàn nội dung. |
+| AI Generation Service | Tạo phiên bản nhân vật hoạt hình từ tranh của trẻ.                                               |
+| Cloud Storage         | Lưu hình vẽ, nhân vật, nền, tài sản truyện, audio và file xuất.                                  |
 
 ### 4.2. Ranh giới sản phẩm
 
@@ -107,7 +107,7 @@ Giá trị chính của sản phẩm là kết hợp ba yếu tố:
 
 **[Đề xuất chờ xác nhận]**
 
-- Giới hạn số nhân vật/ngày do Parent đặt là kiểm soát sử dụng tùy chọn, tách biệt hạn mức thương mại/tháng ở mục 5.7. Không dùng lựa chọn “Không giới hạn” của Parent để vượt hạn mức Free/Pro hoặc fair usage Family.
+- Giới hạn số nhân vật/ngày do Parent đặt là kiểm soát sử dụng tùy chọn, tách biệt hạn mức thương mại/tháng ở mục 5.7. Không dùng giới hạn riêng của Parent để vượt hạn mức Free, Pro hoặc Family.
 - Nên lưu lý do từ chối nhân vật để Parent khác và hệ thống audit hiểu quyết định. Parent có thể chọn một lý do ngắn có sẵn và nhập ghi chú tùy chọn; phía trẻ chỉ hiển thị biểu tượng, animation hoặc lời thoại thân thiện thay vì đoạn chữ dài.
 - Chỉ tính usage time khi app trẻ em ở foreground/đang hoạt động; tạm dừng khi app vào background và đồng bộ thời gian với server.
 
@@ -211,32 +211,32 @@ Các mục sau không xuất hiện rõ trong nguồn và không nên tự đưa
 
 Giá tính bằng VND theo tháng. Đây là cấu hình sản phẩm được cung cấp, không phải xác nhận chức năng thanh toán hay quyền lợi đã được triển khai. Hạn mức thương mại phải do backend kiểm tra khi tích hợp; frontend không tự cấp quyền.
 
-| Nội dung | Free / Starter | Pro Creator / Explorer | Family / Unlimited |
-|---|---|---|---|
-| Giá | Miễn phí | 35.000đ/tháng | 89.000đ/tháng |
-| Hồ sơ trẻ em | 1 | Tối đa 3 | Tối đa 5 |
-| Tạo nhân vật AI | 5 lượt/tháng | 30 lượt/tháng | Không giới hạn **hoặc** fair usage 100 lượt/tháng — cần chốt |
-| Tạo lại (regenerate) | Tối đa 1 lần/hình | Không giới hạn cho mỗi tranh | Kế thừa Pro |
-| Thư viện | 5 truyện miễn phí cơ bản | Toàn bộ mẫu truyện và chủ đề | Trọn bộ cao cấp, cập nhật mới hàng tuần |
-| Xuất video | Không hỗ trợ | 5 lượt/tháng | Không giới hạn |
+| Nội dung             | Free                     | Pro                          | Family                                  |
+| -------------------- | ------------------------ | ---------------------------- | --------------------------------------- |
+| Giá                  | Miễn phí                 | 35.000đ/tháng                | 89.000đ/tháng                           |
+| Hồ sơ trẻ em         | 1                        | Tối đa 3                     | Tối đa 5                                |
+| Tạo nhân vật AI      | 5 lượt/tháng             | 30 lượt/tháng                | 100 lượt/tháng                          |
+| Tạo lại (regenerate) | Tối đa 1 lần/hình        | Tối đa 1 lần mỗi tranh       | Tối đa 1 lần mỗi tranh                  |
+| Thư viện             | 5 truyện miễn phí cơ bản | Toàn bộ mẫu truyện và chủ đề | Trọn bộ cao cấp, cập nhật mới hàng tuần |
+| Xuất video           | Không hỗ trợ             | 5 lượt/tháng                 | Không giới hạn                          |
 
-##### Gói 1: Free / Starter
+##### Gói 1: Free
 
 - **Mục tiêu:** Phụ huynh mới muốn dùng thử hệ thống, cho con trải nghiệm biến hình vẽ thành nhân vật hoạt hình.
 - **Tính năng:** Vẽ trực tiếp hoặc chụp/tải ảnh vẽ tay; tạo nhân vật hoạt hình từ tranh vẽ bằng AI; đặt tên và chỉnh sửa màu sắc cơ bản; đọc truyện tương tác với giọng đọc, tô sáng chữ và câu hỏi sau truyện; Parent Portal cơ bản để quản lý thời gian, duyệt nhân vật.
 - **Giới hạn:** Không xuất video, không xem báo cáo từ vựng chuyên sâu, thư viện giới hạn ở 5 truyện cơ bản.
 
-##### Gói 2: Pro Creator / Explorer — 35.000đ/tháng
+##### Gói 2: Pro — 35.000đ/tháng
 
 - **Mục tiêu:** Gia đình có 1–2 trẻ em muốn con sáng tạo hằng ngày và học qua truyện đọc. Số hồ sơ được cấp vẫn là tối đa 3, không giới hạn ở 2 theo mô tả khách hàng mục tiêu.
-- **Tính năng:** Toàn bộ tính năng Free; lưu kho nhân vật và thư viện truyện yêu thích (Favorites) không giới hạn; báo cáo Parent Portal chi tiết gồm số truyện đã đọc, từ vựng học được, kết quả câu hỏi; phân vai nâng cao gồm nhân vật chính, bạn đồng hành, vai phụ; phê duyệt vai nhạy cảm từ Parent Portal.
-- **Giới hạn:** 5 lượt xuất video/tháng; không tạo truyện tùy chỉnh riêng theo yêu cầu.
+- **Tính năng:** Toàn bộ tính năng Free; lưu trữ kho nhân vật và thư viện truyện yêu thích (Favorites) không giới hạn.
+- **Giới hạn:** 1 lần regenerate mỗi tranh; 5 lượt xuất video/tháng.
 
-##### Gói 3: Family / Unlimited — 89.000đ/tháng
+##### Gói 3: Family — 89.000đ/tháng
 
 - **Mục tiêu:** Gia đình đông con hoặc phụ huynh muốn sự tự do sáng tạo và lưu giữ kỷ niệm.
-- **Tính năng:** Toàn bộ tính năng Pro; ưu tiên hàng đợi xử lý tạo nhân vật AI (Fast Queue); đánh dấu và xuất báo cáo học tập định kỳ hằng tháng gửi email phụ huynh; tải video chất lượng cao HD/4K để chia sẻ mạng xã hội hoặc lưu kỷ niệm.
-- **Điểm cần chốt:** Giữ nguyên hai phương án tạo nhân vật mà người dùng cung cấp: không giới hạn hoặc fair usage 100 lượt/tháng. Không diễn giải “Unlimited” thành cam kết tạo vô hạn trước khi chốt. Khả năng xuất HD/4K, điều kiện vận hành cập nhật hằng tuần và gửi email cần kiểm chứng khi tích hợp.
+- **Tính năng:** Toàn bộ tính năng Pro; đánh dấu và xuất báo cáo học tập định kỳ hằng tháng gửi về email phụ huynh.
+- **Giới hạn:** 100 lượt tạo nhân vật AI/tháng, 1 lần regenerate mỗi tranh. Xuất truyện thành video không giới hạn.
 
 ##### Quy tắc tích hợp và các câu hỏi còn mở
 
@@ -245,7 +245,6 @@ Giá tính bằng VND theo tháng. Đây là cấu hình sản phẩm được c
 - Cần chốt gói gắn với Parent hay từng Child, cách chia sẻ hạn mức giữa các hồ sơ, ngày reset theo tháng và timezone.
 - Cần chốt regenerate có trừ lượt tạo chính không, lượt lỗi có hoàn lại không, cách đếm xuất video và tải lại file.
 - Chưa có giá năm, thời gian dùng thử, phương thức thanh toán, điều kiện gia hạn/hủy/hoàn tiền hay quy tắc nâng/hạ gói; không tự bổ sung.
-- Không suy diễn Family hỗ trợ sinh cốt truyện tùy chỉnh từ việc “kế thừa Pro”; tính năng này chưa được xác nhận.
 
 ## 6. Luồng nghiệp vụ cốt lõi
 
@@ -318,13 +317,13 @@ Giá tính bằng VND theo tháng. Đây là cấu hình sản phẩm được c
 
 ## 8. Yêu cầu phi chức năng và tiêu chí kiểm thử
 
-| Nhóm | Yêu cầu đã nêu | Gợi ý tiêu chí kiểm thử |
-|---|---|---|
-| Usability | Trẻ bắt đầu một bản vẽ mới trong tối đa 3 lần chạm từ màn hình chính. | Kiểm thử trên navigation thực tế; không tính thao tác mở ứng dụng/đăng nhập. |
-| Performance | Trang truyện tải trong tối đa 3 giây với kết nối ổn định. | Thống nhất cấu hình thiết bị, mạng, kích thước asset và percentile đo. |
-| Reliability | Khi AI thất bại, giữ tranh gốc và retry không cần upload lại. | Giả lập timeout, lỗi 5xx và mất mạng sau upload. |
-| Safety | Không dùng nhân vật chưa được duyệt trong trường hợp cần phê duyệt. | Chặn ở cả API và UI; kiểm thử gọi API trực tiếp. |
-| Usage limit | Tính thời gian khi app trẻ em đang mở và cảnh báo trước 5 phút. | Tạm dừng bộ đếm khi app vào background; đồng bộ định kỳ với server để tránh sửa giờ hoặc bỏ qua giới hạn. |
+| Nhóm        | Yêu cầu đã nêu                                                        | Gợi ý tiêu chí kiểm thử                                                                                   |
+| ----------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Usability   | Trẻ bắt đầu một bản vẽ mới trong tối đa 3 lần chạm từ màn hình chính. | Kiểm thử trên navigation thực tế; không tính thao tác mở ứng dụng/đăng nhập.                              |
+| Performance | Trang truyện tải trong tối đa 3 giây với kết nối ổn định.             | Thống nhất cấu hình thiết bị, mạng, kích thước asset và percentile đo.                                    |
+| Reliability | Khi AI thất bại, giữ tranh gốc và retry không cần upload lại.         | Giả lập timeout, lỗi 5xx và mất mạng sau upload.                                                          |
+| Safety      | Không dùng nhân vật chưa được duyệt trong trường hợp cần phê duyệt.   | Chặn ở cả API và UI; kiểm thử gọi API trực tiếp.                                                          |
+| Usage limit | Tính thời gian khi app trẻ em đang mở và cảnh báo trước 5 phút.       | Tạm dừng bộ đếm khi app vào background; đồng bộ định kỳ với server để tránh sửa giờ hoặc bỏ qua giới hạn. |
 
 **[Đề xuất] Các NFR cần bổ sung vào SRS:**
 
@@ -340,17 +339,17 @@ Giá tính bằng VND theo tháng. Đây là cấu hình sản phẩm được c
 
 Tên entity dưới đây được đọc từ ERD; tên cột/cardinality cần đối chiếu lại với migration hoặc database schema trước khi code.
 
-| Miền dữ liệu | Entity chính | Ý nghĩa |
-|---|---|---|
-| Identity | `Users`, `ChildProfiles` | Tài khoản Parent và các child profile thuộc Parent đó. |
-| Audit | `AuditLogs` | Ghi lại hành động, entity, khóa chính, giá trị cũ/mới và cột thay đổi. |
-| Drawing & Character | `Drawings`, `Characters`, `CharType` | Tranh gốc, nhân vật được sinh và loại nhân vật. |
-| Story Catalog | `Categories`, `StoryTemplates` | Danh mục và metadata mẫu truyện. |
-| Story Composition | `StoryPageTemplates`, `StoryRoleTemplates`, `CharacterSlotTemplates` | Trang truyện, vai trò và vị trí/scale nhân vật trên từng trang. |
-| Learning Content | `VocabularyTemplates`, `StoryQuizTemplates` | Từ vựng, audio, câu hỏi và đáp án. |
-| Personalized Story | `GeneratedStories`, `UserStoryCharacterMappings` | Phiên bản truyện của trẻ và mapping vai trò–nhân vật. |
-| Learning Tracking | `ReadingLogs`, `ChildVocabularyProgress`, `ChildQuizAnswers` | Lịch sử đọc, tiến độ từ vựng và câu trả lời. |
-| Moderation | `ContentReports` | Báo cáo cho target nội dung/tài khoản và trạng thái xử lý. |
+| Miền dữ liệu        | Entity chính                                                         | Ý nghĩa                                                                |
+| ------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Identity            | `Users`, `ChildProfiles`                                             | Tài khoản Parent và các child profile thuộc Parent đó.                 |
+| Audit               | `AuditLogs`                                                          | Ghi lại hành động, entity, khóa chính, giá trị cũ/mới và cột thay đổi. |
+| Drawing & Character | `Drawings`, `Characters`, `CharType`                                 | Tranh gốc, nhân vật được sinh và loại nhân vật.                        |
+| Story Catalog       | `Categories`, `StoryTemplates`                                       | Danh mục và metadata mẫu truyện.                                       |
+| Story Composition   | `StoryPageTemplates`, `StoryRoleTemplates`, `CharacterSlotTemplates` | Trang truyện, vai trò và vị trí/scale nhân vật trên từng trang.        |
+| Learning Content    | `VocabularyTemplates`, `StoryQuizTemplates`                          | Từ vựng, audio, câu hỏi và đáp án.                                     |
+| Personalized Story  | `GeneratedStories`, `UserStoryCharacterMappings`                     | Phiên bản truyện của trẻ và mapping vai trò–nhân vật.                  |
+| Learning Tracking   | `ReadingLogs`, `ChildVocabularyProgress`, `ChildQuizAnswers`         | Lịch sử đọc, tiến độ từ vựng và câu trả lời.                           |
+| Moderation          | `ContentReports`                                                     | Báo cáo cho target nội dung/tài khoản và trạng thái xử lý.             |
 
 ### 9.1. Quan hệ chính
 
@@ -508,16 +507,16 @@ Sau Sprint 1, bạn có nền dùng chung cho cả ba role và một luồng Par
 
 ### 13.1. Stack
 
-| Mục | Đề xuất | Ghi chú |
-|---|---|---|
-| Language | JavaScript/JSX | Phù hợp với codebase hiện tại; dùng JSDoc cho model, payload và hàm phức tạp để giảm lỗi. |
-| Routing | React Router | Nested layout theo role và route guard. |
-| Server state | TanStack Query | Cache, retry, invalidation và trạng thái request. |
-| Forms | React Hook Form + Zod | Form dài, validation dùng chung và mapping lỗi API. |
-| Styling | Tailwind CSS hoặc CSS Modules | Chọn một hướng; phiếu chỉ đưa ra công nghệ khả dụng, không bắt buộc. |
-| Component foundation | Radix UI/headless primitives | Giữ accessibility và chủ động visual style. |
-| Testing | Vitest + Testing Library + Playwright | Unit/component cho logic; E2E cho luồng chính. |
-| API schema | OpenAPI schema/client hoặc API mock nếu có | Giảm lệch contract giữa Frontend và Backend; không bắt buộc TypeScript. |
+| Mục                  | Đề xuất                                    | Ghi chú                                                                                   |
+| -------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Language             | JavaScript/JSX                             | Phù hợp với codebase hiện tại; dùng JSDoc cho model, payload và hàm phức tạp để giảm lỗi. |
+| Routing              | React Router                               | Nested layout theo role và route guard.                                                   |
+| Server state         | TanStack Query                             | Cache, retry, invalidation và trạng thái request.                                         |
+| Forms                | React Hook Form + Zod                      | Form dài, validation dùng chung và mapping lỗi API.                                       |
+| Styling              | Tailwind CSS hoặc CSS Modules              | Chọn một hướng; phiếu chỉ đưa ra công nghệ khả dụng, không bắt buộc.                      |
+| Component foundation | Radix UI/headless primitives               | Giữ accessibility và chủ động visual style.                                               |
+| Testing              | Vitest + Testing Library + Playwright      | Unit/component cho logic; E2E cho luồng chính.                                            |
+| API schema           | OpenAPI schema/client hoặc API mock nếu có | Giảm lệch contract giữa Frontend và Backend; không bắt buộc TypeScript.                   |
 
 ### 13.2. Cấu trúc thư mục gợi ý
 
@@ -686,17 +685,17 @@ GET    /admin/audit-logs
 
 ## 16. Ma trận quyền sơ bộ
 
-| Chức năng | Parent | Content Manager | Admin | Child |
-|---|:---:|:---:|:---:|:---:|
-| Quản lý hồ sơ cá nhân | ✓ | ✓ | ✓ | — |
-| Quản lý child profile | ✓ | — | Có thể chỉ hỗ trợ | — |
-| Duyệt nhân vật/vai | ✓ | — | Có thể điều tra | — |
-| Xem learning progress | ✓ | — | Báo cáo tổng hợp | — |
-| Quản lý story template | — | ✓ | Theo quyền | — |
-| Publish/hide story | — | ✓ | Theo quyền | — |
-| Quản lý tài khoản/quyền | — | — | ✓ | — |
-| Xử lý content report | — | — | ✓ | — |
-| Tạo nhân vật và đọc truyện | — | — | — | ✓ |
+| Chức năng                  | Parent | Content Manager |       Admin       | Child |
+| -------------------------- | :----: | :-------------: | :---------------: | :---: |
+| Quản lý hồ sơ cá nhân      |   ✓    |        ✓        |         ✓         |   —   |
+| Quản lý child profile      |   ✓    |        —        | Có thể chỉ hỗ trợ |   —   |
+| Duyệt nhân vật/vai         |   ✓    |        —        |  Có thể điều tra  |   —   |
+| Xem learning progress      |   ✓    |        —        | Báo cáo tổng hợp  |   —   |
+| Quản lý story template     |   —    |        ✓        |    Theo quyền     |   —   |
+| Publish/hide story         |   —    |        ✓        |    Theo quyền     |   —   |
+| Quản lý tài khoản/quyền    |   —    |        —        |         ✓         |   —   |
+| Xử lý content report       |   —    |        —        |         ✓         |   —   |
+| Tạo nhân vật và đọc truyện |   —    |        —        |         —         |   ✓   |
 
 **[Cần xác nhận]** Admin có quyền sửa nội dung trực tiếp hay chỉ quản trị/giám sát; Parent có được tạo account riêng cho Child hay Child chỉ là profile.
 
@@ -704,13 +703,13 @@ GET    /admin/audit-logs
 
 Đây là **[Đề xuất]**, ưu tiên giảm phụ thuộc và tránh chỉ một người chịu toàn bộ Backend.
 
-| Thành viên | Trách nhiệm chính | Trách nhiệm phối hợp |
-|---|---|---|
-| 1 | Backend Core: auth, user, child profile, permission, audit | Tech lead/architecture |
-| 2 | Backend Domain: story template, generated story, progress, reporting | Database và OpenAPI |
-| 3 — bạn | Web Frontend: shared UI, Parent, Content Manager, Admin | UX, API contract và E2E web |
-| 4 | Mobile Frontend: drawing, character, library, reader, quiz | Mobile UX và integration |
-| 5 | AI/Media Integration: generation, narration, storage, export | DevOps, monitoring và performance |
+| Thành viên | Trách nhiệm chính                                                    | Trách nhiệm phối hợp              |
+| ---------- | -------------------------------------------------------------------- | --------------------------------- |
+| 1          | Backend Core: auth, user, child profile, permission, audit           | Tech lead/architecture            |
+| 2          | Backend Domain: story template, generated story, progress, reporting | Database và OpenAPI               |
+| 3 — bạn    | Web Frontend: shared UI, Parent, Content Manager, Admin              | UX, API contract và E2E web       |
+| 4          | Mobile Frontend: drawing, character, library, reader, quiz           | Mobile UX và integration          |
+| 5          | AI/Media Integration: generation, narration, storage, export         | DevOps, monitoring và performance |
 
 Mọi thành viên cùng tham gia:
 
@@ -787,18 +786,18 @@ Một user story chỉ nên được xem là hoàn thành khi:
 
 ## 20. Rủi ro chính và cách giảm thiểu
 
-| Rủi ro | Tác động | Hướng xử lý |
-|---|---|---|
-| Phạm vi gồm web, mobile, AI, audio và export quá lớn | Trễ tiến độ | Chốt MVP, P0/P1/P2 và demo path ngay từ đầu. |
-| Tên AnimTale/SketchTale không nhất quán | Sai hồ sơ/tài liệu | Sửa nguồn chính và dùng SketchTale thống nhất. |
-| FE bị chặn bởi BE | Chậm UI/integration | OpenAPI sớm, mock server và fixtures có version. |
-| AI chậm hoặc thất bại | Luồng cốt lõi kém ổn định | Async job, lưu tranh trước, retry và demo fallback. |
-| Asset/audio quá nặng | Không đạt mốc 3 giây | CDN, nén, preload trang kế tiếp và performance budget. |
-| Phân quyền chỉ làm ở UI | Rò rỉ dữ liệu/chức năng | Enforce ở API và test quyền trực tiếp. |
-| Sửa template làm thay đổi truyện đã tạo | Mất tính nhất quán | Version/snapshot khi tạo generated story. |
-| Dữ liệu trẻ em nhạy cảm | Rủi ro riêng tư | Data retention, consent, access log và xóa dữ liệu. |
-| Editor quá phức tạp | Tốn phần lớn thời gian FE | Làm form editor trước, drag/drop sau. |
-| Export/narration phụ thuộc dịch vụ ngoài | Demo dễ lỗi | Queue, timeout, retry, status UI và file mẫu dự phòng. |
+| Rủi ro                                               | Tác động                  | Hướng xử lý                                            |
+| ---------------------------------------------------- | ------------------------- | ------------------------------------------------------ |
+| Phạm vi gồm web, mobile, AI, audio và export quá lớn | Trễ tiến độ               | Chốt MVP, P0/P1/P2 và demo path ngay từ đầu.           |
+| Tên AnimTale/SketchTale không nhất quán              | Sai hồ sơ/tài liệu        | Sửa nguồn chính và dùng SketchTale thống nhất.         |
+| FE bị chặn bởi BE                                    | Chậm UI/integration       | OpenAPI sớm, mock server và fixtures có version.       |
+| AI chậm hoặc thất bại                                | Luồng cốt lõi kém ổn định | Async job, lưu tranh trước, retry và demo fallback.    |
+| Asset/audio quá nặng                                 | Không đạt mốc 3 giây      | CDN, nén, preload trang kế tiếp và performance budget. |
+| Phân quyền chỉ làm ở UI                              | Rò rỉ dữ liệu/chức năng   | Enforce ở API và test quyền trực tiếp.                 |
+| Sửa template làm thay đổi truyện đã tạo              | Mất tính nhất quán        | Version/snapshot khi tạo generated story.              |
+| Dữ liệu trẻ em nhạy cảm                              | Rủi ro riêng tư           | Data retention, consent, access log và xóa dữ liệu.    |
+| Editor quá phức tạp                                  | Tốn phần lớn thời gian FE | Làm form editor trước, drag/drop sau.                  |
+| Export/narration phụ thuộc dịch vụ ngoài             | Demo dễ lỗi               | Queue, timeout, retry, status UI và file mẫu dự phòng. |
 
 ## 21. Các câu hỏi còn cần chốt
 
@@ -810,13 +809,13 @@ Một user story chỉ nên được xem là hoàn thành khi:
 4. Mobile dùng React Native hay Flutter?
 5. AI provider, storage provider và narration provider nào được dùng?
 6. Phạm vi MVP chính xác cho lần demo đầu là gì?
-7. Chốt fair usage Family: không giới hạn hay 100 lượt tạo nhân vật/tháng; cách tính regenerate, lượt thất bại, phạm vi hạn mức và lịch reset. Hạn mức đã cung cấp: Free 5 lượt/tháng, Pro 30 lượt/tháng.
+7. Chốt cách tính regenerate, lượt thất bại, phạm vi hạn mức và lịch reset. Hạn mức đã cung cấp: Free 5 lượt/tháng, Pro 30 lượt/tháng, Family 100 lượt/tháng; mỗi gói 1 lần regenerate mỗi tranh.
 
 ### P1 — trước khi tích hợp domain
 
 9. Có bắt buộc Parent chọn lý do khi từ chối nhân vật không, hay lý do chỉ là tùy chọn?
 10. App chạy background có tính usage time không? Giới hạn ngày dùng timezone nào và reset lúc mấy giờ?
-11. Xuất video đã có trong quyền lợi Pro/Family; cần chốt định dạng, HD/4K, API job và phạm vi MVP. PDF hoặc link web chưa được xác nhận.
+11. Xuất video đã có trong quyền lợi Pro/Family; cần chốt định dạng, API job và phạm vi MVP. PDF hoặc link web chưa được xác nhận.
 12. Recommendation là rule-based hay AI-based?
 13. Admin có quyền chỉnh sửa nội dung hay chỉ giám sát?
 14. Với nhóm tuổi cố định 3–6, có cần chia nội dung thành các mức nhỏ như 3–4 và 5–6 hay không?

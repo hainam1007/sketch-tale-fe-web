@@ -1,0 +1,119 @@
+<div id="children-screenflow-visual" class="children-flow-visual" role="img" aria-label="Children screen flow with story reading, personalization, character creation, and parent approval">
+  <style>
+    #children-screenflow-visual { font-family: Arial, sans-serif; color: #202124; max-width: 100%; overflow-x: auto; }
+    #children-screenflow-visual svg { display: block; width: 100%; min-width: 1500px; height: auto; }
+    #children-screenflow-visual .node { fill: #fff2cc; stroke: #555; stroke-width: 1.5; }
+    #children-screenflow-visual .popup { fill: #fff; stroke: #555; stroke-width: 1.5; }
+    #children-screenflow-visual .system { fill: #e2f0d9; stroke: #70ad47; stroke-width: 1.5; }
+    #children-screenflow-visual .warning { fill: #fce4d6; stroke: #c55a11; stroke-width: 1.5; }
+    #children-screenflow-visual .label { font-size: 14px; text-anchor: middle; dominant-baseline: middle; }
+    #children-screenflow-visual .small { font-size: 12px; fill: #666; text-anchor: middle; }
+    #children-screenflow-visual .lane { font-size: 13px; fill: #777; font-weight: 600; letter-spacing: .3px; }
+    #children-screenflow-visual .line { fill: none; stroke: #555; stroke-width: 1.5; marker-end: url(#children-flow-arrow); }
+    #children-screenflow-visual .return { fill: none; stroke: #777; stroke-width: 1.2; stroke-dasharray: 5 4; marker-end: url(#children-flow-arrow); }
+  </style>
+  <svg viewBox="0 0 2200 1120" preserveAspectRatio="xMinYMin meet">
+    <defs>
+      <marker id="children-flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#555"></path>
+      </marker>
+    </defs>
+
+    <text x="1100" y="34" font-size="22" font-weight="600" text-anchor="middle">Children Screen Flow - Recommended Structure</text>
+    <text class="lane" x="40" y="95">STORY DISCOVERY AND READING</text>
+    <text class="lane" x="40" y="430">PERSONALIZED STORY FLOW</text>
+    <text class="lane" x="40" y="745">CHARACTER CREATION AND PARENT APPROVAL</text>
+
+    <rect class="node" x="40" y="150" width="145" height="56"></rect>
+    <text class="label" x="112" y="178">Select Child Profile</text>
+    <rect class="node" x="245" y="150" width="135" height="56"></rect>
+    <text class="label" x="312" y="178">Child Home</text>
+    <rect class="node" x="440" y="150" width="145" height="56"></rect>
+    <text class="label" x="512" y="178">Story Library</text>
+    <rect class="node" x="645" y="150" width="145" height="56"></rect>
+    <text class="label" x="717" y="178">Story Details</text>
+    <rect class="node" x="850" y="150" width="145" height="56"></rect>
+    <text class="label" x="922" y="178">Story Reader</text>
+    <rect class="node" x="1055" y="150" width="145" height="56"></rect>
+    <text class="label" x="1127" y="178">Post-story Quiz</text>
+    <rect class="system" x="1260" y="150" width="145" height="56"></rect>
+    <text class="label" x="1332" y="178">Quiz Result</text>
+    <rect class="node" x="1465" y="150" width="145" height="56"></rect>
+    <text class="label" x="1537" y="178">My Library</text>
+
+    <rect class="node" x="440" y="280" width="145" height="56"></rect>
+    <text class="label" x="512" y="308">My Library</text>
+    <path class="line" d="M185 178 H245"></path>
+    <path class="line" d="M380 178 H440"></path>
+    <path class="line" d="M585 178 H645"></path>
+    <path class="line" d="M790 178 H850"></path>
+    <path class="line" d="M995 178 H1055"></path>
+    <path class="line" d="M1200 178 H1260"></path>
+    <path class="line" d="M1405 178 H1465"></path>
+    <path class="line" d="M380 178 H405 V308 H440"></path>
+    <path class="return" d="M1465 206 V308 H585"></path>
+    <path class="return" d="M585 308 H615 V178 H645"></path>
+
+    <rect class="popup" x="645" y="480" width="145" height="56"></rect>
+    <text class="label" x="717" y="508">Create My Version</text>
+    <text class="small" x="717" y="555">Popup</text>
+    <rect class="node" x="850" y="480" width="145" height="56"></rect>
+    <text class="label" x="922" y="508">Character Library</text>
+    <rect class="node" x="1055" y="480" width="145" height="56"></rect>
+    <text class="label" x="1127" y="508">Character Details</text>
+    <rect class="node" x="1260" y="480" width="145" height="56"></rect>
+    <text class="label" x="1332" y="508">Choose Story</text>
+    <rect class="node" x="1465" y="480" width="145" height="56"></rect>
+    <text class="label" x="1537" y="508">Assign Character to Role</text>
+    <rect class="node" x="1670" y="480" width="145" height="56"></rect>
+    <text class="label" x="1742" y="508">Personalized Story</text>
+    <rect class="node" x="1875" y="480" width="145" height="56"></rect>
+    <text class="label" x="1947" y="508">Personalized Story Reader</text>
+    <path class="line" d="M717 206 V480"></path>
+    <path class="line" d="M790 508 H850"></path>
+    <path class="line" d="M995 508 H1055"></path>
+    <path class="line" d="M1200 508 H1260"></path>
+    <path class="line" d="M1405 508 H1465"></path>
+    <path class="line" d="M1610 508 H1670"></path>
+    <path class="line" d="M1815 508 H1875"></path>
+
+    <rect class="node" x="850" y="795" width="145" height="56"></rect>
+    <text class="label" x="922" y="823">Create Character</text>
+    <rect class="node" x="1055" y="715" width="145" height="56"></rect>
+    <text class="label" x="1127" y="743">Draw Character</text>
+    <rect class="node" x="1055" y="795" width="145" height="56"></rect>
+    <text class="label" x="1127" y="823">Capture / Upload</text>
+    <rect class="node" x="1055" y="875" width="145" height="56"></rect>
+    <text class="label" x="1127" y="903">AI Character Generation</text>
+    <rect class="node" x="1260" y="795" width="145" height="56"></rect>
+    <text class="label" x="1332" y="823">Character Preview</text>
+    <rect class="node" x="1465" y="795" width="145" height="56"></rect>
+    <text class="label" x="1537" y="823">Parent Approval Status</text>
+    <rect class="system" x="1670" y="715" width="145" height="56"></rect>
+    <text class="label" x="1742" y="743">Approved</text>
+    <rect class="node" x="1670" y="795" width="145" height="56"></rect>
+    <text class="label" x="1742" y="823">Pending</text>
+    <rect class="warning" x="1670" y="875" width="145" height="56"></rect>
+    <text class="label" x="1742" y="903">Rejected</text>
+    <rect class="node" x="1875" y="875" width="145" height="56"></rect>
+    <text class="label" x="1947" y="903">Edit Character</text>
+
+    <path class="line" d="M922 536 V795"></path>
+    <path class="line" d="M995 823 H1020 V743 H1055"></path>
+    <path class="line" d="M995 823 H1055"></path>
+    <path class="line" d="M995 823 H1020 V903 H1055"></path>
+    <path class="line" d="M1200 743 H1225 V823 H1260"></path>
+    <path class="line" d="M1200 823 H1260"></path>
+    <path class="line" d="M1200 903 H1225 V823 H1260"></path>
+    <path class="line" d="M1405 823 H1465"></path>
+    <path class="line" d="M1610 823 H1640 V743 H1670"></path>
+    <path class="line" d="M1610 823 H1670"></path>
+    <path class="line" d="M1610 823 H1640 V903 H1670"></path>
+    <path class="line" d="M1815 903 H1875"></path>
+    <path class="return" d="M1742 715 V508 H1055"></path>
+    <path class="return" d="M1947 875 V955 H1332 V851"></path>
+
+    <text class="small" x="1100" y="1030">Character creation methods are alternatives, not sequential steps.</text>
+    <text class="small" x="1100" y="1060">Pending characters cannot be assigned until parent approval is completed.</text>
+  </svg>
+</div>

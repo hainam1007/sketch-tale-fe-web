@@ -1,7 +1,7 @@
 export const plans = [
   {
-    id: "starter",
-    name: "Free / Starter",
+    id: "free",
+    name: "Free",
     price: 0,
     currency: "VND",
     cycle: "month",
@@ -30,8 +30,8 @@ export const plans = [
     ],
   },
   {
-    id: "explorer",
-    name: "Pro Creator / Explorer",
+    id: "pro",
+    name: "Pro",
     price: 35000,
     currency: "VND",
     cycle: "month",
@@ -43,16 +43,13 @@ export const plans = [
     limits: [
       "Tối đa 3 hồ sơ trẻ em",
       "30 lượt tạo nhân vật AI/tháng",
-      "Tạo lại không giới hạn cho mỗi tranh",
+      "Tạo lại tối đa 1 lần mỗi tranh",
       "Mở toàn bộ thư viện truyện, mẫu truyện và chủ đề",
       "5 lượt xuất truyện thành video/tháng",
     ],
     features: [
-      "Toàn bộ tính năng của Free / Starter",
-      "Kho nhân vật và truyện yêu thích không giới hạn",
-      "Báo cáo chi tiết: truyện đã đọc, từ vựng học được, kết quả câu hỏi",
-      "Phân vai nâng cao: nhân vật chính, bạn đồng hành, vai phụ",
-      "Phụ huynh phê duyệt vai nhạy cảm trên Parent Portal",
+      "Toàn bộ tính năng của Free",
+      "Lưu trữ kho nhân vật và thư viện truyện yêu thích không giới hạn",
     ],
     exclusions: [
       "Giới hạn 5 lượt xuất video/tháng",
@@ -61,30 +58,28 @@ export const plans = [
   },
   {
     id: "family",
-    name: "Family / Unlimited",
+    name: "Family",
     price: 89000,
     currency: "VND",
     cycle: "month",
     audience:
       "Gia đình đông con hoặc muốn nhiều không gian sáng tạo và lưu giữ kỷ niệm.",
     profileLimit: 5,
-    generationLimit: null,
-    generationLimitPending: true,
+    generationLimit: 100,
     videoLimit: null,
     limits: [
       "Tối đa 5 hồ sơ trẻ em",
-      "Tạo nhân vật AI: không giới hạn hoặc 100 lượt/tháng theo sử dụng hợp lý (đang chốt)",
+      "100 lượt tạo nhân vật AI/tháng",
+      "Tạo lại tối đa 1 lần mỗi tranh",
       "Không giới hạn lượt xuất video",
       "Trọn bộ thư viện cao cấp và cập nhật mới hàng tuần",
     ],
     features: [
-      "Toàn bộ tính năng của Pro Creator / Explorer",
-      "Ưu tiên hàng đợi xử lý tạo nhân vật AI",
-      "Đánh dấu, xuất báo cáo học tập định kỳ hàng tháng và gửi email phụ huynh",
-      "Tải video chất lượng cao HD/4K để chia sẻ hoặc lưu giữ kỷ niệm",
+      "Toàn bộ tính năng của Pro",
+      "Đánh dấu và xuất báo cáo học tập định kỳ hàng tháng gửi về email phụ huynh",
     ],
     exclusions: [],
-    note: "Hạn mức tạo nhân vật cuối cùng đang được xác nhận: không giới hạn hoặc 100 lượt/tháng. Khả năng xuất HD/4K cần được xác nhận khi tích hợp.",
+    note: "Hạn mức Family hiện là 100 lượt tạo nhân vật AI/tháng và 1 lần regenerate mỗi tranh.",
   },
 ];
 export const planAvailability = {
@@ -92,5 +87,5 @@ export const planAvailability = {
   checkoutEnabled: false,
   plans,
   message:
-    "Thông tin gói theo cấu hình sản phẩm được cung cấp ngày 17/09/2026. Bản trải nghiệm chưa hỗ trợ đăng ký gói, thanh toán hay cấp quyền sử dụng.",
+    "Thông tin gói theo cấu hình sản phẩm được tinh chỉnh ngày 17/09/2026. Bản trải nghiệm chưa hỗ trợ đăng ký gói, thanh toán hay cấp quyền sử dụng.",
 };

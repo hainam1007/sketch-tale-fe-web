@@ -6,7 +6,7 @@ import {
 } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 export function ActionLink({
-  to = "/stories",
+  to = "/#stories",
   children = "Khám phá truyện",
   secondary = false,
   dark = false,
