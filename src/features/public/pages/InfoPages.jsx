@@ -31,7 +31,7 @@ export function AboutPage() {
             label="Về SketchTale"
             title="Một câu chuyện nhỏ về SketchTale."
           >
-            Một không gian đọc truyện và khám phá, dành cho bé 3–6 tuổi cùng sự
+            Một không gian đọc truyện và khám phá, dành cho trẻ 6–10 tuổi cùng sự
             đồng hành của bố mẹ.
           </PageIntro>
           <p>

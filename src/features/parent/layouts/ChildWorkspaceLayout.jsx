@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet, useLocation, useParams } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CaretDown } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { childrenService } from "../services/childrenService";
@@ -18,6 +18,7 @@ export default function ChildWorkspaceLayout() {
   const { user } = useAuth();
   const { childId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const childrenQuery = useQuery({
     queryKey: queryKeys.children(user.id),
     queryFn: ({ signal }) => childrenService.list({ signal }),
@@ -47,7 +48,7 @@ export default function ChildWorkspaceLayout() {
         </div>
         <label className="child-selector">
           <span className="sr-only">Chọn hồ sơ bé</span>
-          <select value={child.id} onChange={(event) => { window.location.href = `${currentPath.replace(childId, event.target.value)}${getTabSuffix(location.pathname, currentPath)}`; }}>
+          <select aria-label="Đang xem hồ sơ bé" value={child.id} onChange={(event) => { navigate(`${currentPath.replace(childId, event.target.value)}${getTabSuffix(location.pathname, currentPath)}`); }}>
             {childrenQuery.data.items.map((item) => <option value={item.id} key={item.id}>{item.displayName}</option>)}
           </select>
           <CaretDown size={16} aria-hidden="true" />

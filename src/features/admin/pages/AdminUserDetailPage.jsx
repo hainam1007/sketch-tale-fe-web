@@ -7,7 +7,7 @@ import { adminService } from "../services/adminService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState, LoadingState, SuccessState } from "../../../components/feedback/States";
 import StatusBadge from "../../../components/ui/StatusBadge";
-import { adminRoleLabels, adminUserStatusLabels, isConflictError } from "../models";
+import { adminRoleLabels, adminUserStatusLabels, isConflictError, isPolicyError } from "../models";
 
 export default function AdminUserDetailPage() {
   const { user } = useAuth();
@@ -35,7 +35,7 @@ export default function AdminUserDetailPage() {
   const canChange = !isSelf && (!target.allowedActions || target.allowedActions.includes(actionName));
 
   function changeStatus() {
-    if (nextStatus === "locked" && !window.confirm(`Khóa tài khoản ${target.name}?`)) return;
+    if (!window.confirm(`${nextStatus === "locked" ? "Khóa" : "Mở khóa"} tài khoản ${target.name}?`)) return;
     mutation.mutate({ status: nextStatus, revision: target.revision });
   }
 
@@ -49,7 +49,7 @@ export default function AdminUserDetailPage() {
         <div className="admin-detail-actions">
           <label className="admin-action-reason" htmlFor="admin-user-action-reason"><span>Lý do thao tác <small>(tuỳ chọn trong mock)</small></span><input id="admin-user-action-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Ví dụ: xử lý yêu cầu hỗ trợ..." /></label>
           {mutation.isSuccess && <SuccessState>Server đã cập nhật trạng thái.</SuccessState>}
-          {mutation.isError && <p className="admin-mutation-error" role="alert">{mutation.error.message}{isConflictError(mutation.error) && " Hãy tải lại dữ liệu trước khi thao tác tiếp."}</p>}
+          {mutation.isError && <p className="admin-mutation-error" role="alert">{mutation.error.message}{isConflictError(mutation.error) && " Hãy tải trạng thái mới rồi xác nhận lại."}{isPolicyError(mutation.error) && " Đây là giới hạn chính sách, không thể vượt qua bằng cách tải lại."}</p>}
           <button className={`workspace-button ${target.status === "locked" ? "" : "workspace-button-danger"}`} type="button" disabled={!canChange || mutation.isPending} onClick={changeStatus}>{target.status === "locked" ? <LockKeyOpen size={18} aria-hidden="true" /> : <LockKey size={18} aria-hidden="true" />}{mutation.isPending ? "Đang cập nhật..." : target.status === "locked" ? "Mở khóa tài khoản" : "Khóa tài khoản"}</button>
           {isSelf && <small><ShieldCheck size={15} aria-hidden="true" /> Không thể tự khóa tài khoản quản trị.</small>}
         </div>

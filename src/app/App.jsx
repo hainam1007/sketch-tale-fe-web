@@ -27,8 +27,8 @@ import ParentPlanPage from "../features/parent/pages/ParentPlanPage";
 import ChildWorkspaceLayout from "../features/parent/layouts/ChildWorkspaceLayout";
 import ParentExportsPage from "../features/parent/pages/ParentExportsPage";
 import ProfilePage from "../features/profile/pages/ProfilePage";
-import RoleOverviewPage from "../features/workspace/pages/RoleOverviewPage";
 import AdminUsersPage from "../features/admin/pages/AdminUsersPage";
+import AdminOverviewPage from "../features/admin/pages/AdminOverviewPage";
 import AdminUserDetailPage from "../features/admin/pages/AdminUserDetailPage";
 import AdminReportsPage from "../features/admin/pages/AdminReportsPage";
 import AdminReportDetailPage from "../features/admin/pages/AdminReportDetailPage";
@@ -47,6 +47,7 @@ import StoryQuizPage from "../features/content/pages/StoryQuizPage";
 import StoryPreviewPage from "../features/content/pages/StoryPreviewPage";
 import AssetsPage from "../features/content/pages/AssetsPage";
 import ContentStatisticsPage from "../features/content/pages/ContentStatisticsPage";
+import ContentOverviewPage from "../features/content/pages/ContentOverviewPage";
 import AdminStatisticsPage from "../features/admin/pages/AdminStatisticsPage";
 import AdminAuditPage from "../features/admin/pages/AdminAuditPage";
 import { ROLES } from "../lib/permissions/roles";
@@ -128,7 +129,7 @@ export default function App() {
                 <Route path="parent/exports" element={<ParentExportsPage />} />
               </Route>
               <Route element={<RequireRole roles={[ROLES.CONTENT]} />}>
-                <Route path="content" element={<RoleOverviewPage role={ROLES.CONTENT} />} />
+                <Route path="content" element={<ContentOverviewPage />} />
                 <Route path="content/stories" element={<ContentStoriesPage />} />
                 <Route path="content/stories/new" element={<StoryEditorPage mode="new" />} />
                 <Route path="content/stories/:storyId" element={<StoryEditorLayout />}>
@@ -143,7 +144,7 @@ export default function App() {
                 <Route path="content/statistics" element={<ContentStatisticsPage />} />
               </Route>
               <Route element={<RequireRole roles={[ROLES.ADMIN]} />}>
-                <Route path="admin" element={<RoleOverviewPage role={ROLES.ADMIN} />} />
+                <Route path="admin" element={<AdminOverviewPage />} />
                 <Route path="admin/users" element={<AdminUsersPage />} />
                 <Route path="admin/users/:userId" element={<AdminUserDetailPage />} />
                 <Route path="admin/reports" element={<AdminReportsPage />} />

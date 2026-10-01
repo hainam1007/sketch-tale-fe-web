@@ -306,7 +306,7 @@ const seedDatabase = {
   ],
   systemLimits: { maxAssetSizeMb: 5, maxStoryPages: 12, maxSlotsPerRole: 8, aiGenerationsPerMinute: 10, parentChildProfileLimit: 5, revision: 1, updatedAt: "2026-09-10T08:00:00.000Z" },
   restrictions: [
-    { id: "restriction-01", type: "keyword", value: "bạo lực", scope: "story", status: "active", reason: "Không phù hợp độ tuổi 3–6", updatedAt: "2026-09-10T08:00:00.000Z" },
+    { id: "restriction-01", type: "keyword", value: "bạo lực", scope: "story", status: "active", reason: "Không phù hợp độ tuổi 6–10", updatedAt: "2026-09-10T08:00:00.000Z" },
     { id: "restriction-02", type: "topic", value: "nội dung kinh dị", scope: "story", status: "active", reason: "Cần kiểm duyệt thủ công", updatedAt: "2026-09-10T08:00:00.000Z" },
   ],
   monitoring: [
@@ -805,11 +805,16 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const params = new URLSearchParams(queryString);
     const status = params.get("status") || "all";
     const search = params.get("search")?.toLowerCase() || "";
+    const sort = params.get("sort") || "updated_desc";
     const page = Math.max(1, Number(params.get("page") || 1));
     const pageSize = Math.min(50, Math.max(1, Number(params.get("pageSize") || 10)));
     const items = database.reports
       .filter((report) => (status === "all" || report.status === status) && (!search || `${report.targetTitle} ${report.reason} ${report.reporter}`.toLowerCase().includes(search)))
-      .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+      .sort((left, right) => {
+        if (sort === "created_asc") return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+        const priority = { open: 0, under_review: 1, rejected: 2, resolved: 3 };
+        return (priority[left.status] ?? 9) - (priority[right.status] ?? 9) || new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+      });
     const total = items.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     return { items: items.slice((page - 1) * pageSize, page * pageSize).map(clone), total, page, pageSize, totalPages };
@@ -857,7 +862,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const index = database.users.findIndex((candidate) => candidate.id === permissionMatch[1]);
     if (index < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy tài khoản." });
     if (database.users[index].id === user.id) throw new ApiError({ status: 409, code: "SELF_ROLE_CHANGE_NOT_ALLOWED", message: "Không thể tự đổi role của tài khoản đang đăng nhập." });
-    if (!["parent", "content_manager", "admin"].includes(body?.role)) fieldError("Role chưa hợp lệ.", { role: "Chọn role được server hỗ trợ." });
+    if (!["parent", "child", "content_manager", "admin"].includes(body?.role)) fieldError("Role chưa hợp lệ.", { role: "Chọn role được server hỗ trợ." });
     if (database.users[index].role === "admin" && body.role !== "admin" && database.users.filter((candidate) => candidate.role === "admin").length === 1) throw new ApiError({ status: 409, code: "LAST_ADMIN_NOT_ALLOWED", message: "Không thể hạ role của admin cuối cùng." });
     const target = database.users[index];
     if (body?.revision !== undefined && body.revision !== target.revision) {
@@ -887,7 +892,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
 
   if (pathname === "/admin/restrictions" && method === "GET") {
     requireRole(user, "admin", "Chỉ quản trị viên mới có thể xem restrictions.");
-    return { items: clone(database.restrictions) };
+    return { items: clone(database.restrictions).map((item) => ({ ...item, revision: item.revision || 1 })) };
   }
   const restrictionMatch = pathname.match(/^\/admin\/restrictions\/([^/]+)$/);
   if (restrictionMatch && method === "PATCH") {
@@ -895,7 +900,10 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const index = database.restrictions.findIndex((item) => item.id === restrictionMatch[1]);
     if (index < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy restriction." });
     if (!["active", "disabled"].includes(body?.status)) fieldError("Trạng thái restriction chưa hợp lệ.", { status: "Chọn active hoặc disabled." });
-    database.restrictions[index] = { ...database.restrictions[index], status: body.status, updatedAt: new Date().toISOString() };
+    const previous = database.restrictions[index];
+    if (body?.revision !== undefined && body.revision !== (previous.revision || 1)) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Rule đã được cập nhật. Hãy tải lại trước khi thao tác." });
+    database.restrictions[index] = { ...previous, status: body.status, revision: (previous.revision || 1) + 1, updatedAt: new Date().toISOString() };
+    appendAuditEvent(database, { actor: user, action: `restriction.${body.status}`, targetType: "restriction", target: previous.value });
     writeDatabase(database);
     return clone(database.restrictions[index]);
   }
@@ -914,8 +922,46 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     else if (body?.action === "cancel" && job.status === "processing") Object.assign(job, { status: "cancelled", error: null });
     else fieldError("Thao tác monitoring chưa hợp lệ.", { action: "Chỉ retry tác vụ failed hoặc cancel tác vụ processing." });
     job.updatedAt = new Date().toISOString();
+    appendAuditEvent(database, { actor: user, action: `monitoring.${body.action}`, targetType: "job", target: job.target });
     writeDatabase(database);
     return clone(job);
+  }
+
+  if (pathname === "/admin/overview" && method === "GET") {
+    requireRole(user, "admin", "Chỉ quản trị viên mới có thể xem tổng quan.");
+    const reports = database.reports || [];
+    const jobs = database.monitoring || [];
+    const queue = [
+      ...reports.filter((item) => ["open", "under_review"].includes(item.status)).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)).slice(0, 4).map((item) => ({
+        id: item.id,
+        kind: "report",
+        kindLabel: "Báo cáo nội dung",
+        title: item.targetTitle,
+        status: item.status,
+        meta: `${item.reason} · ${item.assignee || "Chưa phân công"}`,
+        to: `/admin/reports/${item.id}`,
+      })),
+      ...jobs.filter((item) => ["failed", "processing"].includes(item.status)).slice(0, 3).map((item) => ({
+        id: item.id,
+        kind: "job",
+        kindLabel: "Tác vụ vận hành",
+        title: item.target,
+        status: item.status,
+        meta: item.error || `${item.type} · ${item.progress ?? "Chưa có"}%`,
+        to: "/admin/monitoring",
+      })),
+    ].slice(0, 5);
+    return {
+      counts: {
+        reportsOpen: reports.filter((item) => item.status === "open").length,
+        reportsUnderReview: reports.filter((item) => item.status === "under_review").length,
+        jobsFailed: jobs.filter((item) => item.status === "failed").length,
+        jobsProcessing: jobs.filter((item) => item.status === "processing").length,
+      },
+      queue,
+      recentAudit: clone((database.auditEvents || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5)),
+      generatedAt: new Date().toISOString(),
+    };
   }
 
   if (pathname === "/admin/statistics" && method === "GET") {

@@ -1,10 +1,10 @@
 # SketchTale — Kế hoạch thiết kế Public Website
 
-> Cập nhật: 17/09/2026  
-> Phạm vi: website giới thiệu sản phẩm dành cho khách chưa đăng nhập, ưu tiên phụ huynh có con 3–6 tuổi.  
+> Cập nhật: 01/10/2026 — đồng bộ với code hiện tại và scope Child 6–10 tuổi.
+> Phạm vi: website giới thiệu sản phẩm dành cho khách chưa đăng nhập, ưu tiên phụ huynh và trẻ 6–10 tuổi.
 > Công nghệ triển khai: React + Vite, JavaScript/JSX; dựng giao diện và dữ liệu mẫu trước, tích hợp API sau.  
 > Trạng thái: kế hoạch thiết kế và cấu hình ba gói được cập nhật ngày 17/09/2026; frontend prototype đang triển khai, chưa có thanh toán thật.
-> Cập nhật mới nhất: tên gói, hạn mức tạo nhân vật và quyền lợi đã được tinh chỉnh ngày 17/09/2026. Family dùng 100 lượt tạo nhân vật AI/tháng.
+> Quyền lợi gói giữ theo cập nhật 17/09/2026; Family có 100 lượt tạo nhân vật AI/tháng. Hiện trạng frontend mới nhất xem mục 10.1; bản đồ tài liệu thiết kế xem [DESIGN.md](DESIGN.md).
 
 **Đọc nhanh:** mục 2–5 chốt phong cách và hệ thiết kế; mục 6–8 mô tả các trang và nội dung; mục 9–10 hướng dẫn tổ chức frontend; mục 12 là thứ tự triển khai và checklist nghiệm thu. Các lựa chọn chưa được xác nhận nằm ở mục 13.
 
@@ -28,8 +28,8 @@ Public website là nơi giới thiệu và trải nghiệm mẫu, không phải 
 
 | Nội dung                                                 | Trạng thái áp dụng                                                                                                        |
 | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Tên sản phẩm SketchTale; nhóm người dùng trẻ 3–6 tuổi    | Đã xác nhận                                                                                                               |
-| Phụ huynh đăng nhập cho trẻ; Parent–Child là quan hệ 1–N | Đã xác nhận; không dùng nội dung mô tả một trẻ có nhiều Parent                                                            |
+| Tên sản phẩm SketchTale; nhóm người dùng trẻ 6–10 tuổi    | Đã xác nhận                                                                                                               |
+| Parent và Child có account riêng; Parent–Child cần cơ chế liên kết | Đã xác nhận scope ngày 29/09; cách invite/link/consent cần chốt |
 | Web có Parent, Content Manager và Admin                  | Đã xác nhận; dashboard nằm ngoài phạm vi thiết kế chi tiết của file này                                                   |
 | Màu UI và tỷ lệ 60/30/10                                 | Theo bảng màu mới nhất người dùng cung cấp                                                                                |
 | Logo và mèo linh vật                                     | Theo hai ảnh người dùng cung cấp; không thiết kế lại thương hiệu                                                          |
@@ -240,7 +240,7 @@ Kiểm tra dấu tiếng Việt, đặc biệt các chữ như “trưởng thà
 
 ### 6.1. Danh sách trang
 
-Các route dưới đây là đề xuất frontend, không phải endpoint backend.
+Các route dưới đây đã có trong router ngày 01/10/2026, không phải endpoint backend. Cột mức triển khai mô tả giai đoạn/điều kiện của kế hoạch gốc, không xác nhận đã nghiệm thu production.
 
 | Route                   | Trang                                                                         | Mức triển khai                                                      |
 | ----------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------- |
@@ -287,7 +287,7 @@ Không thêm địa chỉ, hotline, mạng xã hội hoặc huy hiệu App Store
 
 **Nội dung đề xuất:**
 
-- Nhãn nhỏ: “Cùng bé 3–6 tuổi khám phá”.
+- Nhãn nhỏ: “Cùng bé 6–10 tuổi khám phá”.
 - H1: “Mở trang sách. Mở trí tưởng tượng.”
 - Mô tả: “Cùng bé đọc, nghe và khám phá những câu chuyện theo cách riêng.”
 - CTA chính: **Khám phá truyện** → `/#stories`.
@@ -444,10 +444,10 @@ Chia nhóm Bắt đầu, Dành cho phụ huynh, Gói sử dụng. Bản đầu d
 
 | Câu hỏi                                                | Câu trả lời đề xuất                                                                                                                                        |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SketchTale dành cho trẻ bao nhiêu tuổi?                | SketchTale hướng tới trẻ từ 3 đến 6 tuổi, với sự đồng hành của phụ huynh.                                                                                  |
+| SketchTale dành cho trẻ bao nhiêu tuổi?                | SketchTale hướng tới trẻ từ 6 đến 10 tuổi, với sự đồng hành của phụ huynh.                                                                                  |
 | Bé sử dụng ở đâu, bố mẹ quản lý ở đâu?                 | Sản phẩm được thiết kế với ứng dụng di động cho trải nghiệm của bé và website cho phụ huynh quản lý. Trang này giới thiệu sản phẩm và cung cấp truyện mẫu. |
-| Bé có cần tự tạo tài khoản không?                      | Phụ huynh đăng nhập và quản lý hồ sơ của bé. Bé không cần tự tạo tài khoản riêng.                                                                          |
-| Một phụ huynh có thể quản lý nhiều bé không?           | Có. Mỗi hồ sơ trẻ thuộc một tài khoản phụ huynh và có cài đặt riêng. Free có 1 hồ sơ, Pro tối đa 3, Family tối đa 5 hồ sơ.                                 |
+| Bé có cần tự tạo tài khoản không?                      | Có. Trẻ 6–10 tuổi có thể tự đăng ký và đăng nhập; Parent vẫn quản lý các quyền và dữ liệu của Child đã liên kết.                                              |
+| Một phụ huynh có thể quản lý nhiều bé không?           | Có, theo các Child account đã được liên kết và được Backend cho phép. Free có 1, Pro tối đa 3, Family tối đa 5 Child theo cấu hình hiện tại; cách tính quota cần khớp entitlement thật. |
 | Bố mẹ có thể chọn nội dung và thời gian sử dụng không? | Chức năng dành cho phụ huynh được thiết kế để quản lý danh mục nội dung và thời gian theo từng hồ sơ. Phần trình diễn trên website dùng dữ liệu minh họa.  |
 | SketchTale có thu phí không?                           | Có gói Free miễn phí, Pro 35.000đ/tháng và Family 89.000đ/tháng. Family có 100 lượt tạo nhân vật AI/tháng; prototype chưa hỗ trợ thanh toán.               |
 
@@ -503,9 +503,9 @@ Nội dung đồng hành của phụ huynh được trình bày trực tiếp tr
 
 Auth dùng cùng màu, font và logo nhưng bố cục tập trung: form dễ đọc, minh họa nhỏ, không có đủ tám section landing.
 
-- Đăng ký public chỉ dành cho Parent; không đặt dropdown tự chọn Parent/Admin/Content Manager.
+- Form đăng ký web hiện dành cho Parent; Child có quyền tự đăng ký/đăng nhập theo scope sản phẩm nhưng flow độc lập thuộc Mobile/Auth contract, chưa được triển khai trên form này. Không cho tự cấp role Admin/Content Manager.
 - Đăng nhập chung; phân luồng theo role do backend trả về khi tích hợp.
-- Prototype ghi rõ chưa tạo tài khoản/đăng nhập thật; không lưu mật khẩu, token giả hoặc bật quyền quản trị bằng thao tác UI.
+- Login hiện gọi auth service và mở workspace theo role bằng session mock. Register/forgot password chỉ validate form, chưa tạo tài khoản hoặc gửi email; việc vào workspace demo không xác nhận quyền trên Backend thật.
 - Có link qua lại giữa đăng nhập, đăng ký và quên mật khẩu; mỗi link phải có trang đích trước khi hiển thị.
 - Xác thực email và đặt lại mật khẩu thật sẽ phụ thuộc API; không giả lập email đã được gửi.
 - Trang 404: mèo tò mò, H1 “Trang này đi lạc rồi.”, mô tả ngắn, nút “Về trang chủ” và link “Khám phá truyện”.
@@ -547,15 +547,22 @@ Giữ API component đơn giản. Không tạo design-system package riêng ho�
 
 ### 10.1. Điểm xuất phát hiện có
 
-Dự án dùng React 19 + Vite 8. Bản triển khai ngày 17/09/2026 đã thêm React Router, JSX/CSS cho các trang public, service mock, các luồng đọc/quiz, demo phụ huynh và trang so sánh gói. Chưa tích hợp API, auth, thanh toán hoặc dashboard nội bộ. README ghi cách chạy và các giới hạn bàn giao.
+Dự án dùng React 19.2.8 + Vite 8.3.0, React Router và JavaScript/JSX. Snapshot ngày 01/10/2026 đã có public layout riêng, auth mock và workspace cho Parent/Content Manager/Admin; chưa xác nhận API, thanh toán, AI hoặc export thật.
+
+- `HomePage.jsx` hiện ghép 8 section theo thứ tự: Hero → How it works → Story library → Character → Reading → Parent → Pricing → Final. Đây là cấu trúc đang chạy; mô tả section ở mục 7 là định hướng thiết kế trước đó. FAQ có route `/faq` riêng, không nằm trong 8 section hiện tại.
+- Stories, parents và pricing là nội dung trên landing. Router không còn khai báo trang reader/quiz, trang so sánh gói hoặc demo phụ huynh public riêng; không dùng mô tả prototype cũ làm bằng chứng các route này còn truy cập được.
+- FAQ và nội dung an toàn đã cập nhật scope trẻ 6–10 tuổi, Child có tài khoản riêng. Parent quản lý Child đã liên kết; cách mời/liên kết/consent còn chờ contract.
+- Giao diện auth có form đăng nhập, đăng ký Parent và quên mật khẩu. Login mở workspace mock theo role; hai form còn lại chỉ kiểm tra dữ liệu nhập. `/profile` là màn hình chỉ đọc với thông tin phiên và shortcut theo role.
+- Landing CSS và ảnh chụp `artifacts/hero-desktop.png`, `hero-mobile.png`, `home-desktop.png`, `home-mobile.png` đang có thay đổi trong working tree. Ảnh là tài nguyên đối chiếu giao diện, không thay thế bằng chứng kiểm thử responsive/accessibility.
+- Nguồn thiết kế hiện có: mục 2–5/9 của tài liệu này, [design/ASSETS.md](../design/ASSETS.md), CSS tokens và [DESIGN.md](DESIGN.md). Các checklist bên dưới là tiêu chí cần kiểm chứng, không tự đánh dấu hoàn tất từ việc đã có code.
 
 Đề xuất:
 
 - Giữ React/Vite; không chuyển sang Next.js hoặc TypeScript chỉ để làm landing page.
-- Dùng JavaScript/JSX. Chọn và thêm router ở bước triển khai, không tự khóa phiên bản trong tài liệu này.
+- Giữ JavaScript/JSX và React Router đã có; đồng bộ route với `src/app/App.jsx`.
 - CSS variables + CSS thường hoặc CSS Modules; chưa cần thêm Tailwind/chồng nhiều thư viện UI.
 - State cục bộ cho menu/filter/quiz; chưa cần Redux cho website public.
-- Loại bỏ màn hình counter/logo mẫu Vite và các CSS starter về dark mode, canh giữa toàn trang, giới hạn root không phù hợp khi bắt đầu code.
+- Màn hình starter Vite đã được thay thế; tiếp tục dùng public layout và stylesheet hiện có.
 - Module public có layout riêng, không chia sẻ sidebar hoặc navigation nội bộ của Parent/Admin/Content Manager.
 
 ### 10.2. Cấu trúc thư mục đề xuất
@@ -655,7 +662,7 @@ Không cần backend để hoàn thành bố cục, copy, responsive hoặc tư�
 ### 11.3. SEO và độ tin cậy
 
 - Title từng route; đề xuất trang chủ: “SketchTale — Cùng bé mở trang sách và trí tưởng tượng”.
-- Meta description đề xuất: “Khám phá SketchTale, trải nghiệm truyện tương tác cho bé 3–6 tuổi cùng sự đồng hành của phụ huynh. Xem truyện mẫu và tìm hiểu sản phẩm.”
+- Meta description đề xuất: “Khám phá SketchTale, trải nghiệm truyện tương tác cho trẻ 6–10 tuổi cùng sự đồng hành của phụ huynh. Xem truyện mẫu và tìm hiểu sản phẩm.”
 - Open Graph dùng asset riêng, URL/canonical theo domain thật khi có.
 - Nội dung cốt lõi là HTML; không đặt toàn bộ nội dung marketing vào ảnh.
 - Trước ra mắt cần chốt cách prerender các trang marketing trên nền Vite và kiểm tra HTML metadata khi chia sẻ; không cho rằng đổi title phía client đã giải quyết toàn bộ SEO.

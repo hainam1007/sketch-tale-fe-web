@@ -14,6 +14,7 @@ function mutationBody(payload) {
 }
 
 export const adminService = {
+  getOverview: ({ signal } = {}) => apiRequest({ path: "/admin/overview", signal }),
   listUsers: ({ search = "", role = "all", status = "all", page = 1, pageSize = 10, sort = "name_asc", signal } = {}) =>
     apiRequest({ path: queryPath("/admin/users", { search, role, status, page, pageSize, sort }), signal }),
   getUser: ({ userId, signal }) => apiRequest({ path: `/admin/users/${userId}`, signal }),

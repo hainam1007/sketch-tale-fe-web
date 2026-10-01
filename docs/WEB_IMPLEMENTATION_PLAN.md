@@ -1,6 +1,7 @@
 # SketchTale — Kế hoạch triển khai Web cho Parent, Content Manager và Admin
 
 > Ngày lập: 18/09/2026.
+> Cập nhật hiện trạng: 01/10/2026, theo working tree; chưa xác nhận API integrated hoặc Verified on staging. Tài liệu thiết kế tổng hợp: [DESIGN.md](DESIGN.md).
 > Cập nhật 23/09/2026: ưu tiên khung công cụ Content Manager trên frontend theo mục 7; chưa thay đổi tiêu chí nghiệm thu API của G2/G3.
 > Phạm vi: một lập trình viên chịu trách nhiệm Web Frontend cho ba role; phối hợp Backend, Mobile và AI/Media của nhóm.
 > Trạng thái: kế hoạch đề xuất để triển khai, không phải xác nhận API/nghiệp vụ đã được Backend cung cấp.
@@ -24,22 +25,32 @@ Không hoàn thiện toàn bộ Parent rồi mới bắt đầu Content và Admi
 
 ### Hiện có trong repository
 
-- React/Vite, JavaScript/JSX, React Router; public website và auth minh họa.
-- CSS tokens, font Nunito tự host, Phosphor icons và public mock service.
-- Playwright/axe, lint, build và công cụ đo Lighthouse.
-- Chưa có auth thật, dashboard theo role, API thật, payment hay export thật.
-- `src/app/App.jsx` đang gộp route public/auth và hiệu ứng title/focus. Cần mở rộng sang route động và layout được bảo vệ.
+- React 19.2.8/Vite 8.3.0, JavaScript/JSX, React Router và TanStack Query; CSS tokens, Nunito tự host, Phosphor icons.
+- `src/app/App.jsx` đã có nested route, workspace layout, auth/role guard và route động cho Parent, Content Manager, Admin; `/content` và `/admin` có trang tổng quan riêng.
+- Parent đã có hồ sơ/settings/approvals/library/progress/plan/exports; Content có editor nhiều tab, assets, preview/publish và statistics; Admin có users/permissions/reports/limits/restrictions/monitoring/statistics/audit ở mức code và mock.
+- Auth có login/logout/restore mock; profile hiện chỉ đọc và có shortcut theo role. Register/forgot password chỉ validate form; Child chưa có workspace web, verify/reset chưa có route.
+- API boundary dùng mock adapter nội bộ, không phải MSW; `VITE_API_MODE=real` và `VITE_API_URL` đã có trong HTTP client. Chưa xác nhận tích hợp auth/API/payment/export thật.
+- Playwright/axe và các suite G2–G7, Parent, Content contract/save-state, Admin đã có trong repository. Việc có file test không phải bằng chứng test đã pass trên snapshot này.
+
+### Thay đổi cần phản ánh vào tiến độ ngày 01/10/2026
+
+- Shared: shell/menu dẫn về overview theo role; profile có thông tin tài khoản, trạng thái phiên demo và lối tắt công việc.
+- Parent: cập nhật tổng quan, workspace của bé, form settings, approval/library, plan và exports; vẫn cần chốt liên kết Parent–Child theo scope account độc lập.
+- Content: thêm overview, cải thiện danh sách/picker và validation ở pages/slots/roles/vocabulary/quiz; bổ sung cảnh báo khi thao tác bỏ draft chưa lưu và hiển thị publish issues. Overview hiện lấy tối đa 5 truyện gần đây; không coi số liệu từ tập này là aggregate toàn kho.
+- Admin: thêm overview với service/query key/mock data; cập nhật bảng, filter, form và phản hồi ở các trang nghiệp vụ; bổ sung `tests/admin-implementation.spec.js`.
+- Backlog G0–G7 và WEB-001–012 bên dưới giữ vai trò kế hoạch gốc. Với phần đã có code, bước tiếp theo là verify/fix và tích hợp, không dựng lại từ đầu hoặc tự đánh dấu Done.
+- Ưu tiên chi tiết mới: Parent mục 9–14, Content mục 11–15 và Admin mục 8–14 trong kế hoạch từng role. Các audit ngày 30/09 là baseline; snapshot code ngày 01/10 ở đây cập nhật phần đã thay đổi, không thay cho nghiệm thu.
 
 ### Phạm vi phải hoàn thành
 
 | Khu vực | Trách nhiệm |
 | --- | --- |
-| Shared | Auth, profile, session, permissions, layout, UI primitives, data layer, upload, feedback, test và cấu hình triển khai |
+| Shared | Auth cho Parent/Child/Content/Admin, profile, session, permissions, layout, UI primitives, data layer, upload, feedback, test và cấu hình triển khai |
 | Parent | Hồ sơ bé, settings, approval, thư viện, progress, gói/hạn mức và export theo contract |
 | Content Manager | Story template, page, role, slot, vocabulary, quiz, assets, preview, publish/hide và thống kê |
 | Admin | Tài khoản, quyền, lock/unlock, hạn mức hệ thống, nội dung hạn chế, content reports, giám sát và báo cáo |
 
-Mobile drawing/reader/quiz không thuộc Web Frontend. Web cần preview nội dung của Content Manager và dữ liệu kết quả do Mobile/Backend tạo. Thanh toán thật, social/community, offline đầy đủ, cộng tác editor thời gian thực và recommendation engine không tự đưa vào phạm vi.
+Mobile drawing/reader/quiz không thuộc Web Frontend; Child registration/login và Mobile session cần được phối hợp với team Mobile/Backend dù không triển khai UI Mobile trong repository này. Web cần preview nội dung của Content Manager và dữ liệu kết quả do Mobile/Backend tạo. Thanh toán thật, social/community, offline đầy đủ, cộng tác editor thời gian thực và recommendation engine không tự đưa vào phạm vi.
 
 ## 3. Kiến trúc kỹ thuật đề xuất
 
@@ -48,8 +59,8 @@ Mobile drawing/reader/quiz không thuộc Web Frontend. Web cần preview nội 
 | Ứng dụng | Giữ React + Vite, một SPA | Dùng chung auth, component và deployment cho ba role |
 | Ngôn ngữ | Giữ JavaScript/JSX, JSDoc cho model/service | Tránh migration toàn repo trong thời gian làm đồ án |
 | Router | React Router hiện có, nested layouts, tải module theo route | Tách public và ba khu vực; editor chỉ tải khi cần |
-| Styling | Giữ tokens, thêm CSS Modules cho module mới | Giữ thương hiệu và giảm xung đột với CSS public |
-| Server state | Bổ sung TanStack Query | Một cơ chế quản lý tải/cache/invalidation cho toàn web |
+| Styling | Giữ tokens và CSS thường hiện có; CSS Modules là tùy chọn | Giữ thương hiệu và kiểm soát selector theo module |
+| Server state | TanStack Query đã cài | Một cơ chế quản lý tải/cache/invalidation cho toàn web |
 | Forms | Bổ sung React Hook Form + Zod | Chuẩn hóa validation và lỗi field cho form nghiệp vụ |
 | Client state | React state/reducer; Context cho session | Chưa cần Redux/Zustand; chỉ bổ sung nếu có nhu cầu cụ thể |
 | HTTP | Một wrapper trên fetch và service theo domain | Chuẩn hóa lỗi, cancellation và session; không gọi trực tiếp từ page |
@@ -57,7 +68,7 @@ Mobile drawing/reader/quiz không thuộc Web Frontend. Web cần preview nội 
 | Kiểm thử | Giữ Playwright/axe, thêm Vitest + Testing Library | Unit/component cho logic; E2E cho luồng quan trọng |
 | Dialog/menu | Chọn một bộ headless primitives nếu cần | Ưu tiên hành vi bàn phím/focus nhất quán; không cài nhiều UI kit |
 
-Các thư viện bổ sung là đề xuất, chưa được cài. Không nâng major version hoặc đổi framework chỉ để triển khai kế hoạch này. Không cần migrate public service đang ổn sang MSW ngay; module nghiệp vụ mới theo chuẩn chung, public chuyển sau nếu có lợi.
+TanStack Query đã được cài và sử dụng. React Hook Form/Zod, MSW, Vitest/Testing Library và headless primitives vẫn là đề xuất; hiện dùng form React và mock adapter nội bộ. Không nâng major version hoặc đổi framework chỉ để triển khai kế hoạch này. Chỉ chuyển sang MSW khi có lợi cho việc kiểm thử biên HTTP.
 
 ### Cấu trúc thư mục đích
 
@@ -130,7 +141,7 @@ Chỉ tạo thư mục khi có code sử dụng. Mỗi feature thường có `pa
 
 | Route | Nội dung |
 | --- | --- |
-| `/auth/login`, `/auth/register` | Login dùng chung; đăng ký công khai chỉ cấp Parent theo server |
+| `/auth/login`, `/auth/register` | Login dùng chung; Parent và Child có flow đăng ký/đăng nhập riêng hoặc phân nhánh theo auth contract |
 | `/auth/verify`, `/auth/forgot-password`, `/auth/reset-password` | Xác minh/khôi phục theo contract |
 | `/profile` | Hồ sơ của tài khoản đang đăng nhập |
 | `/403`, route fallback | Không đủ quyền / không tồn tại |
@@ -162,7 +173,7 @@ Chỉ tạo thư mục khi có code sử dụng. Mỗi feature thường có `pa
 | `/admin/system-limits`, `/admin/restrictions` | Hạn mức, từ khóa/chủ đề hạn chế |
 | `/admin/reports`, `/admin/reports/:reportId` | Hàng đợi/chi tiết báo cáo nội dung |
 | `/admin/monitoring`, `/admin/statistics` | Tình trạng tác vụ/lỗi và số liệu hệ thống |
-| `/admin/audit-logs` | Tra cứu lịch sử quản trị, ưu tiên sau workflow cốt lõi |
+| `/admin/audit` | Tra cứu lịch sử quản trị; đã có route và màn hình mock |
 
 Các route bổ sung là đề xuất, không chứng minh endpoint tương ứng đã tồn tại. Category catalog cần API đọc; màn CRUD category chỉ thêm sau khi chốt role sở hữu chức năng.
 
@@ -232,7 +243,7 @@ Không thể coi việc đổi một adapter là đủ nếu business model Back
 
 P-10 xuất phát từ quyền lợi Family trong tài liệu nguồn; phạm vi màn cấu hình, nội dung báo cáo và dịch vụ gửi email cần chốt, không được bỏ quên hoặc tự hứa đã gửi.
 
-Quy tắc bắt buộc: Parent–Child là 1–N; Child là profile, không có account đăng nhập riêng. Recolor/chỉnh sửa nhân vật phải duyệt phiên bản mới. Thời gian sử dụng do Mobile/Backend ghi nhận; web không thực thi bằng timer của tab. Truyện hoàn thành khi đọc hết trang cuối; từ vựng giữ riêng số lần xuất hiện/nghe/trả lời đúng.
+Quy tắc hiện hành: Parent và Child đều có account đăng nhập; Parent quản lý dữ liệu của Child đã được liên kết. Cơ chế invite/link/consent và cardinality của quan hệ Parent–Child phải được chốt trước khi tích hợp thật. Recolor/chỉnh sửa nhân vật phải duyệt phiên bản mới. Thời gian sử dụng do Mobile/Backend ghi nhận; web không thực thi bằng timer của tab. Truyện hoàn thành khi đọc hết trang cuối; từ vựng giữ riêng số lần xuất hiện/nghe/trả lời đúng.
 
 Free/Pro/Family hiện được cung cấp lần lượt 1/3/5 hồ sơ, 5/30/100 lượt tạo AI mỗi tháng, tối đa một regenerate mỗi tranh. Export video: Free không hỗ trợ, Pro 5/tháng, Family không giới hạn. Cách cộng trừ/reset/chia sẻ quota và hạ gói vẫn cần contract; không hardcode thành quyền ở client.
 
@@ -271,13 +282,13 @@ Kế hoạch code chi tiết và audit hiện trạng: [CONTENT_MANAGER_IMPLEMEN
 8. Tham chiếu role/page/asset bị xóa phải được phát hiện. Từ chối publish nếu schema/content bắt buộc không hợp lệ; quy tắc số trang/từ/quiz cụ thể do nhóm chốt.
 9. Preview tái sử dụng component render web trong editor; chia sẻ schema với Mobile. Không giả định có thể dùng chung toàn bộ React code nếu Mobile dùng công nghệ khác.
 
-Narration MVP highlight theo câu; dữ liệu timestamp/segment và preview audio phải theo khả năng provider. Không tự dựng pipeline tạo giọng đọc ở Frontend. Không thêm age-group selector phức tạp khi sản phẩm hiện chỉ phục vụ 3–6 tuổi.
+Narration MVP highlight theo câu; dữ liệu timestamp/segment và preview audio phải theo khả năng provider. Không tự dựng pipeline tạo giọng đọc ở Frontend. Nội dung hiện phục vụ trẻ 6–10 tuổi; chỉ thêm age-group/reading-level selector chi tiết nếu nhóm chốt cần phân tầng trong range này.
 
 ## 8. Backlog Admin
 
 | ID | Hạng mục | Tiêu chí nghiệm thu chính |
 | --- | --- | --- |
-| A-01 | User management | List/search/filter/detail Parent và Content Manager; dữ liệu nhạy cảm theo quyền |
+| A-01 | User management | List/search/filter/detail Parent, Child và Content Manager; dữ liệu nhạy cảm theo quyền |
 | A-02 | Lock/unlock | Hiện trạng, lý do theo contract, xác nhận hành động; server cập nhật và audit |
 | A-03 | Role/permissions | Chỉ cấp quyền server cho phép; xử lý phiên/quyền thay đổi; quy tắc tự khóa/admin cuối cùng do server kiểm tra |
 | A-04 | Content report queue | Filter/status/target; detail, evidence, người xử lý và lịch sử |
@@ -313,7 +324,7 @@ G3 là phần rủi ro cao nhất nên được đưa lên sớm. Tích hợp AP
 
 ### Ba mốc demo hữu ích
 
-- **Demo 1 — nền tảng:** login theo ba role, Parent tạo bé, Content tạo draft, Admin lock/unlock; dữ liệu mock có thể reset.
+- **Demo 1 — nền tảng:** Parent login → xem/liên kết Child; Child register/login; Content tạo draft; Admin lock/unlock; dữ liệu mock có thể reset.
 - **Demo 2 — nghiệp vụ cốt lõi:** Content publish truyện → Parent cấu hình category và duyệt nhân vật → Mobile/seed API tạo truyện/reading → Parent thấy thư viện → Admin xử lý report.
 - **Demo 3 — tích hợp:** dữ liệu thật, progress/statistics, quota, export nếu dịch vụ sẵn sàng, phân quyền và lỗi được kiểm thử.
 
@@ -362,7 +373,7 @@ Không mở nhiều module dang dở cùng lúc. Với một Frontend developer,
 
 Không dùng mock để khẳng định Backend đã bảo vệ quyền. Kiểm thử truy cập trực tiếp resource của Parent khác, tài khoản bị khóa và request sai role cần API thật, phối hợp với BE.
 
-Fixture pack: ba role, ít nhất hai Parent, bé chưa có dữ liệu/nhiều bé/đạt quota; nhân vật mọi trạng thái và version mới; truyện draft hợp lệ/không hợp lệ/published/hidden; report từng trạng thái; jobs thành công/lỗi/đang xử lý. E2E mutation dùng dữ liệu riêng hoặc reset riêng để test chạy song song không tranh chấp.
+Fixture pack: bốn role/account type (Parent, Child, Content Manager, Admin), ít nhất hai Parent và hai Child, Child chưa liên kết/đã liên kết, quota; nhân vật mọi trạng thái và version mới; truyện draft hợp lệ/không hợp lệ/published/hidden; report từng trạng thái; jobs thành công/lỗi/đang xử lý. E2E mutation dùng dữ liệu riêng hoặc reset riêng để test chạy song song không tranh chấp.
 
 ### Definition of Done cho mỗi feature
 
@@ -404,7 +415,7 @@ Giữ `npm test` cho Playwright hiện có; khi thêm Vitest dùng script riêng
 | Moderation target action, retention/soft delete | A-05/P-05 | Mô tả rõ phạm vi; không triển khai xóa vĩnh viễn giả định |
 | Export format/job/file retention và email report Family | G7 | Chuẩn bị job UI/schema; phần tích hợp vẫn pending |
 
-`PROJECT_SUMMARY.md` còn một số ghi chú cũ: phần ma trận quyền vẫn hỏi Child có account riêng dù quyết định mới đã chốt là profile; phần hiện trạng nói chưa có Git metadata dù workspace hiện dùng Git. Khi làm sạch tài liệu nguồn, ưu tiên quyết định có ngày cập nhật và bằng chứng repository; không biến ghi chú cũ thành yêu cầu mới.
+`PROJECT_SUMMARY.md` có thể còn ghi chú từ scope cũ trong lịch sử chỉnh sửa; quyết định mới ngày 29/09/2026 xác nhận Child 6–10 tuổi có account riêng. Khi làm sạch tài liệu nguồn, ưu tiên quyết định mới và contract auth/relationship; không biến giả định link Parent–Child thành yêu cầu Backend khi chưa chốt.
 
 ## 14. Khi thiếu thời gian và cách theo dõi tiến độ
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { FloppyDisk, PencilSimple, Plus, Trash, UserCircle, X } from "@phosphor-icons/react";
+import { ArrowRight, FloppyDisk, PencilSimple, Plus, Trash, UserCircle, X } from "@phosphor-icons/react";
+import { Link } from "react-router-dom";
 import { EditorField, EditorMutationMessage, EditorPanel } from "../components/StoryEditorParts";
 import AssetPicker from "../components/AssetPicker";
 import { useContentAssets, useStoryEditorData, useStoryEditorMutation } from "../hooks/useStoryEditor";
@@ -8,6 +9,19 @@ import { contentService } from "../services/contentService";
 
 const emptyRole = { name: "", custom: true, sensitive: false, defaultAssetId: "" };
 const emptySlot = { pageId: "", x: 50, y: 50, scale: 1, flip: false, layer: 1 };
+
+function validateRole(values) {
+  if (!values.name.trim()) return "Nhập tên role.";
+  if (values.name.trim().length > 60) return "Tên role tối đa 60 ký tự.";
+  return "";
+}
+
+function validateSlot(values) {
+  const x = Number(values.x); const y = Number(values.y); const scale = Number(values.scale); const layer = Number(values.layer);
+  if (!values.pageId) return "Chọn page để đặt slot.";
+  if (![x, y, scale, layer].every(Number.isFinite) || x < 0 || x > 100 || y < 0 || y > 100 || scale <= 0 || layer < 1 || !Number.isInteger(layer)) return "X/Y phải từ 0–100%, scale > 0 và layer là số nguyên từ 1.";
+  return "";
+}
 
 function SlotForm({ values, pages, onChange, onSubmit, isSaving }) {
   return (
@@ -34,8 +48,10 @@ export default function StoryRolesPage() {
   const { story, storyId, setEditorDirty } = useStoryEditorData();
   const assetsQuery = useContentAssets();
   const [roleDraft, setRoleDraft] = useState(emptyRole);
+  const [roleInitial, setRoleInitial] = useState(emptyRole);
   const [editingRoleId, setEditingRoleId] = useState(null);
   const [slotDrafts, setSlotDrafts] = useState({});
+  const [localError, setLocalError] = useState("");
   const mutation = useStoryEditorMutation(({ action, roleId, slotId, payload, revision }) => {
     if (action === "add-role") return contentService.addRole({ storyId, revision, ...payload });
     if (action === "update-role") return contentService.updateRole({ storyId, roleId, revision, ...payload });
@@ -44,10 +60,11 @@ export default function StoryRolesPage() {
     return contentService.deleteSlot({ storyId, roleId, slotId, revision });
   });
   const assets = assetsQuery.data?.items || [];
-  const dirty = JSON.stringify(roleDraft) !== JSON.stringify(emptyRole) || Object.values(slotDrafts).some((draft) => JSON.stringify(draft) !== JSON.stringify({ ...emptySlot, pageId: story.pages[0]?.id || "" }));
+  const dirty = JSON.stringify(roleDraft) !== JSON.stringify(roleInitial) || Object.values(slotDrafts).some((draft) => JSON.stringify(draft) !== JSON.stringify({ ...emptySlot, pageId: story.pages[0]?.id || "" }));
   useEditorSaveState({ dirty, isSaving: mutation.isPending, error: mutation.error, onDirtyChange: setEditorDirty });
 
   function updateRole(name, value) {
+    setLocalError("");
     setRoleDraft((current) => ({ ...current, [name]: value }));
   }
 
@@ -56,21 +73,33 @@ export default function StoryRolesPage() {
   }
 
   function updateSlot(roleId, name, value) {
+    setLocalError("");
     setSlotDrafts((current) => ({ ...current, [roleId]: { ...slotFor(roleId), [name]: value } }));
   }
 
   function saveRole() {
+    const error = validateRole(roleDraft);
+    if (error) return setLocalError(error);
+    setLocalError("");
     const action = editingRoleId ? "update-role" : "add-role";
-    mutation.mutate({ action, roleId: editingRoleId, payload: roleDraft }, { onSuccess: () => { setRoleDraft(emptyRole); setEditingRoleId(null); } });
+    mutation.mutate({ action, roleId: editingRoleId, payload: { ...roleDraft, name: roleDraft.name.trim() } }, { onSuccess: () => { setRoleDraft(emptyRole); setRoleInitial(emptyRole); setEditingRoleId(null); } });
   }
 
   function beginRoleEdit(role) {
+    if (dirty && editingRoleId !== role.id && !window.confirm("Bạn có thay đổi chưa lưu. Mở role khác sẽ bỏ chúng?")) return;
     setEditingRoleId(role.id);
-    setRoleDraft({ name: role.name, custom: role.custom !== false, sensitive: Boolean(role.sensitive), defaultAssetId: role.defaultAssetId || "" });
+    const next = { name: role.name, custom: role.custom !== false, sensitive: Boolean(role.sensitive), defaultAssetId: role.defaultAssetId || "" };
+    setRoleDraft(next);
+    setRoleInitial(next);
+    setLocalError("");
   }
 
   function addSlot(roleId) {
-    mutation.mutate({ action: "add-slot", roleId, payload: slotFor(roleId) }, { onSuccess: () => setSlotDrafts((current) => ({ ...current, [roleId]: { ...emptySlot, pageId: story.pages[0]?.id || "" } })) });
+    const payload = slotFor(roleId);
+    const error = validateSlot(payload);
+    if (error) return setLocalError(error);
+    setLocalError("");
+    mutation.mutate({ action: "add-slot", roleId, payload: { ...payload, x: Number(payload.x), y: Number(payload.y), scale: Number(payload.scale), layer: Number(payload.layer) } }, { onSuccess: () => setSlotDrafts((current) => ({ ...current, [roleId]: { ...emptySlot, pageId: story.pages[0]?.id || "" } })) });
   }
 
   return (
@@ -83,13 +112,14 @@ export default function StoryRolesPage() {
         </div>
         <div className="editor-checkboxes"><label className="editor-checkbox"><input type="checkbox" checked={roleDraft.custom} onChange={(event) => updateRole("custom", event.target.checked)} /> Role custom</label><label className="editor-checkbox"><input type="checkbox" checked={roleDraft.sensitive} onChange={(event) => updateRole("sensitive", event.target.checked)} /> Nội dung nhạy cảm</label></div>
         <button className="workspace-button" type="button" onClick={saveRole} disabled={mutation.isPending}><FloppyDisk size={16} aria-hidden="true" /> {editingRoleId ? "Lưu role" : "Thêm role"}</button>
-        {editingRoleId && <button className="workspace-button workspace-button-quiet" type="button" onClick={() => { setEditingRoleId(null); setRoleDraft(emptyRole); }}><X size={16} aria-hidden="true" /> Huỷ sửa</button>}
+        {editingRoleId && <button className="workspace-button workspace-button-quiet" type="button" onClick={() => { setEditingRoleId(null); setRoleDraft(emptyRole); setRoleInitial(emptyRole); }}><X size={16} aria-hidden="true" /> Huỷ sửa</button>}
       </div>
       <EditorMutationMessage mutation={mutation} />
+      {localError && <div className="editor-mutation-message editor-mutation-error" role="alert"><span>{localError}</span></div>}
       {story.roles.length ? <div className="role-list">{story.roles.map((role) => (
         <article className="role-card" key={role.id}>
           <div className="role-card-heading"><div><span className="editor-item-index">ROLE</span><h3>{role.name}</h3><p>{role.custom ? "Custom role" : "Role hệ thống"}{role.sensitive ? " · sensitive" : ""}</p></div><div className="editor-item-actions"><button className="icon-button" type="button" aria-label={`Sửa role ${role.name}`} onClick={() => beginRoleEdit(role)}><PencilSimple size={17} aria-hidden="true" /></button><button className="icon-button icon-button-danger" type="button" aria-label={`Xoá role ${role.name}`} onClick={() => { if (window.confirm(`Xoá role “${role.name}” và toàn bộ slot?`)) mutation.mutate({ action: "delete-role", roleId: role.id }); }}><Trash size={17} aria-hidden="true" /></button></div></div>
-          <div className="slot-list">{role.slots?.length ? role.slots.map((slot) => <div className="slot-row" key={slot.id}><span><strong>{story.pages.find((page) => page.id === slot.pageId)?.title || "Page không còn tồn tại"}</strong><small>X {slot.x}% · Y {slot.y}% · scale {slot.scale} · layer {slot.layer}{slot.flip ? " · flipped" : ""}</small></span><button className="icon-button icon-button-danger" type="button" aria-label="Xoá slot" onClick={() => mutation.mutate({ action: "delete-slot", roleId: role.id, slotId: slot.id })}><Trash size={15} aria-hidden="true" /></button></div>) : <p className="editor-help">Role này chưa có slot.</p>}</div>
+          <div className="slot-list">{role.slots?.length ? role.slots.map((slot) => <div className="slot-row" key={slot.id}><span><strong>{story.pages.find((page) => page.id === slot.pageId)?.title || "Page không còn tồn tại"}</strong><small>X {slot.x}% · Y {slot.y}% · scale {slot.scale} · layer {slot.layer}{slot.flip ? " · flipped" : ""}</small></span><div className="slot-row-actions"><Link className="workspace-text-link" to={`/content/stories/${storyId}/pages`} onClick={(event) => { if (dirty && !window.confirm("Bạn có thay đổi chưa lưu. Rời tab sẽ bỏ chúng?")) event.preventDefault(); }}><ArrowRight size={14} aria-hidden="true" /> Mở page</Link><button className="icon-button icon-button-danger" type="button" aria-label="Xoá slot" onClick={() => mutation.mutate({ action: "delete-slot", roleId: role.id, slotId: slot.id })}><Trash size={15} aria-hidden="true" /></button></div></div>) : <p className="editor-help">Role này chưa có slot.</p>}</div>
           {story.pages.length ? <SlotForm values={slotFor(role.id)} pages={story.pages} onChange={(name, value) => updateSlot(role.id, name, value)} onSubmit={() => addSlot(role.id)} isSaving={mutation.isPending} /> : <p className="editor-help">Tạo ít nhất một page trước khi đặt slot.</p>}
         </article>
       ))}</div> : <div className="editor-empty"><p>Story chưa có role nào.</p><p className="editor-help">Role không bắt buộc để publish, nhưng cần khi story có nhân vật tương tác.</p></div>}

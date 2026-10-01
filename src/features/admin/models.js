@@ -68,5 +68,9 @@ export function normalizeAdminListResponse(response) {
 }
 
 export function isConflictError(error) {
-  return error?.status === 409 || error?.code === "REVISION_CONFLICT";
+  return error?.code === "REVISION_CONFLICT";
+}
+
+export function isPolicyError(error) {
+  return ["SELF_LOCK_NOT_ALLOWED", "SELF_ROLE_CHANGE_NOT_ALLOWED", "LAST_ADMIN_NOT_ALLOWED"].includes(error?.code);
 }

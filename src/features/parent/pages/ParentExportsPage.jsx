@@ -10,7 +10,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "../../auth/AuthProvider";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import StatusBadge from "../../../components/ui/StatusBadge";
@@ -26,8 +26,9 @@ export default function ParentExportsPage() {
   const [formMessage, setFormMessage] = useState(null);
   const [downloadLinks, setDownloadLinks] = useState({});
   const [downloadErrorId, setDownloadErrorId] = useState(null);
-  const [reportDraft, setReportDraft] = useState({ enabled: true, schedule: "monthly" });
+  const [reportDraftState, setReportDraftState] = useState(null);
   const [reportMessage, setReportMessage] = useState(null);
+  const idempotencyKeyRef = useRef(null);
 
   const childrenQuery = useQuery({
     queryKey: queryKeys.children(user.id),
@@ -53,6 +54,7 @@ export default function ParentExportsPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.exports(user.id) });
       setFormMessage({ type: "success", text: data.deduplicated ? "Yêu cầu đã tồn tại; không tạo bản trùng." : "Export đã được tạo và đang chờ hệ thống xử lý." });
+      idempotencyKeyRef.current = null;
     },
     onError: (error) => setFormMessage({ type: "error", text: error.message }),
   });
@@ -77,10 +79,13 @@ export default function ParentExportsPage() {
     onError: (error) => setReportMessage({ type: "error", text: error.message }),
   });
 
+  const reportDraft = reportDraftState || (reportQuery.data?.settings ? { enabled: reportQuery.data.settings.enabled, schedule: reportQuery.data.settings.schedule } : { enabled: true, schedule: "monthly" });
+
   function updateForm(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value, ...(name === "childId" ? { storyId: "" } : {}) }));
     setFormMessage(null);
+    if (["childId", "storyId", "format"].includes(name)) idempotencyKeyRef.current = null;
   }
 
   function submitExport(event) {
@@ -89,7 +94,8 @@ export default function ParentExportsPage() {
       setFormMessage({ type: "error", text: "Chọn hồ sơ bé và truyện trước khi tạo export." });
       return;
     }
-    createMutation.mutate({ ...form, idempotencyKey: `${form.childId}:${form.storyId}:${form.format}:${Date.now()}` });
+    idempotencyKeyRef.current ||= `${form.childId}:${form.storyId}:${form.format}:${crypto.randomUUID?.() || Date.now()}`;
+    createMutation.mutate({ ...form, idempotencyKey: idempotencyKeyRef.current });
   }
 
   function saveReport(event) {
@@ -136,7 +142,7 @@ export default function ParentExportsPage() {
             <div className="export-form-grid">
               <label className="export-field" htmlFor="export-child"><span>Hồ sơ bé</span><select id="export-child" name="childId" value={form.childId} onChange={updateForm} disabled={childrenQuery.isLoading}><option value="">Chọn hồ sơ bé</option>{children.map((child) => <option key={child.id} value={child.id}>{child.displayName}</option>)}</select></label>
               <label className="export-field" htmlFor="export-story"><span>Truyện trong thư viện</span><select id="export-story" name="storyId" value={form.storyId} onChange={updateForm} disabled={!selectedChildId || libraryQuery.isLoading}><option value="">{libraryQuery.isLoading ? "Đang tải thư viện…" : "Chọn truyện"}</option>{stories.map((story) => <option key={story.id} value={story.sourceId || story.id}>{story.title}</option>)}</select></label>
-              <label className="export-field" htmlFor="export-format"><span>Định dạng</span><select id="export-format" name="format" value={form.format} onChange={updateForm}><option value="pdf">{formatLabels.pdf}</option><option value="video">{formatLabels.video}</option></select></label>
+              <label className="export-field" htmlFor="export-format"><span>Định dạng</span><select id="export-format" name="format" value={form.format} onChange={updateForm}><option value="pdf">{formatLabels.pdf}</option><option value="video" disabled={quota?.plan === "Free"}>{formatLabels.video}{quota?.plan === "Free" ? " (không có trong gói hiện tại)" : ""}</option></select></label>
             </div>
             <p className="export-field-note"><Info size={15} aria-hidden="true" /> Video có thể mất thời gian xử lý; tiến độ chỉ hiển thị khi server trả về giá trị thật.</p>
             {formMessage && <div className={formMessage.type === "error" ? "export-alert" : "export-success"} role={formMessage.type === "error" ? "alert" : "status"}>{formMessage.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />}<span>{formMessage.text}</span></div>}
@@ -156,8 +162,8 @@ export default function ParentExportsPage() {
             <div className="report-ready-line"><StatusBadge value={report.status} tone="success" /><span>Trạng thái do service báo cáo trả về.</span></div>
             <p className="export-muted-copy">Cài đặt chu kỳ chỉ điều khiển cấu hình. Backend chịu trách nhiệm tạo báo cáo và gửi email, nên UI không giả lập trạng thái đã gửi.</p>
             <form className="report-settings-form" onSubmit={saveReport}>
-              <label className="report-toggle"><input type="checkbox" checked={reportDraft.enabled} onChange={(event) => setReportDraft((current) => ({ ...current, enabled: event.target.checked }))} /> <span>Bật báo cáo định kỳ</span></label>
-              <label className="export-field" htmlFor="report-schedule"><span>Chu kỳ</span><select id="report-schedule" value={reportDraft.schedule} onChange={(event) => setReportDraft((current) => ({ ...current, schedule: event.target.value }))}><option value="monthly">Hàng tháng</option><option value="quarterly">Mỗi quý</option></select></label>
+              <label className="report-toggle"><input type="checkbox" checked={reportDraft.enabled} onChange={(event) => setReportDraftState((current) => ({ ...(current || reportDraft), enabled: event.target.checked }))} /> <span>Bật báo cáo định kỳ</span></label>
+              <label className="export-field" htmlFor="report-schedule"><span>Chu kỳ</span><select id="report-schedule" value={reportDraft.schedule} onChange={(event) => setReportDraftState((current) => ({ ...(current || reportDraft), schedule: event.target.value }))}><option value="monthly">Hàng tháng</option><option value="quarterly">Mỗi quý</option></select></label>
               {reportMessage && <div className={reportMessage.type === "error" ? "export-alert" : "export-success"} role={reportMessage.type === "error" ? "alert" : "status"}>{reportMessage.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />}<span>{reportMessage.text}</span></div>}
               <button className="workspace-button workspace-button-quiet" type="submit" disabled={reportMutation.isPending}>{reportMutation.isPending ? "Đang lưu…" : "Lưu cài đặt"}</button>
             </form>

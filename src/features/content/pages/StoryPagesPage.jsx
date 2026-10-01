@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, FloppyDisk, PencilSimple, Plus, Trash, X } from "@phosphor-icons/react";
 import { EditorField, EditorMutationMessage, EditorPanel } from "../components/StoryEditorParts";
 import AssetPicker from "../components/AssetPicker";
@@ -9,6 +9,22 @@ import { contentService } from "../services/contentService";
 
 const emptyPage = { title: "", text: "", backgroundAssetId: "", narration: "" };
 const emptySlot = { pageId: "", x: 50, y: 50, scale: 1, flip: false, layer: 1, anchor: "center", assetId: "" };
+
+function validatePage(values) {
+  if (!values.title.trim()) return "Nhập tiêu đề page.";
+  if (values.title.trim().length > 120) return "Tiêu đề page tối đa 120 ký tự.";
+  if (!values.text.trim()) return "Nhập nội dung page để preview không bị trống.";
+  return "";
+}
+
+function validateSlot(values) {
+  const x = Number(values.x); const y = Number(values.y); const scale = Number(values.scale); const layer = Number(values.layer);
+  if (![x, y, scale, layer].every(Number.isFinite)) return "X, Y, scale và layer phải là số hợp lệ.";
+  if (x < 0 || x > 100 || y < 0 || y > 100) return "X và Y phải nằm trong khoảng 0–100%.";
+  if (scale <= 0 || layer < 1 || !Number.isInteger(layer)) return "Scale phải lớn hơn 0 và layer là số nguyên từ 1.";
+  if ((values.anchor || "center") !== "center") return "Anchor hiện chỉ hỗ trợ center theo quy ước canvas hiện tại.";
+  return "";
+}
 
 function pageValues(page) {
   return page ? { title: page.title || "", text: page.text || "", backgroundAssetId: page.backgroundAssetId || "", narration: page.narration || "" } : emptyPage;
@@ -63,7 +79,7 @@ function SlotFields({ values, pages, assets, onChange, onSubmit, isSaving }) {
         <EditorField label="Layer" name="selected-slot-layer" type="number" min="1" value={values.layer} onChange={(value) => onChange("layer", value)} />
         <EditorField label="Anchor" name="selected-slot-anchor" value={values.anchor} onChange={(value) => onChange("anchor", value)}>
           <select id="story-editor-selected-slot-anchor" value={values.anchor} onChange={(event) => onChange("anchor", event.target.value)}>
-            <option value="center">Center</option><option value="top-left">Top left</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-right">Bottom right</option>
+            <option value="center">Center (hiện tại)</option>
           </select>
         </EditorField>
       </div>
@@ -87,6 +103,7 @@ export default function StoryPagesPage() {
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [slotDraft, setSlotDraft] = useState(emptySlot);
   const [slotInitial, setSlotInitial] = useState(emptySlot);
+  const [localError, setLocalError] = useState("");
   const mutation = useStoryEditorMutation(({ action, pageId, roleId, slotId, payload, revision }) => {
     if (action === "add") return contentService.addPage({ storyId, revision, ...payload });
     if (action === "update") return contentService.updatePage({ storyId, pageId, revision, ...payload });
@@ -100,16 +117,10 @@ export default function StoryPagesPage() {
   const dirty = (showAdd && JSON.stringify(newPage) !== JSON.stringify(emptyPage)) || JSON.stringify(pageDraft) !== JSON.stringify(pageInitial) || (editingId !== null && JSON.stringify(editingPage) !== JSON.stringify(editingInitial)) || (selectedSlot && JSON.stringify(slotDraft) !== JSON.stringify(slotInitial));
   useEditorSaveState({ dirty, isSaving: mutation.isPending, error: mutation.error, onDirtyChange: setEditorDirty });
 
-  useEffect(() => {
-    if (!story.pages.some((page) => page.id === selectedPageId)) {
-      const next = story.pages[0];
-      setSelectedPageId(next?.id || "");
-      setPageDraft(pageValues(next));
-      setPageInitial(pageValues(next));
-    }
-  }, [selectedPageId, story.pages]);
-
-  function selectPage(page) {
+  function selectPage(page, force = false) {
+    if (page.id === selectedPageId) return;
+    if (!force && dirty && !window.confirm("Bạn có thay đổi chưa lưu ở editor này. Đổi page sẽ bỏ thay đổi đó?")) return;
+    setLocalError("");
     setSelectedPageId(page.id);
     const next = pageValues(page);
     setPageDraft(next);
@@ -118,6 +129,9 @@ export default function StoryPagesPage() {
   }
 
   function selectSlot(slotId) {
+    if (slotId === selectedSlotId) return;
+    if (dirty && !window.confirm("Bạn có thay đổi chưa lưu ở editor này. Đổi slot sẽ bỏ thay đổi đó?")) return;
+    setLocalError("");
     const nextSlot = story.roles.flatMap((role) => role.slots || []).find((slot) => slot.id === slotId);
     setSelectedSlotId(slotId);
     const next = slotValues(nextSlot);
@@ -130,15 +144,20 @@ export default function StoryPagesPage() {
   }
 
   function addPage() {
+    const error = validatePage(newPage);
+    if (error) return setLocalError(error);
     mutation.mutate({ action: "add", payload: newPage }, { onSuccess: (nextStory) => {
       const next = nextStory.pages.at(-1);
       setNewPage(emptyPage); setShowAdd(false);
-      if (next) selectPage(next);
+      if (next) selectPage(next, true);
     } });
   }
 
   function saveSelectedPage() {
     if (!selectedPage) return;
+    const error = validatePage(pageDraft);
+    if (error) return setLocalError(error);
+    setLocalError("");
     mutation.mutate({ action: "update", pageId: selectedPage.id, payload: pageDraft }, { onSuccess: (nextStory) => {
       const next = nextStory.pages.find((page) => page.id === selectedPage.id) || nextStory.pages[0];
       setPageDraft(pageValues(next)); setPageInitial(pageValues(next));
@@ -146,6 +165,9 @@ export default function StoryPagesPage() {
   }
 
   function updatePageItem() {
+    const error = validatePage(editingPage);
+    if (error) return setLocalError(error);
+    setLocalError("");
     mutation.mutate({ action: "update", pageId: editingId, payload: editingPage }, { onSuccess: () => { setEditingId(null); setEditingInitial(emptyPage); } });
   }
 
@@ -155,14 +177,16 @@ export default function StoryPagesPage() {
   }
 
   function removePage(page) {
+    if (dirty && !window.confirm("Bạn có thay đổi chưa lưu. Xóa page sẽ bỏ chúng?")) return;
     if (!window.confirm(`Xoá page “${page.title}”? Các slot trỏ vào page này cũng sẽ được gỡ.`)) return;
     mutation.mutate({ action: "delete", pageId: page.id }, { onSuccess: (nextStory) => {
       const next = nextStory.pages[Math.max(0, page.order - 2)] || nextStory.pages[0];
-      if (next) selectPage(next); else { setSelectedPageId(""); setPageDraft(emptyPage); setPageInitial(emptyPage); }
+      if (next) selectPage(next, true); else { setSelectedPageId(""); setPageDraft(emptyPage); setPageInitial(emptyPage); }
     } });
   }
 
   function movePage(index, direction) {
+    if (dirty && !window.confirm("Bạn có thay đổi chưa lưu. Đổi thứ tự page sẽ bỏ chúng?")) return;
     const next = [...story.pages];
     const target = index + direction;
     if (target < 0 || target >= next.length) return;
@@ -172,6 +196,9 @@ export default function StoryPagesPage() {
 
   function saveSlot() {
     if (!selectedSlot) return;
+    const error = validateSlot(slotDraft);
+    if (error) return setLocalError(error);
+    setLocalError("");
     mutation.mutate({ action: "update-slot", roleId: selectedSlot.role.id, slotId: selectedSlot.slot.id, payload: { ...slotDraft, x: Number(slotDraft.x), y: Number(slotDraft.y), scale: Number(slotDraft.scale), layer: Number(slotDraft.layer) } }, { onSuccess: (nextStory) => {
       const nextSlot = nextStory.roles.flatMap((role) => role.slots || []).find((slot) => slot.id === selectedSlot.slot.id);
       const next = slotValues(nextSlot); setSlotDraft(next); setSlotInitial(next);
@@ -182,6 +209,7 @@ export default function StoryPagesPage() {
     <EditorPanel eyebrow="PAGES" title="Nhịp kể của story" description="Mỗi page có nội dung, nền và narration riêng. Chọn page để xem ngay trên canvas; tọa độ slot dùng phần trăm và ID page ổn định." action={<button className="workspace-button" type="button" onClick={() => setShowAdd((current) => !current)}><Plus size={17} aria-hidden="true" /> {showAdd ? "Đóng form" : "Thêm page"}</button>}>
       {showAdd && <div className="editor-form-card"><h3>Page mới</h3><PageForm values={newPage} onChange={(name, value) => updatePage(setNewPage, name, value)} onSubmit={addPage} onCancel={() => setShowAdd(false)} isSaving={mutation.isPending} assets={assets} submitLabel="Thêm page" prefix="new-" /></div>}
       <EditorMutationMessage mutation={mutation} />
+      {localError && <div className="editor-mutation-message editor-mutation-error" role="alert"><span>{localError}</span></div>}
       {assetsQuery.isLoading && <p className="editor-help">Đang tải danh sách asset...</p>}
       <div className="story-pages-workspace">
         <aside className="story-pages-list" aria-label="Danh sách pages">

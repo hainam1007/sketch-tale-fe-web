@@ -9,6 +9,22 @@ const tabForField = (field = "") => {
   return "";
 };
 
+function hashForField(field = "") {
+  const normalized = field.toLowerCase();
+  if (normalized.includes("title")) return "story-editor-title";
+  if (normalized.includes("description")) return "story-editor-description";
+  if (normalized.includes("category")) return "story-editor-category";
+  if (normalized.includes("cover")) return "story-cover";
+  if (normalized.includes("background")) return "story-editor-background";
+  if (normalized.includes("narration")) return "story-editor-narration";
+  if (normalized.includes("text")) return "story-editor-text";
+  if (normalized.includes("word")) return "story-editor-vocabulary-word";
+  if (normalized.includes("meaning")) return "story-editor-vocabulary-meaning";
+  if (normalized.includes("question")) return "story-editor-quiz-question";
+  if (normalized.includes("feedback")) return "story-editor-quiz-feedback";
+  return "main";
+}
+
 export default function PublishIssues({ error }) {
   const { storyId } = useParams();
   if (!error) return null;
@@ -20,7 +36,7 @@ export default function PublishIssues({ error }) {
       {fieldErrors.length > 0 && <ul className="publish-issues-list">{fieldErrors.map(([field, message]) => {
         const tab = tabForField(field);
         const target = `/content/stories/${storyId}${tab ? `/${tab}` : ""}`;
-        return <li key={field}><Link to={`${target}#story-editor-properties-text`}>{field}: {message}</Link></li>;
+        return <li key={field}><Link to={`${target}#${hashForField(field)}`}>{field}: {message}</Link></li>;
       })}</ul>}
     </div>
   </div>;

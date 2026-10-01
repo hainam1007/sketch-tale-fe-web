@@ -13,6 +13,7 @@ export const queryKeys = {
   familyReport: (userId) => ["family-report", userId],
   profile: (userId) => ["profile", userId],
   adminUsers: (userId, filters = {}) => ["admin-users", userId, filters],
+  adminOverview: (userId) => ["admin-overview", userId],
   adminUser: (userId, targetId) => ["admin-user", userId, targetId],
   adminReports: (userId, filters = {}) => ["admin-reports", userId, filters],
   adminReport: (userId, reportId) => ["admin-report", userId, reportId],
