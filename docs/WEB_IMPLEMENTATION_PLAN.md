@@ -7,6 +7,8 @@
 > Trạng thái: kế hoạch đề xuất để triển khai, không phải xác nhận API/nghiệp vụ đã được Backend cung cấp.
 > Nguồn nghiệp vụ: `PROJECT_SUMMARY.md`. Tài liệu này là kế hoạch tổng thể; `PARENT_IMPLEMENTATION_PLAN.md` chỉ là phân rã tham khảo riêng cho Parent. Khi thứ tự, kiến trúc hoặc ước lượng khác nhau, dùng kế hoạch tổng thể này.
 
+> Quyết định Parent ngày 01/10/2026: quản lý theo từng hồ sơ Child; mỗi bé có dashboard riêng. `/parent` là entry chọn hồ sơ, không phải dashboard tổng gia đình. Duyệt phiên bản và quyền vai nhạy cảm dùng hai trạng thái/action riêng. Đặc tả và migration tại mục 1, 3, 6.1, 11 và 15 của [PARENT_IMPLEMENTATION_PLAN.md](PARENT_IMPLEMENTATION_PLAN.md). Vertical slice này đã được triển khai bằng mock/API boundary; chưa xác nhận API thật hoặc staging.
+
 ## 1. Hướng triển khai chủ đạo
 
 **Một React SPA, ba khu vực theo role, một nền tảng dùng chung; triển khai theo luồng nghiệp vụ có thể demo và tích hợp được.**
@@ -145,14 +147,16 @@ Chỉ tạo thư mục khi có code sử dụng. Mỗi feature thường có `pa
 | `/auth/verify`, `/auth/forgot-password`, `/auth/reset-password` | Xác minh/khôi phục theo contract |
 | `/profile` | Hồ sơ của tài khoản đang đăng nhập |
 | `/403`, route fallback | Không đủ quyền / không tồn tại |
-| `/parent` | Tổng quan; giai đoạn đầu có thể dẫn sang children |
-| `/parent/children`, `/parent/children/new` | Danh sách/tạo bé |
+| `/parent` | Entry: một bé vào dashboard; 0/nhiều bé vào danh sách, sau khi tải session và quyền |
+| `/parent/children`, `/parent/children/new` | Chọn hồ sơ/mời hoặc liên kết theo contract; tạo hộ chỉ khi được phép |
 | `/parent/children/:childId` | Chi tiết và sửa hồ sơ |
+| `/parent/children/:childId/dashboard` | Tổng quan riêng của bé, điểm vào khi chọn hồ sơ |
 | `/parent/children/:childId/settings` | Thời gian, category |
 | `/parent/children/:childId/approvals` | Duyệt phiên bản và quyền vai nhạy cảm |
 | `/parent/children/:childId/library` | Truyện/nhân vật của bé |
 | `/parent/children/:childId/progress` | Reading, vocabulary, quiz |
-| `/parent/plan`, `/parent/exports` | Gói/hạn mức và export jobs |
+| `/parent/plan`, `/parent/reports` | Gói/hạn mức và cấu hình email Family cấp tài khoản (reports P2) |
+| `/parent/children/:childId/exports` | Export jobs của bé (P2); `/parent/exports` giữ làm route tương thích |
 
 ### Content Manager và Admin
 
@@ -230,15 +234,15 @@ Không thể coi việc đổi một adapter là đủ nếu business model Back
 
 | ID | Hạng mục | Tiêu chí nghiệm thu chính |
 | --- | --- | --- |
-| P-01 | Hồ sơ bé: list/create/detail/edit | Empty state; validation; đổi/refresh child route đúng; giới hạn hồ sơ từ server |
+| P-01 | Hồ sơ bé: list/link/detail/edit | Entry 0/1/nhiều bé; validation; đổi/refresh child route đúng; quyền/hạn mức từ server; tạo hộ theo contract |
 | P-02 | Settings | Đọc/lưu thời gian và category; rõ ý nghĩa chọn rỗng; lỗi lưu không hiển thị thành công |
 | P-03 | Character approval | So sánh tranh gốc/phiên bản; approve/reject đúng version; xử lý conflict |
 | P-04 | Sensitive-role approval | Quyền một lần theo nhân vật, tách approval version; không tự cấp khi chưa có dữ liệu |
 | P-05 | Library | Truyện/nhân vật; filter/favorite/hide/delete theo bé; không sửa template chung |
 | P-06 | Learning progress | Reading/vocabulary/quiz theo thời gian; phân biệt chưa có dữ liệu và số 0 |
-| P-07 | Dashboard | Tổng hợp từ API, link hành động; partial error không phá toàn trang |
+| P-07 | Dashboard riêng từng Child | Khung/entry ở G2; số liệu ở G6; query/API có childId, link đúng bé, partial error và không lẫn dữ liệu khi chuyển bé |
 | P-08 | Gói và usage | Hiển thị Free/Pro/Family, usage/reset từ server; không tự cấp entitlement |
-| P-09 | Export | Tạo/theo dõi/download job, lỗi/retry hợp lệ; quota server và file hết hạn |
+| P-09 | Export theo Child | Tạo/theo dõi/download job đúng bé, lỗi/retry hợp lệ; quota server, file hết hạn và migration route cũ |
 | P-10 | Báo cáo học tập Family | Chuẩn bị UI trạng thái/cấu hình nếu contract có; email định kỳ do Backend thực hiện |
 
 P-10 xuất phát từ quyền lợi Family trong tài liệu nguồn; phạm vi màn cấu hình, nội dung báo cáo và dịch vụ gửi email cần chốt, không được bỏ quên hoặc tự hứa đã gửi.
@@ -305,26 +309,26 @@ Admin không mặc định được sửa Story Editor hoặc mở dữ liệu r
 
 ## 9. Lộ trình triển khai tổng thể
 
-Ước lượng ngày công cho một Frontend developer, gồm UI, logic và kiểm thử mức module. Giả định có thiết kế đủ rõ, phản hồi Backend đều đặn và scope như trên. Kế hoạch Parent tối ưu phân rã M1–M5 thành 13–18 ngày công riêng Parent sau Shared G1, chưa gồm export/email và phát sinh tích hợp; không cộng thêm số này vào bảng vì Parent đã nằm trong từng giai đoạn.
+Ước lượng ngày công cho một Frontend developer, gồm UI, logic và kiểm thử mức module. Giả định có thiết kế đủ rõ, phản hồi Backend đều đặn và scope như trên. Kế hoạch Parent ngày 01/10 phân rã M1–M5 thành 14–19 ngày công sau Shared G1, chưa gồm export/email và phát sinh tích hợp. G2 tăng một ngày cho entry/dashboard riêng và kiểm thử chuyển hồ sơ; không cộng toàn bộ số ngày Parent vào bảng lần nữa.
 
 | Giai đoạn | Nội dung và thứ tự | Phụ thuộc | Ngày công | Mốc nghiệm thu |
 | --- | --- | --- | --- | --- |
 | G0 | Chốt route, quyền, glossary, model/contract, wireflow ba role và editor spike | Nhóm BE/Mobile xác nhận giả định | 3–4 | Backlog, contract nháp, fixture và preview spike được thống nhất |
 | G1 | Provider/router/auth guards; shell; UI/form/data primitives; HTTP/MSW; login/logout/profile; auth flows còn lại theo contract | G0 | 5–7 | Ba role vào đúng khu vực, session/403/logout hoạt động |
-| G2 | P-01; A-01/A-02; C-01 và C-02 bản tối thiểu | G1 | 6–8 | Parent tạo bé, Admin khóa/mở user, Content tạo draft và chọn/upload asset |
+| G2 | P-01 và khung P-07; A-01/A-02; C-01 và C-02 bản tối thiểu | G1 | 7–9 | Parent chọn/liên kết bé → dashboard riêng cơ bản; Admin khóa/mở user; Content tạo draft và chọn/upload asset |
 | G3 | C-03 → C-04 → C-05/C-06 → C-07 → C-08/C-09 | G2, schema Mobile/BE | 10–14 | Một truyện hoàn chỉnh được publish thành version, preview đúng và sửa draft an toàn |
 | G4 | P-02 → P-03/P-04 → P-05; A-04/A-05 | G2, dữ liệu character/report; story G3 cho tích hợp | 7–9 | Kiểm soát/duyệt/thư viện theo bé; Admin giải quyết một report |
 | G5 | A-03/A-06/A-07/A-08; P-08; hoàn thiện asset library | Contract quyền, giới hạn và monitoring | 5–7 | Cấu hình/quyền/hạn mức và trạng thái vận hành nhất quán |
-| G6 | P-06/P-07, C-10, A-09/A-10 và dashboard ba role | Dữ liệu tracking/aggregate | 5–7 | Số liệu khớp seed/API, filter/date range/partial errors đúng |
+| G6 | P-06/phần số liệu P-07, C-10, A-09/A-10 và dashboard ba role | Dữ liệu tracking/aggregate | 5–7 | Số liệu đúng childId với Parent, khớp seed/API; filter/date range/partial errors đúng |
 | G7 | P-09, P-10 theo scope chốt; E2E thật, responsive/a11y, hiệu năng và deployment | Export/email/BE hoàn thiện | 6–9 | Release candidate có bằng chứng kiểm thử và kịch bản demo |
 
-Tổng cơ sở **47–65 ngày công**; thêm **20–25% dự phòng** cho contract thay đổi, review và sửa lỗi: khoảng **57–82 ngày công**. Khoảng 12–17 tuần nếu có 5 ngày công thực tế/tuần; đồ án bán thời gian sẽ kéo dài hơn. Đây là ước lượng lập kế hoạch, không phải cam kết ngày giao; hiệu chỉnh sau G2 bằng tốc độ thực tế.
+Tổng cơ sở **48–66 ngày công**; thêm **20–25% dự phòng** cho contract thay đổi, review và sửa lỗi: khoảng **58–83 ngày công**. Khoảng 12–17 tuần nếu có 5 ngày công thực tế/tuần; đồ án bán thời gian sẽ kéo dài hơn. Đây là ước lượng lập kế hoạch, không phải cam kết ngày giao hoặc ước lượng phần còn lại của working tree; hiệu chỉnh sau G2 bằng tốc độ thực tế.
 
 G3 là phần rủi ro cao nhất nên được đưa lên sớm. Tích hợp API thực hiện ngay khi từng domain sẵn sàng, không trì hoãn toàn bộ đến G7. Nếu export/email chưa có contract, giữ task pending riêng và không đánh dấu toàn bộ chức năng hoàn thành chỉ vì demo được bằng mock.
 
 ### Ba mốc demo hữu ích
 
-- **Demo 1 — nền tảng:** Parent login → xem/liên kết Child; Child register/login; Content tạo draft; Admin lock/unlock; dữ liệu mock có thể reset.
+- **Demo 1 — nền tảng:** Parent login → chọn/liên kết Child → dashboard riêng cơ bản → đổi bé; Child register/login; Content tạo draft; Admin lock/unlock; dữ liệu mock có thể reset.
 - **Demo 2 — nghiệp vụ cốt lõi:** Content publish truyện → Parent cấu hình category và duyệt nhân vật → Mobile/seed API tạo truyện/reading → Parent thấy thư viện → Admin xử lý report.
 - **Demo 3 — tích hợp:** dữ liệu thật, progress/statistics, quota, export nếu dịch vụ sẵn sàng, phân quyền và lỗi được kiểm thử.
 

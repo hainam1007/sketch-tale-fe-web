@@ -3,7 +3,6 @@ import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   BookOpen,
   ChartLineUp,
-  DownloadSimple,
   Gauge,
   House,
   List,
@@ -27,7 +26,7 @@ const roleNavigation = {
     { to: "/parent", label: "Tổng quan", icon: House, end: true },
     { to: "/parent/children", label: "Hồ sơ bé", icon: UsersThree },
     { to: "/parent/plan", label: "Gói sử dụng", icon: Package },
-    { to: "/parent/exports", label: "Xuất truyện", icon: DownloadSimple },
+    { to: "/parent/reports", label: "Báo cáo Family", icon: ChartLineUp },
   ],
   [ROLES.CONTENT]: [
     { to: "/content", label: "Tổng quan", icon: House, end: true },
@@ -61,7 +60,7 @@ export default function WorkspaceLayout() {
   }
 
   return (
-    <div className="workspace-app">
+    <div className={`workspace-app ${user.role === ROLES.PARENT ? "workspace-app-parent" : ""}`}>
       <aside className={`workspace-sidebar ${mobileOpen ? "workspace-sidebar-open" : ""}`}>
         <div className="workspace-sidebar-top">
           <Link to={roleHome(user.role)} className="workspace-brand" onClick={() => setMobileOpen(false)}>

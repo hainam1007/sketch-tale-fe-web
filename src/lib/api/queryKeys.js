@@ -7,6 +7,7 @@ export const queryKeys = {
   childApproval: (userId, childId, approvalId) => ["child-approval", userId, childId, approvalId],
   childLibrary: (userId, childId, filters = {}) => ["child-library", userId, childId, filters],
   childProgress: (userId, childId, range = "30d") => ["child-progress", userId, childId, range],
+  childDashboard: (userId, childId, range = "7d", simulate = "") => ["child-dashboard", userId, childId, range, simulate],
   parentDashboard: (userId, range = "7d", simulate = "") => ["parent-dashboard", userId, range, simulate],
   exports: (userId, filters = {}) => ["parent-exports", userId, filters],
   exportJob: (userId, exportId) => ["parent-export", userId, exportId],

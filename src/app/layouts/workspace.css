@@ -688,6 +688,95 @@
   .admin-limit-grid { grid-template-columns: 1fr; }
   .monitoring-summary { grid-template-columns: 1fr; }
 }
+
+/* Parent dashboard shell: the family workspace uses the warmer, wider frame from the product direction. */
+.workspace-app-parent {
+  grid-template-columns: clamp(280px, 18.6vw, 382px) minmax(0, 1fr);
+  background: #fff9ec;
+}
+.workspace-app-parent .workspace-sidebar {
+  padding: 42px clamp(24px, 2.2vw, 48px) 28px;
+  border-right-color: #ece3d2;
+}
+.workspace-app-parent .workspace-brand {
+  width: 100%;
+  min-height: 58px;
+}
+.workspace-app-parent .workspace-brand .brand-logo {
+  width: min(100%, 272px);
+  max-height: 72px;
+}
+.workspace-app-parent .workspace-role-label {
+  margin: 57px 17px 17px;
+  color: #536187;
+  font-size: 14px;
+  letter-spacing: 1.8px;
+}
+.workspace-app-parent .workspace-nav,
+.workspace-app-parent .workspace-sidebar-bottom {
+  gap: 8px;
+}
+.workspace-app-parent .workspace-nav a,
+.workspace-app-parent .workspace-sidebar-bottom a,
+.workspace-app-parent .workspace-logout {
+  min-height: 59px;
+  padding: 13px 18px;
+  border-radius: 32px;
+  color: #536187;
+  font-size: 18px;
+  font-weight: 800;
+}
+.workspace-app-parent .workspace-nav a svg,
+.workspace-app-parent .workspace-sidebar-bottom a svg,
+.workspace-app-parent .workspace-logout svg {
+  color: #5f719b;
+}
+.workspace-app-parent .workspace-nav a:hover,
+.workspace-app-parent .workspace-sidebar-bottom a:hover,
+.workspace-app-parent .workspace-logout:hover {
+  color: #001050;
+  background: #fff7df;
+}
+.workspace-app-parent .workspace-nav a.active {
+  color: #fff;
+  background: #001050;
+}
+.workspace-app-parent .workspace-nav a.active svg {
+  color: #f7bd35;
+}
+.workspace-app-parent .workspace-sidebar-bottom {
+  padding-top: 24px;
+  border-top-color: #efe5d4;
+}
+.workspace-app-parent .workspace-main {
+  width: 100%;
+  max-width: none;
+  padding: clamp(32px, 4vw, 62px) clamp(28px, 3.2vw, 66px) 86px;
+}
+@media (max-width: 800px) {
+  .workspace-app-parent {
+    display: block;
+  }
+  .workspace-app-parent .workspace-sidebar {
+    width: min(87vw, 360px);
+    padding: 28px 20px 22px;
+  }
+  .workspace-app-parent .workspace-brand .brand-logo {
+    width: 230px;
+  }
+  .workspace-app-parent .workspace-role-label {
+    margin: 38px 13px 14px;
+  }
+  .workspace-app-parent .workspace-nav a,
+  .workspace-app-parent .workspace-sidebar-bottom a,
+  .workspace-app-parent .workspace-logout {
+    min-height: 52px;
+    font-size: 16px;
+  }
+  .workspace-app-parent .workspace-main {
+    padding: 74px 20px 48px;
+  }
+}
 @media (max-width: 500px) {
   .content-overview-hero h2 { font-size: 28px; }
   .content-overview-story-copy p { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }

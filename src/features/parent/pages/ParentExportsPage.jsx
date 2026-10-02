@@ -19,10 +19,10 @@ import { childrenService } from "../services/childrenService";
 
 const formatLabels = { pdf: "PDF đọc cùng bé", video: "Video kỷ niệm" };
 
-export default function ParentExportsPage() {
+export default function ParentExportsPage({ fixedChildId = "" }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({ childId: "", storyId: "", format: "pdf" });
+  const [form, setForm] = useState({ childId: fixedChildId, storyId: "", format: "pdf" });
   const [formMessage, setFormMessage] = useState(null);
   const [downloadLinks, setDownloadLinks] = useState({});
   const [downloadErrorId, setDownloadErrorId] = useState(null);
@@ -35,10 +35,10 @@ export default function ParentExportsPage() {
     queryFn: ({ signal }) => childrenService.list({ signal }),
   });
   const exportsQuery = useQuery({
-    queryKey: queryKeys.exports(user.id),
-    queryFn: ({ signal }) => childrenService.listExports({ signal }),
+    queryKey: queryKeys.exports(user.id, fixedChildId ? { childId: fixedChildId } : {}),
+    queryFn: ({ signal }) => childrenService.listExports({ childId: fixedChildId, signal }),
   });
-  const selectedChildId = form.childId;
+  const selectedChildId = fixedChildId || form.childId;
   const libraryQuery = useQuery({
     queryKey: queryKeys.childLibrary(user.id, selectedChildId, { type: "story" }),
     queryFn: ({ signal }) => childrenService.listLibrary({ childId: selectedChildId, type: "story", signal }),
@@ -83,6 +83,7 @@ export default function ParentExportsPage() {
 
   function updateForm(event) {
     const { name, value } = event.target;
+    if (name === "childId" && fixedChildId) return;
     setForm((current) => ({ ...current, [name]: value, ...(name === "childId" ? { storyId: "" } : {}) }));
     setFormMessage(null);
     if (["childId", "storyId", "format"].includes(name)) idempotencyKeyRef.current = null;
@@ -95,7 +96,7 @@ export default function ParentExportsPage() {
       return;
     }
     idempotencyKeyRef.current ||= `${form.childId}:${form.storyId}:${form.format}:${crypto.randomUUID?.() || Date.now()}`;
-    createMutation.mutate({ ...form, idempotencyKey: idempotencyKeyRef.current });
+    createMutation.mutate({ ...form, childId: selectedChildId, idempotencyKey: idempotencyKeyRef.current });
   }
 
   function saveReport(event) {
@@ -140,8 +141,8 @@ export default function ParentExportsPage() {
           <p className="export-muted-copy">Một yêu cầu chỉ được tính quota một lần. Bạn có thể rời trang và quay lại theo dõi job sau.</p>
           <form onSubmit={submitExport}>
             <div className="export-form-grid">
-              <label className="export-field" htmlFor="export-child"><span>Hồ sơ bé</span><select id="export-child" name="childId" value={form.childId} onChange={updateForm} disabled={childrenQuery.isLoading}><option value="">Chọn hồ sơ bé</option>{children.map((child) => <option key={child.id} value={child.id}>{child.displayName}</option>)}</select></label>
-              <label className="export-field" htmlFor="export-story"><span>Truyện trong thư viện</span><select id="export-story" name="storyId" value={form.storyId} onChange={updateForm} disabled={!selectedChildId || libraryQuery.isLoading}><option value="">{libraryQuery.isLoading ? "Đang tải thư viện…" : "Chọn truyện"}</option>{stories.map((story) => <option key={story.id} value={story.sourceId || story.id}>{story.title}</option>)}</select></label>
+              {!fixedChildId && <label className="export-field" htmlFor="export-child"><span>Hồ sơ bé</span><select id="export-child" name="childId" value={form.childId} onChange={updateForm} disabled={childrenQuery.isLoading}><option value="">Chọn hồ sơ bé</option>{children.map((child) => <option key={child.id} value={child.id}>{child.displayName}</option>)}</select></label>}
+              <label className="export-field" htmlFor="export-story"><span>Truyện trong thư viện{fixedChildId ? ` của ${children.find((child) => child.id === fixedChildId)?.displayName || "bé"}` : ""}</span><select id="export-story" name="storyId" value={form.storyId} onChange={updateForm} disabled={!selectedChildId || libraryQuery.isLoading}><option value="">{libraryQuery.isLoading ? "Đang tải thư viện…" : "Chọn truyện"}</option>{stories.map((story) => <option key={story.id} value={story.sourceId || story.id}>{story.title}</option>)}</select></label>
               <label className="export-field" htmlFor="export-format"><span>Định dạng</span><select id="export-format" name="format" value={form.format} onChange={updateForm}><option value="pdf">{formatLabels.pdf}</option><option value="video" disabled={quota?.plan === "Free"}>{formatLabels.video}{quota?.plan === "Free" ? " (không có trong gói hiện tại)" : ""}</option></select></label>
             </div>
             <p className="export-field-note"><Info size={15} aria-hidden="true" /> Video có thể mất thời gian xử lý; tiến độ chỉ hiển thị khi server trả về giá trị thật.</p>
@@ -150,7 +151,7 @@ export default function ParentExportsPage() {
           </form>
         </section>
 
-        <section className="family-report-card" aria-labelledby="family-report-title">
+        {!fixedChildId && <section className="family-report-card" aria-labelledby="family-report-title">
           <div className="export-section-heading">
             <span className="export-section-icon export-section-icon-dark"><Gear size={20} aria-hidden="true" /></span>
             <div><p className="workspace-eyebrow">BÁO CÁO HỌC TẬP</p><h2 id="family-report-title">Báo cáo học tập Family</h2></div>
@@ -169,11 +170,11 @@ export default function ParentExportsPage() {
             </form>
             {report.lastReport && <div className="report-last"><span><CheckCircle size={17} aria-hidden="true" /><strong>Bản gần nhất: {report.lastReport.period}</strong></span><small>{report.lastReport.fileName} · tạo bởi backend</small></div>}
           </>}
-        </section>
+        </section>}
       </div>
 
       <section className="export-history-section" aria-labelledby="export-history-title">
-        <div className="parent-section-heading"><div><p className="workspace-eyebrow">THEO DÕI JOB</p><h2 id="export-history-title">Các bản xuất của gia đình</h2></div><span className="export-history-count">{exportsQuery.data ? `${jobs.length} yêu cầu` : "Đang tải…"}</span></div>
+        <div className="parent-section-heading"><div><p className="workspace-eyebrow">THEO DÕI JOB</p><h2 id="export-history-title">{fixedChildId ? "Bản xuất của bé" : "Các bản xuất của gia đình"}</h2></div><span className="export-history-count">{exportsQuery.data ? `${jobs.length} yêu cầu` : "Đang tải…"}</span></div>
         {exportsQuery.isLoading && <LoadingState label="Đang tải lịch sử export" />}
         {exportsQuery.isError && <ErrorState title="Không thể tải lịch sử export" message={exportsQuery.error.message} onRetry={() => exportsQuery.refetch()} />}
         {exportsQuery.data && !jobs.length && <div className="export-empty"><DownloadSimple size={28} aria-hidden="true" /><strong>Chưa có bản xuất nào</strong><p>Tạo export đầu tiên từ form bên trên để lưu lại câu chuyện của gia đình.</p></div>}

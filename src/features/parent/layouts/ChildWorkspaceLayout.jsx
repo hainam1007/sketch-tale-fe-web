@@ -7,11 +7,13 @@ import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState, ForbiddenState, LoadingState } from "../../../components/feedback/States";
 
 const tabs = [
+  { suffix: "/dashboard", label: "Tổng quan" },
   { suffix: "", label: "Hồ sơ" },
   { suffix: "/settings", label: "Cài đặt" },
   { suffix: "/approvals", label: "Phê duyệt" },
   { suffix: "/library", label: "Thư viện" },
   { suffix: "/progress", label: "Tiến độ" },
+  { suffix: "/exports", label: "Bản xuất" },
 ];
 
 export default function ChildWorkspaceLayout() {
@@ -36,6 +38,7 @@ export default function ChildWorkspaceLayout() {
   }
 
   const child = childQuery.data;
+  const linkedChildren = childrenQuery.data.items.filter((item) => !item.linkStatus || item.linkStatus === "active");
   const currentPath = `/parent/children/${childId}`;
 
   return (
@@ -49,7 +52,7 @@ export default function ChildWorkspaceLayout() {
         <label className="child-selector">
           <span className="sr-only">Chọn hồ sơ bé</span>
           <select aria-label="Đang xem hồ sơ bé" value={child.id} onChange={(event) => { navigate(`${currentPath.replace(childId, event.target.value)}${getTabSuffix(location.pathname, currentPath)}`); }}>
-            {childrenQuery.data.items.map((item) => <option value={item.id} key={item.id}>{item.displayName}</option>)}
+            {linkedChildren.map((item) => <option value={item.id} key={item.id}>{item.displayName}</option>)}
           </select>
           <CaretDown size={16} aria-hidden="true" />
         </label>

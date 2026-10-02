@@ -9,7 +9,7 @@ Dự án đã có tài liệu thiết kế, nhưng trước đây phân tán tro
 | Phạm vi | Nguồn | Nội dung |
 | --- | --- | --- |
 | Thương hiệu và public | [Public Website.md](<Public Website.md>), mục 2–9 | Logo/mascot, màu, typography, responsive, sitemap, section và component |
-| Parent Portal | [PARENT_IMPLEMENTATION_PLAN.md](PARENT_IMPLEMENTATION_PLAN.md), mục 9–14 | Định hướng UI, từng trang, luồng xuyên trang và tiêu chí bàn giao |
+| Parent Portal | [PARENT_IMPLEMENTATION_PLAN.md](PARENT_IMPLEMENTATION_PLAN.md), mục 9–15 | Dashboard riêng từng trẻ, UI theo hồ sơ, luồng xuyên trang, migration và tiêu chí bàn giao (đích thiết kế 01/10, chưa xác nhận triển khai) |
 | Content Manager | [CONTENT_MANAGER_IMPLEMENTATION_PLAN.md](CONTENT_MANAGER_IMPLEMENTATION_PLAN.md), mục 11–15 | Audit, chuẩn thiết kế, 11 trang, backlog và nghiệm thu editor |
 | Admin | [ADMIN_IMPLEMENTATION_PLAN.md](ADMIN_IMPLEMENTATION_PLAN.md), mục 8–14 | Audit, shell, bảng/filter/form, 11 trang và kiểm chứng |
 | Ảnh và font | [ASSETS.md](../design/ASSETS.md) | Nguồn ảnh, tài nguyên prototype và giới hạn sử dụng |
@@ -52,6 +52,7 @@ Font dùng Nunito Variable với tiếng Việt; icon dùng Phosphor. Các màu 
 - Tách trạng thái loading, empty, error/retry, forbidden, saving và success theo dữ liệu thật của màn hình.
 - Bảo vệ dữ liệu form chưa lưu; lỗi validation gắn với field, lỗi mutation không được báo thành công. Publish/preview phải thể hiện rõ draft và bản đã lưu.
 - Bảng và editor phải dùng được trên màn nhỏ; hành động bằng icon có tên truy cập; focus và thao tác bàn phím cần được kiểm tra.
+- Mọi dropdown/select list phải có trải nghiệm mở/đóng có animation nhẹ và danh sách option được thiết kế có chủ đích: trigger thể hiện rõ trạng thái mở, panel có bề mặt/viền/radius/shadow đồng bộ, option có hover/focus/selected state, khoảng đệm và typography dễ quét. Không để trình duyệt hiển thị native list mặc định nếu thiết kế yêu cầu kiểm soát visual; vẫn phải giữ keyboard navigation, focus-visible, label accessible và hỗ trợ `prefers-reduced-motion`.
 - Giữ scope trẻ 6–10 tuổi và tài khoản Child độc lập. Web register hiện dành cho Parent; không mô tả flow liên kết account như đã hoàn thiện khi chưa có contract.
 - Label KPI phản ánh đúng phạm vi dữ liệu. Content overview hiện truy vấn 5 truyện gần đây, không phải thống kê toàn kho.
 - Tách ba mức tiến độ: đã có code/mock, đã tích hợp API, đã kiểm chứng trên staging. Screenshot không tự đóng tiêu chí nghiệm thu.

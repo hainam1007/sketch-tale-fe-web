@@ -2,17 +2,29 @@
 
 > Kế hoạch tổng thể cho cả ba role nằm tại [WEB_IMPLEMENTATION_PLAN.md](WEB_IMPLEMENTATION_PLAN.md). Dùng tài liệu tổng thể để quyết định kiến trúc, thứ tự triển khai và tiến độ; tài liệu này là phân rã tham khảo riêng cho Parent.
 
-Ngày lập: 18/09/2026. Cập nhật thiết kế UI/UX: **26/09/2026**. Cập nhật scope auth/độ tuổi: **29/09/2026**. Phạm vi: Web Frontend role Parent.
+Ngày lập: 18/09/2026. Cập nhật scope auth/độ tuổi: **29/09/2026**. Thiết kế lại theo từng hồ sơ trẻ: **01/10/2026**. Phạm vi: kế hoạch và triển khai Web Frontend role Parent; vertical slice đã có mock/API boundary, chưa xác nhận API thật.
 
-**Cách đọc:** mục 1–8 giữ nền tảng nghiệp vụ và milestone tích hợp; **mục 9–14 là đặc tả thiết kế từng trang và backlog hoàn thiện UI/UX hiện hành**. Đây là kế hoạch, chưa phải giao diện đã triển khai hoặc kết quả kiểm thử người dùng.
+**Cách đọc:** mục 1–8 giữ nền tảng nghiệp vụ và milestone tích hợp; **mục 9–15 là đặc tả thiết kế từng trang, migration và backlog hoàn thiện UI/UX**. Vertical slice dashboard theo hồ sơ, route, mock API, approval tách quyền vai nhạy cảm và kiểm thử isolation đã được triển khai; các module còn lại vẫn cần tích hợp API thật và nghiệm thu staging.
 
 Nguồn: `docs/PROJECT_SUMMARY.md`, router, auth và dependencies hiện có trong repository. Đây là kế hoạch đề xuất; endpoint, payload và các quyết định còn mở cần thống nhất với Backend trước khi tích hợp thật.
 
 ## 1. Mục tiêu và hiện trạng
 
-Luồng đầu tiên cần hoàn thành: Parent đăng nhập → xem danh sách Child đã liên kết → mở/sửa hồ sơ và settings → đăng xuất. Song song, shared auth phải hỗ trợ Child 6–10 tuổi tự đăng ký → xác minh → đăng nhập vào Mobile App.
+**Quyết định sản phẩm:** Parent quản lý thông qua hồ sơ của từng trẻ. Mỗi Child đã liên kết có dashboard riêng, từ đó truy cập cài đặt, phê duyệt, thư viện và tiến độ của chính Child đó. Dashboard là màn phụ huynh xem về trẻ, không phải màn trẻ đăng nhập sử dụng. Không cộng dữ liệu nhiều trẻ thành dashboard gia đình.
 
-**Thứ tự ưu tiên:** Child đã liên kết → settings → duyệt nhân vật và quyền vai nhạy cảm → thư viện → tiến độ → dashboard. Đọc capability/entitlement tối thiểu trước khi mời hoặc quản lý Child; trang gói đầy đủ làm sau. Tích hợp API theo module khi sẵn sàng.
+Luồng chính: Parent đăng nhập → chọn hồ sơ Child đã liên kết → dashboard của bé → xem hoặc thực hiện tác vụ cho bé → đổi hồ sơ khi cần. Song song, shared auth vẫn phải hỗ trợ Child 6–10 tuổi tự đăng ký → xác minh → đăng nhập vào Mobile App. Hồ sơ quản lý không thay thế tài khoản đăng nhập độc lập của Child.
+
+**Thứ tự ưu tiên:** danh sách/điều hướng hồ sơ và khung dashboard riêng → settings → duyệt nhân vật và quyền vai nhạy cảm → thư viện → tiến độ và số liệu dashboard đầy đủ. Khung dashboard là P0; analytics là P1. Đọc capability/entitlement tối thiểu trước khi mời hoặc quản lý Child; trang gói đầy đủ làm sau. Tích hợp API theo module khi sẵn sàng.
+
+### 1.1. Phân định phạm vi quản lý
+
+| Cấp | Nội dung | Quy tắc |
+| --- | --- | --- |
+| Tài khoản Parent | Danh sách/liên kết trẻ, hồ sơ Parent, gói và hạn mức, cấu hình email Family nếu có | Không dùng danh sách trẻ làm dashboard học tập tổng hợp |
+| Hồ sơ Child | Dashboard, thông tin hồ sơ, cài đặt, phê duyệt, thư viện, tiến độ, bản xuất của bé | URL và request luôn xác định `childId`; mỗi lần thao tác chỉ ảnh hưởng một trẻ |
+| Resource | Nhân vật, phiên bản, truyện, yêu cầu duyệt, export job | Backend kiểm tra resource thuộc Child và Parent có quyền quản lý Child đó |
+
+Gói được quản lý tại trang cấp tài khoản nhưng phạm vi quota vẫn do contract quyết định. Nếu quota dùng chung, dashboard chỉ ghi rõ “Hạn mức dùng chung” khi cần; không trình bày như ngân sách riêng của bé. Không thêm chức năng so sánh trẻ, áp dụng cài đặt hàng loạt hoặc chia quota khi chưa có nghiệp vụ.
 
 Các điểm tối ưu so với kế hoạch ban đầu:
 
@@ -31,12 +43,12 @@ Kế hoạch giữ một SPA và convention JavaScript/JSX hiện tại. Không 
 | Mức | Module | Kết quả cần đạt |
 | --- | --- | --- |
 | Shared G1 | Auth và phân quyền | Parent/Child login/logout, Child registration/verify, khôi phục phiên, guard; forgot/reset theo contract |
-| P0 | Parent shell | Điều hướng, danh sách bé, trạng thái tải/lỗi, 403/404 |
+| P0 | Parent shell và dashboard cơ bản | Chọn hồ sơ, dashboard riêng có lối vào tác vụ, trạng thái tải/lỗi, 403/404 |
 | P0 | Hồ sơ Child đã liên kết | Danh sách, xem và sửa; flow tạo/link account chỉ bật theo relationship contract |
 | P0 | Cài đặt của bé | Giới hạn thời gian/ngày, category được phép |
 | P0 | Phê duyệt nhân vật | Xem tranh gốc và phiên bản cần duyệt, chấp nhận/từ chối |
 | Shared G1 | Hồ sơ phụ huynh | Tái sử dụng `/profile`, không tạo form riêng trong Parent |
-| P1 | Dashboard và tiến độ | Tổng quan, lịch sử đọc, từ vựng, kết quả quiz theo bé |
+| P1 | Số liệu dashboard và tiến độ | Tổng quan, lịch sử đọc, từ vựng, kết quả quiz chỉ của bé đang xem |
 | P1 | Thư viện | Nhân vật/truyện, lọc, yêu thích, ẩn và xóa theo bé |
 | P0 | Vai nhạy cảm | Làm cùng luồng approval; phê duyệt một lần cho từng nhân vật, tách khỏi duyệt phiên bản |
 | P0/P1 | Gói và hạn mức | P0 đọc entitlement/quyền của account; P1 trang gói/usage đầy đủ |
@@ -55,25 +67,29 @@ Thanh toán thật, bulk action và biểu đồ nâng cao chưa nằm trong đ�
 | `/auth/forgot-password` | Yêu cầu đặt lại mật khẩu |
 | `/auth/reset-password` | Đặt lại mật khẩu; đề xuất, chưa có route hiện hành |
 | `/profile` | Hồ sơ người dùng đã đăng nhập |
-| `/parent` | Tổng quan đã có; hoàn thiện trạng thái mới/có hoạt động theo mục 11.1 |
+| `/parent` | Entry: chờ session/danh sách, một bé thì vào dashboard bé đó; nhiều hoặc chưa có bé thì về danh sách |
 | `/parent/children` | Danh sách Child đã liên kết |
 | `/parent/children/new` | Mời/liên kết Child; chỉ tạo profile/account nếu contract cho phép |
 | `/parent/children/:childId` | Chi tiết/sửa hồ sơ Child đã liên kết |
+| `/parent/children/:childId/dashboard` | Dashboard riêng của bé; điểm vào mặc định khi chọn hồ sơ |
 | `/parent/children/:childId/settings` | Thời gian và nội dung được phép |
 | `/parent/children/:childId/approvals` | Phê duyệt nhân vật/vai nhạy cảm |
 | `/parent/children/:childId/library` | Thư viện của bé |
 | `/parent/children/:childId/progress` | Tiến độ học tập |
 | `/parent/plan` | Gói đang dùng và hạn mức; đã có route |
-| `/parent/exports` | Danh sách job xuất truyện, P2 |
+| `/parent/children/:childId/exports` | Tạo/theo dõi bản xuất chỉ của bé, P2 |
+| `/parent/reports` | Cấu hình/trạng thái email Family cấp tài khoản nếu contract hỗ trợ, P2 |
+| `/parent/exports` | Route cũ: điều hướng tương thích theo mục 15; không tiếp tục là danh sách job của mọi bé |
 
 Parent shell có sidebar, header tài khoản và bộ chọn Child tại những màn hình theo Child. URL là nguồn xác định `childId`; đổi Child giữ module hiện tại nếu phù hợp, đồng thời tải lại đúng dữ liệu. Khi chưa có Child được liên kết, hiển thị hướng dẫn kết nối tài khoản Child; không mặc định rằng Parent được tạo account thay Child.
 
-Điều hướng cấp tài khoản gồm Tổng quan, Hồ sơ bé, Gói sử dụng và Export khi được triển khai. Trong hồ sơ bé dùng tabs Hồ sơ, Cài đặt, Phê duyệt, Thư viện, Tiến độ; không lặp lại toàn bộ menu này cho từng bé trên sidebar. Dashboard ban đầu chỉ cần dẫn tới danh sách bé, không đợi thống kê để mở luồng chính.
+Điều hướng cấp tài khoản gồm **Hồ sơ các bé**, **Gói và hạn mức**, **Báo cáo Family** khi sẵn sàng. Trong workspace của một bé dùng nav **Tổng quan → Cài đặt → Phê duyệt → Thư viện → Tiến độ → Hồ sơ**, bổ sung **Bản xuất** ở P2. “Tổng quan” luôn trỏ đến dashboard của bé hiện tại, không có hai mục Tổng quan cạnh tranh ở hai cấp. Giữ route chi tiết hồ sơ hiện tại để không đổi ý nghĩa các deep link cũ.
 
 Quy tắc điều hướng:
 
 - Chưa có Child liên kết: hiện CTA mời/liên kết; không tự chọn `childId` giả hoặc gọi API nghiệp vụ thiếu ID.
-- Có một Child: có thể chọn sẵn khi người dùng vào module theo Child; danh sách liên kết vẫn truy cập được.
+- Có một Child: `/parent` chuyển bằng replace đến dashboard của bé sau khi kiểm tra quyền; `/parent/children` luôn mở danh sách khi truy cập trực tiếp.
+- Nhiều Child: `/parent` mở danh sách để chủ động chọn; chưa lưu bé truy cập gần nhất trong MVP. Sau liên kết được xác nhận có thể mở dashboard bé vừa liên kết; trạng thái chờ xác nhận chưa được mở workspace.
 - Nhiều Child: hiện tên/avatar rõ ở tiêu đề và selector. Đổi Child giữ tab, reset pagination/filter không tương thích và đóng detail của Child cũ.
 - Đang sửa form: đổi bé/tab phải xử lý thay đổi chưa lưu. Nếu ở lại thì giữ nguyên URL và selection.
 - Deep link sai/không có quyền: hiển thị trạng thái theo response; không âm thầm chuyển sang bé khác.
@@ -154,18 +170,19 @@ Các query key/invalidation đặt trong hook theo domain, không copy vào từ
 
 | Milestone | Backlog tổng thể | Công việc | Ngày công | Thuộc giai đoạn Web |
 | --- | --- | --- | --- | --- |
-| M1 | P-01, phần entitlement của P-08 | Child workspace, list/link/edit, quyền quản lý Child đã liên kết | 3–4 | G2 |
+| M1 | P-01, khung P-07, phần entitlement của P-08 | Child workspace, list/link/edit, dashboard cơ bản và quyền quản lý | 4–5 | G2 |
 | M2 | P-02/P-03/P-04 | Settings, duyệt phiên bản và vai nhạy cảm | 4–5 | G4 |
 | M3 | P-05 | Library truyện/nhân vật và thao tác cá nhân | 2–3 | G4 |
 | M4 | Phần còn lại P-08 | Trang gói, usage, reset và thông báo giới hạn | 1–2 | G5 |
-| M5 | P-06/P-07 | Progress trước, dashboard sau | 3–4 | G6 |
+| M5 | P-06/phần số liệu P-07 | Progress và số liệu dashboard riêng từng bé | 3–4 | G6 |
 | M6 | P-09/P-10 | Export và báo cáo học tập Family theo contract | Chốt sau | G7 |
 
-M1–M5: **13–18 ngày công riêng Parent**. Ước lượng cũ 16–23 ngày có gộp công việc shared nên không so sánh trực tiếp như mức tiết kiệm. Shared chưa có thì thực hiện G1 trước; thời gian toàn Web vẫn theo kế hoạch tổng thể và được hiệu chỉnh sau G2.
+M1–M5: **14–19 ngày công riêng Parent**, tăng một ngày so với 13–18 để tính việc tách dashboard/entry và kiểm thử đổi hồ sơ. Đây là ước lượng lập kế hoạch, không phải số ngày còn lại của working tree hiện tại. P2, migration export và phát sinh tích hợp chưa nằm trong tổng này. Shared chưa có thì thực hiện G1 trước; lịch tổng thể được hiệu chỉnh sau G2.
 
 ### M1 — Child đã liên kết và entitlement tối thiểu
 
 - Tạo cấu hình menu Parent trên shell chung; ChildWorkspaceLayout kiểm tra quan hệ liên kết và cung cấp selector/tabs.
+- Đưa dashboard cơ bản vào child workspace ngay M1: tên bé, lối vào module đã sẵn sàng, trạng thái chưa có hoạt động. Module chưa triển khai không có nút dẫn vào placeholder; không tạo số liệu mẫu để lấp khung. Entry xử lý rõ 0/1/nhiều bé.
 - `ChildForm` dùng chung view/edit: tên hiển thị, ngày sinh date-only, avatar có sẵn là đề xuất tối thiểu. Chưa làm upload avatar riêng trước khi có nhu cầu/contract.
 - List/detail/update Child đã liên kết. Flow create/link/invite là một nhánh riêng, chỉ bật sau khi chốt relationship contract; không tự tạo tài khoản Child từ Parent UI.
 - Entitlement/quyền quản lý lấy từ server, không suy ra chỉ từ tên gói. Nếu chưa tải được entitlement hoặc link capability, hiện lỗi/retry thay vì mặc định cho phép thao tác.
@@ -201,11 +218,11 @@ M1–M5: **13–18 ngày công riêng Parent**. Ước lượng cũ 16–23 ngà
 
 **Đạt khi:** số liệu khớp response, ngày reset có timezone rõ; quota không tải được không bị hiển thị thành 0 hoặc unlimited.
 
-### M5 — Tiến độ rồi dashboard
+### M5 — Tiến độ và số liệu dashboard từng bé
 
 - Progress đọc/quiz/từ vựng theo bé và khoảng thời gian; bảng và số liệu trước, chart chỉ khi cần so sánh xu hướng.
 - Tách số lần từ vựng xuất hiện/nghe/trả lời đúng; không suy ra “thành thạo”. Truyện hoàn thành theo sự kiện đọc hết trang cuối từ Backend.
-- Dashboard tái sử dụng summary queries hoặc aggregate endpoint. Không tải tất cả record hoặc mở nhiều request cho từng bé để tự tính tổng.
+- Dashboard tái sử dụng summary queries hoặc aggregate endpoint **của một childId**. Không tải dashboard gia đình rồi lọc ở client, không mở request cho từng bé để tính tổng.
 - Ưu tiên hành động: nhân vật chờ duyệt, hồ sơ/cài đặt và xem tiến độ. Chỉ hiển thị hoạt động gần đây nếu API có.
 
 **Đạt khi:** đổi bé/thời gian không hiện dữ liệu cũ; không có hoạt động khác với lỗi tải; dashboard có partial error và không cản truy cập module đang hoạt động.
@@ -215,7 +232,7 @@ M1–M5: **13–18 ngày công riêng Parent**. Ước lượng cũ 16–23 ngà
 - Export create/list/detail, trạng thái queued/processing/completed/failed theo enum Backend; progress phần trăm chỉ hiện nếu có giá trị thật.
 - Polling dừng khi terminal/unmount, có xử lý timeout; refresh lấy lại job. Request tạo job có idempotency nếu Backend hỗ trợ; không tự retry tạo job khi chưa biết request trước đã thành công chưa.
 - Tải file thành công, lỗi/hết hạn URL, retry và quota đều theo contract. Free không xuất video; Pro 5 lượt/tháng; Family không giới hạn theo cấu hình nguồn.
-- P-10: bổ sung cấu hình/trạng thái báo cáo học tập tháng nếu API yêu cầu. Backend tạo/gửi email; frontend không giả lập gửi thành công. Vị trí UI trong plan/progress quyết định sau contract, chưa cần thêm route.
+- P-10: bổ sung cấu hình/trạng thái báo cáo học tập tháng nếu API yêu cầu. Backend tạo/gửi email; frontend không giả lập gửi thành công. Vị trí dự kiến `/parent/reports` cho cấu hình tài khoản; link từ progress chỉ tới báo cáo riêng khi contract hỗ trợ.
 
 **Đạt khi:** file tải được từ job thật, không tạo trùng hoặc trừ quota hai lần ngoài quy tắc; email/report chỉ đánh dấu tích hợp khi dịch vụ thật có phản hồi kiểm chứng được. Chưa có dịch vụ thì task vẫn pending, không đánh dấu Parent toàn bộ đã xong.
 
@@ -226,8 +243,8 @@ Mỗi ticket khoảng 0,5–2 ngày; tổng thời gian nằm trong milestone, k
 | Ticket | Kết quả bàn giao | Phụ thuộc |
 | --- | --- | --- |
 | PAR-001 | Models/JSDoc, schemas, services và fixtures children/entitlements | Shared HTTP/MSW và contract nháp |
-| PAR-002 | Parent menu, child workspace, URL/selector và empty/forbidden states | PAR-001, shared shell/guards |
-| PAR-003 | Children list + create, quota và lỗi field | PAR-001/002 |
+| PAR-002 | Parent entry/menu, dashboard cơ bản trong child workspace, URL/selector và empty/forbidden states | PAR-001, shared shell/guards |
+| PAR-003 | Children list + invite/link theo capability, quota và lỗi field | PAR-001/002 |
 | PAR-004 | Detail/edit, dirty-state, refresh và invalidation | PAR-003 |
 | PAR-005 | Test M1: hai tài khoản, đổi bé khi request chậm, quota, logout | PAR-004 |
 | PAR-006 | Settings form + category catalog + save/error | M1, settings contract |
@@ -243,12 +260,13 @@ Endpoint trong mục 15 của `PROJECT_SUMMARY.md` là đề xuất, chưa phả
 | Miền | Contract tối thiểu |
 | --- | --- |
 | Auth | Login/logout/refresh, `/me`, register/verify/forgot/reset; role enum, session expiry, error envelope |
-| Children | List/create/detail/update; field bắt buộc, quy tắc ngày sinh, validation và quota |
+| Children | List/link/detail/update; invite/consent và trạng thái liên kết; create hộ chỉ nếu được phép; field/ngày sinh/validation/quota |
 | Settings | Read/update settings; category catalog; ý nghĩa danh sách category rỗng, giới hạn min/max, timezone |
 | Approvals | List/detail nhân vật và tranh gốc; approve/reject theo version, conflict response |
 | Sensitive roles | Read/update quyền theo nhân vật; xác định quyền này được kế thừa thế nào khi có version mới |
 | Library | List/detail truyện và nhân vật; favorite/visibility/delete cho từng loại; pagination/filter |
 | Progress | Khoảng thời gian, reading/vocabulary/quiz, đơn vị và timezone, định nghĩa chỉ số |
+| Child dashboard | Summary của đúng `childId`, range, period/timezone, pending hiện tại, activity/resource links, thời điểm cập nhật và trạng thái từng vùng |
 | Plan | Gói hiện tại, giới hạn/sử dụng/còn lại, ngày reset, quyền truy cập nội dung |
 | Exports | Create/list/detail job, status enum, file URL và thời hạn, retry/idempotency |
 | Family report | Nội dung/lịch tháng, trạng thái gửi, cấu hình nếu có, quyền truy cập và xử lý lỗi |
@@ -259,6 +277,17 @@ Fixtures nên gồm: Parent chưa có bé, nhiều bé, đạt quota; approval p
 
 Mỗi service method phải ghi payload, response, error codes, quyền sở hữu và query liên quan trước khi bắt đầu UI. Contract nháp có thể dùng mock để tiếp tục; ownership/quota/versioning chỉ được nghiệm thu thật sau khi kiểm tra trực tiếp API.
 
+### 6.1. Contract đề xuất cho dashboard riêng
+
+- `GET /children/:childId/dashboard?range=7d|30d` là **đề xuất mới**, thay việc Parent UI gọi `GET /parent/dashboard` không có childId. Backend có thể chọn endpoint khác nhưng phải bảo đảm cùng phạm vi quyền và dữ liệu.
+- Response tối thiểu: `childId`, `period { from, to, timezone }`, `generatedAt`, `summary` (phút đọc, truyện hoàn thành, từ đã ôn theo định nghĩa được chốt), `pendingApprovals` hiện tại và `recentActivities`. Trạng thái lỗi/không có dữ liệu cho từng vùng phải phân biệt được với giá trị 0.
+- Có thể thêm `usageToday` và `settingsSummary` nếu đã có nguồn đúng: thời gian dùng app không đồng nhất với phút đọc. Thiếu contract thì bỏ khối này, không suy ra từ tracking đọc truyện.
+- Activity có `childId`, loại resource, ID và thời gian; link được dựng bằng route nội bộ đã biết. Resource khác bé bị từ chối, không âm thầm chuyển người dùng sang hồ sơ khác.
+- Query key: `['childDashboard', userId, childId, range]`; chỉ enable khi session và quyền truy cập bé đã được xác nhận. Request dùng AbortSignal, không dùng previous data từ bé khác làm placeholder.
+- Khi sửa hồ sơ/settings, duyệt version/quyền vai, ẩn/xóa thư viện hoặc tạo export: invalidate summary liên quan của đúng bé (mọi range bị ảnh hưởng), kèm query domain tương ứng. Entitlement dùng chung chỉ invalidate nếu mutation tác động usage.
+- Mutation chụp cố định `childId/resourceId/revision` lúc submit; callback dùng các ID đó, không đọc bé đang chọn tại thời điểm response. Nếu đã chuyển sang B, kết quả của A không ghi vào cache/form/toast của B.
+- Khi mất liên kết/quyền: khóa thao tác, bỏ dữ liệu child đang hiển thị và cache liên quan, tải lại danh sách được phép; cho người dùng quay về chọn hồ sơ. Request cũ hoàn tất không được khôi phục dữ liệu đã bị thu hồi.
+
 ## 7. Các quyết định còn mở
 
 - Auth/session: cookie hay bearer token, refresh, xác minh email/OTP, tên role chính thức.
@@ -268,14 +297,14 @@ Mỗi service method phải ghi payload, response, error codes, quyền sở h�
 - Approval: lý do từ chối có bắt buộc không; chính sách quyền vai nhạy cảm khi nhân vật có phiên bản mới.
 - Quota: tính lượt regenerate, lượt thất bại, quota theo account hay bé, ngày reset và xử lý khi hạ gói vượt số hồ sơ.
 - Library/export: soft delete và khôi phục; file format, job API, thời hạn lưu file.
-- Family report: có cho bật/tắt hoặc chọn lịch không, UI nằm ở đâu, trạng thái gửi có được trả về không; chưa tự thêm tùy chọn nhận email khi chưa có nghiệp vụ.
+- Family report: có cho bật/tắt hoặc chọn lịch không, trạng thái gửi có được trả về không; chưa tự thêm tùy chọn nhận email khi chưa có nghiệp vụ.
 
 Các điểm này không chặn việc dựng shell và luồng mock. Mọi giả định trong mock cần ghi lại, không coi là business rule chính thức.
 
 ## 8. Kiểm thử và mốc nghiệm thu
 
 - Unit/component cho guard chờ session, validation hồ sơ/settings và trạng thái duyệt theo version.
-- Playwright cho login → tạo/sửa bé → settings → approval → thư viện → progress → logout.
+- Playwright cho login → chọn hồ sơ → dashboard riêng → sửa/settings → approval → thư viện → progress → đổi bé → logout; invite/link theo contract.
 - Trường hợp lỗi quan trọng: đổi Child khi request cũ đang chạy, account khác, route Child chưa được link với Parent, capability/quota từ server, approval conflict, session hết hạn và gửi trùng.
 - Backend integration kiểm tra quyền sở hữu bằng API thật; test mock/ẩn nút không chứng minh phân quyền server.
 - Kiểm tra responsive, bàn phím/focus, label, axe cho luồng chính; có loading/empty/error/success và khả năng thử lại.
@@ -287,7 +316,7 @@ Không viết lại test shared auth cho từng màn Parent; dùng session fixtu
 
 | Mốc | Happy path | Trường hợp bắt buộc bổ sung |
 | --- | --- | --- |
-| M1 | Parent login → xem/link Child → refresh → logout; Child register/login | Empty/link capability, URL Child chưa liên kết, request cũ về sau khi đổi Child |
+| M1 | Parent login → chọn/link Child → dashboard riêng → refresh → đổi bé → logout; Child register/login | Entry 0/1/nhiều bé, link capability, URL Child chưa liên kết, request cũ về sau khi đổi Child |
 | M2 | Lưu settings → approve version → duyệt quyền vai | Save lỗi giữ form, conflict bản mới, nhấn gửi hai lần, đổi bé khi dirty |
 | M3 | Favorite → hide/unhide → delete | Hai bé độc lập, mutation lỗi, xóa item cuối trang |
 | M4 | Xem entitlement và usage | Hết quota, unlimited, lỗi tải, reset date/timezone |
@@ -313,7 +342,7 @@ Mốc demo đầu tiên là **M1**. Khi thiếu thời gian, hoãn chart, bulk a
 
 Skill `design-taste-frontend` chỉ được tham khảo cho tính nhất quán thị giác và chống giao diện khuôn mẫu. Các quy tắc hero/marketing của skill không áp dụng cho các trang nghiệp vụ này.
 
-### 9.2. Khoảng trống nhìn thấy từ mã nguồn
+### 9.2. Audit lịch sử 26/09 và đối chiếu ngày 01/10
 
 | Khu vực/bằng chứng | Vấn đề cần giải quyết | Hướng thiết kế/triển khai |
 | --- | --- | --- |
@@ -326,7 +355,7 @@ Skill `design-taste-frontend` chỉ được tham khảo cho tính nhất quán 
 | `ParentExportsPage.jsx` | Export và báo cáo Family cùng màn; tùy chọn quý chưa được nghiệp vụ nguồn xác nhận | Tách khối/tab rõ; báo cáo mặc định theo tháng; chỉ bật khả năng contract hỗ trợ |
 | CSS Parent | Nhiều caption 10–13px, palette/radius riêng lẻ | Tạo token workspace và quy chuẩn typography; kiểm tra tương phản trước khi chốt |
 
-Các nhận xét trên là audit tĩnh, chưa phải đánh giá render thực tế. Khi bắt đầu code phải chụp baseline desktop/mobile để xác nhận ảnh hưởng trước–sau.
+Các hàng trên là audit tĩnh 26/09, không phải danh sách lỗi đã xác nhận còn tồn tại ngày 01/10. Đối chiếu working tree sau vertical slice: selector dùng `navigate`, dashboard mới gọi service có `childId`; ParentOverview cũ đã chuyển thành entry chọn hồ sơ. Các phần approval/library/settings vẫn cần audit render desktop/mobile theo từng milestone.
 
 ## 10. Khung trải nghiệm và hệ thống UI chung
 
@@ -349,14 +378,14 @@ Các kích thước là đề xuất triển khai, kiểm chứng lại tại 36
 
 ### 10.2. Shell và ngữ cảnh bé
 
-- Sidebar cấp tài khoản: **Tổng quan → Hồ sơ bé → Gói và hạn mức → Xuất truyện**. Mục Xuất truyện chỉ xuất hiện khi module sẵn sàng; không dẫn đến màn placeholder ở bản phát hành.
-- Header: logo/link Tổng quan, nút menu trên màn hẹp, menu tài khoản gồm Hồ sơ tài khoản/Đăng xuất. Không thêm chuông thông báo hoặc global search khi chưa có nghiệp vụ.
-- Khu vực theo bé: breadcrumb “Hồ sơ bé / [Tên bé]”, avatar/tên, selector có nhãn “Đang xem hồ sơ”, sau đó nav Hồ sơ/Cài đặt/Phê duyệt/Thư viện/Tiến độ.
+- Sidebar cấp tài khoản: **Hồ sơ các bé → Gói và hạn mức → Báo cáo Family** (P2 khi sẵn sàng). Dashboard và Bản xuất nằm trong workspace bé; không dẫn đến placeholder ở bản phát hành.
+- Header: logo/link danh sách hồ sơ, nút menu trên màn hẹp, menu tài khoản gồm Hồ sơ tài khoản/Đăng xuất. Không thêm chuông thông báo hoặc global search khi chưa có nghiệp vụ.
+- Khu vực theo bé: breadcrumb “Hồ sơ bé / [Tên bé]”, avatar/tên, selector có nhãn “Đang xem hồ sơ”, sau đó nav Tổng quan/Cài đặt/Phê duyệt/Thư viện/Tiến độ/Hồ sơ; Bản xuất thêm ở P2. Chỉ có một bộ nav tác vụ, không lặp trên sidebar.
 - Desktop: selector cùng hàng tên; mobile: selector trên hàng riêng, không đẩy tên thành nhiều dòng hẹp. Tabs cuộn ngang có tín hiệu còn nội dung, tự đưa tab active vào vùng nhìn thấy; dùng link navigation với `aria-current`, không giả làm tab widget.
 - Tên dài được xuống dòng trong heading; list có thể rút gọn nhưng vẫn truy cập được tên đầy đủ. Không dùng avatar làm định danh duy nhất.
 - Đổi bé giữ module; chỉ giữ `range` hợp lệ, reset selection/resource/page của bé trước. Filter nào được giữ phải khai báo theo module; mặc định reset filter nghiệp vụ để tránh danh sách trống khó hiểu.
 - Không hiển thị đồng thời tên bé B với dữ liệu bé A. Sau chuyển route, focus đến heading khu vực; không giật focus khi background refetch.
-- URL query đề xuất: approvals `status`, `approvalId`; library `type`, `q`, `visibility`, `favorite`, `page`, `itemId`; progress `range`; exports `childId`, `status`, `page`, `jobId`, `tab`. Chuẩn hóa tham số sai về mặc định, không phát sinh request với enum lạ.
+- URL query đề xuất: approvals `status`, `approvalId`; library `type`, `q`, `visibility`, `favorite`, `page`, `itemId`; dashboard `range`; progress `range`, `section`; exports `status`, `page`, `jobId`, `storyId`. `childId` c?a dashboard/export n?m trong path, kh?ng c? query th? hai c? th? xung ??t. Chuẩn hóa tham số sai về mặc định, không phát sinh request với enum lạ.
 - Search debounce khoảng 300ms, dùng replace history khi gõ; đổi tab/mở detail dùng history phù hợp để Back quay lại danh sách và bộ lọc trước đó.
 
 ### 10.3. Quy tắc phản hồi và bảo vệ thao tác
@@ -380,50 +409,59 @@ Dialog có title, focus trap, Escape khi phù hợp, trả focus về nút mở;
 
 ## 11. Đặc tả thiết kế từng trang
 
-### 11.1. Tổng quan — `/parent`
+### 11.1. Dashboard của bé — `/parent/children/:childId/dashboard`
 
-**Mục tiêu:** trong một lượt nhìn, biết bé nào cần hỗ trợ và đi đến đúng thao tác. Không biến dashboard thành trang giới thiệu sản phẩm.
+**Mục tiêu:** Parent biết bé đang sử dụng ứng dụng thế nào, nội dung nào cần quyết định và đã học gì trong kỳ. Mọi khối thuộc duy nhất bé trong URL. Dashboard không chứa danh sách các bé hoặc tổng học tập gia đình.
 
 **Bố cục từ trên xuống:**
 
-1. Header “Góc của gia đình” + mô tả một dòng; khoảng thời gian 7/30 ngày chỉ điều khiển dữ liệu hoạt động.
-2. Khối **Cần bố mẹ xem** nếu có yêu cầu: tổng số chờ duyệt hiện tại, các hàng theo bé có avatar/tên/số yêu cầu/“Xem yêu cầu”. Số chờ duyệt không bị hiểu là giới hạn trong khoảng ngày đang xem.
-3. **Hồ sơ của gia đình**: tối đa năm bé theo entitlement hiện tại; mỗi bé có tên, hoạt động gần nhất nếu có, link Tiến độ và Hồ sơ. Không so sánh/xếp hạng.
-4. Tóm tắt khoảng ngày: phút đọc, truyện hoàn thành, từ đã ôn theo định nghĩa API. Mỗi số có đơn vị, không có phần trăm tăng trưởng khi không có kỳ so sánh.
-5. Hoạt động gần đây, tối đa một nhóm ngắn và link đi đúng bé/resource; gói/hạn mức ở khối phụ nhỏ.
+1. Child header dùng chung: avatar, tên, nhãn “Đang quản lý”, selector “Chọn hồ sơ bé”. Heading “Tổng quan của [Tên]”, range 7/30 ngày, mặc định 7 ngày.
+2. **Cần bố mẹ xem:** yêu cầu chờ duyệt hiện tại của bé, tối đa ba mục gần nhất, phân biệt duyệt hình và quyền vai. “Xem yêu cầu” mở đúng approvalId; “Xem tất cả” mở danh sách chờ của bé. Không có yêu cầu thì một dòng “Không có yêu cầu đang chờ”.
+3. **Sử dụng hôm nay:** thời gian dùng app/giới hạn ngày, chủ đề đang được phép nếu có contract; ghi rõ hôm nay và mốc cập nhật. CTA “Điều chỉnh cài đặt”. Thiếu usage vẫn có thể xem cài đặt đã tải; không tự đếm thời gian còn lại bằng trình duyệt. Thời gian dùng app khác với phút đọc.
+4. **Hành trình học tập:** phút đọc, truyện hoàn thành, từ đã ôn; ghi kỳ dữ liệu/đơn vị và link “Xem tiến độ” giữ range. Không thêm điểm năng lực, so sánh anh/chị/em hoặc tỷ lệ tăng trưởng chưa có dữ liệu đối chiếu.
+5. **Hoạt động gần đây:** tối đa năm mục của bé, tên nội dung/thời gian/loại hoạt động và link đúng resource. Nội dung đã xóa hoặc mất quyền mở có trạng thái rõ, không tạo link chết.
+6. **Thư viện của bé:** vài nội dung gần nhất khi summary có dữ liệu, CTA “Mở thư viện”. Không tải toàn bộ thư viện chỉ để dựng dashboard.
 
-Desktop: nội dung chính khoảng 2/3, gói và hỗ trợ khoảng 1/3; mobile theo thứ tự trên. Bỏ panel chào cao và CTA “Thêm bé” quá nổi khi việc cần làm là duyệt nội dung.
+Desktop: vùng chính khoảng 2/3 cho việc cần xử lý, học tập và hoạt động; vùng phụ 1/3 cho cài đặt/sử dụng hôm nay. Mobile xếp theo thứ tự ưu tiên trên. Tên bé và việc cần làm đầu tiên phải thấy trên laptop 1280×720; không dùng banner chào gia đình lớn. Giữ tokens/màu/chữ ở mục 10.
 
-**Các biến thể:** chưa có bé chỉ hiển thị onboarding “Tạo hồ sơ đầu tiên” và thông tin hạn mức cần thiết; có bé chưa có hoạt động hướng dẫn bắt đầu trên ứng dụng của bé, không bịa QR/deep link; không có yêu cầu thì thu gọn vùng chờ duyệt thành một dòng tích cực. Lỗi thống kê vẫn truy cập được hồ sơ/approval. Thiếu số liệu hiển thị “Chưa tải được”, không thay bằng 0.
+Range chỉ điều khiển học tập và hoạt động trong kỳ. Chờ duyệt là **hiện tại**, cài đặt là **đang áp dụng**, usage là **hôm nay**; nhãn UI và contract phải phân biệt rõ.
 
-**Nghiệm thu:** không còn link child cố định; từ dashboard vào hàng đợi đúng bé trong một lần bấm; mock không có bé không hiện dashboard đầy số 0; các khối phản ánh cùng khoảng thời gian và ghi rõ ngoại lệ chờ duyệt hiện tại.
+| Trạng thái | Hành vi |
+| --- | --- |
+| Bé mới liên kết, chưa có hoạt động | Tên bé, cài đặt, hướng dẫn bắt đầu trên Mobile; không bịa QR/deep link, không thêm CTA tạo bé nữa |
+| Loading/chuyển bé | Skeleton của bé mới; không giữ số liệu hoặc resource của bé trước |
+| Không có hoạt động trong kỳ | Nêu đúng kỳ, cho đổi 7/30 ngày; số 0 chỉ từ response hợp lệ |
+| Lỗi một vùng | Retry tại vùng; giữ lối vào các module còn hợp lệ |
+| Chưa triển khai analytics ở M1 | Chỉ hiện khung và tác vụ sẵn sàng; không giả lập số liệu hoặc báo lỗi mạng |
+| Mất quyền/không có hồ sơ | State 403/404, bỏ dữ liệu riêng tư và link về danh sách; không tự đổi bé |
+
+**Nghiệm thu:** tên/range/số liệu/link cùng thuộc một bé. Đổi A → B khi A đang tải không chớp dữ liệu A; mutation A trả muộn không đổi B. Dashboard mở đúng yêu cầu/settings/tiến độ trong một lần bấm. Refresh/Back giữ childId/range. Không gọi endpoint tổng gia đình.
 
 ### 11.2. Danh sách hồ sơ — `/parent/children`
 
 **Mục tiêu:** chọn Child đã liên kết hoặc bắt đầu flow mời/liên kết, không phải quản trị bảng dữ liệu.
 
 - Header “Hồ sơ bé”, dòng “Đang có [n]/[giới hạn] hồ sơ” khi có dữ liệu, CTA “Thêm hồ sơ bé”. Không thêm search cho tối đa năm hồ sơ.
-- Grid 3 cột trên desktop rộng, 2 trên tablet, 1 trên mobile. Mỗi card có avatar 64px, tên, tuổi nếu tính được từ birth date hợp lệ, nút/link “Mở hồ sơ”. Không lặp ngày sinh đầy đủ trên mọi card.
+- Grid 3 cột trên desktop rộng, 2 trên tablet, 1 trên mobile. Mỗi card có avatar 64px, tên, tuổi nếu tính được từ birth date hợp lệ, nút/link “Xem tổng quan” đến dashboard của bé; “Thông tin hồ sơ” là link phụ đến route chi tiết. Không lặp ngày sinh đầy đủ trên mọi card.
 - Link phụ “Phê duyệt” kèm số chờ nếu API summary cung cấp; không tạo N request cho N card chỉ để có badge. Card không chứa link bọc quanh các nút/link con.
-- Chưa có bé: một empty state, CTA tạo đầu tiên; không đồng thời lặp ba nút cùng ý định.
+- Chưa có bé: một empty state, CTA mời/liên kết đầu tiên; không đồng thời lặp ba nút cùng ý định.
 - Hết quota: giải thích “Gia đình đã dùng hết [n] hồ sơ của gói hiện tại”; thay CTA chính bằng “Xem gói và hạn mức”. Không cho mở form rồi mới thông báo khi đã biết chắc hết quota.
 - Entitlement lỗi: danh sách bé vẫn đọc được, vùng tạo mới có retry riêng. Không giả định được phép tạo.
 
 **Nghiệm thu:** chọn đúng Child bằng bàn phím; avatar lỗi có fallback; một và nhiều Child liên kết đều cân đối; tải lại sau link/sửa phản ánh đúng quyền và tên.
 
-### 11.3. Tạo hồ sơ — `/parent/children/new`
+### 11.3. Mời/liên kết trẻ — `/parent/children/new`
 
-**Mục tiêu:** hoàn thành trong một form ngắn, không wizard nhiều bước.
+**Mục tiêu:** đưa Child account vào danh sách Parent được phép quản lý theo relationship contract.
 
-- Breadcrumb về danh sách; title “Mời hoặc liên kết Child”; giải thích rõ Child có thể tự đăng ký account riêng.
-- Form tối đa khoảng 680px; desktop có cột hướng dẫn nhỏ, mobile đưa hướng dẫn cạnh field. Thứ tự: Tên hiển thị → Ngày sinh → Chọn hình đại diện.
-- Tên: label luôn hiện, ví dụ “Mây”, trim khi submit; giới hạn 40 ký tự đang có trong code là baseline cần đối chiếu Backend. Không cấm dấu tiếng Việt hoặc bắt buộc tên khai sinh.
-- Ngày sinh: date-only; gợi ý định dạng theo UI control, kiểm tra ngày có thật và không ở tương lai. Quy tắc chặn tuổi ngoài 6–10 phải chốt, không tự coi lời nhắc là validation chính thức.
-- Avatar: radio grid các hình có sẵn, selected có viền + dấu chọn + accessible label; dùng catalog hỗ trợ thực tế, không vẽ nút upload chưa hoạt động.
-- Footer: “Hủy” và “Gửi lời mời/Liên kết”; có capability context ngắn. Submit không mất form nếu quyền hoặc link vừa thay đổi.
-- Sau thành công: điều hướng tới trạng thái liên kết/chờ xác nhận, thông báo đúng kết quả. Không tự tạo account hoặc lưu settings thay Child khi contract chưa cho phép.
+- Title “Mời hoặc liên kết bé”; giải thích trẻ có thể đã đăng ký tài khoản độc lập.
+- Form gọn, chỉ có trường phương thức Backend hỗ trợ, ví dụ mã ghép nối hoặc lời mời. Chưa chọn cứng một cơ chế; tên/ngày sinh/avatar không phải bằng chứng xác nhận quan hệ.
+- Hiện trạng thái gửi, chờ xác nhận, hết hạn, đã liên kết, xung đột, thiếu quyền/hết hạn mức theo response. Không hiển thị dữ liệu tài khoản chưa được phép xem.
+- Sau xác nhận thành công: tải lại linked children/capability rồi mở dashboard của bé vừa liên kết. Chờ xác nhận thì chưa mở workspace.
+- Chỉ thêm nhánh tạo hộ tài khoản nếu contract cho phép; field tên/ngày sinh date-only/avatar dùng chung với profile/auth. Tạo account không đồng nghĩa đã có consent/link.
+- Footer “Hủy”/“Gửi lời mời” hoặc “Liên kết” đúng hành động được hỗ trợ. Lỗi giữ giá trị nhập; timeout kiểm tra trạng thái trước khi gửi lại.
 
-**Nghiệm thu:** lỗi field liên kết bằng `aria-describedby`; Enter submit một lần; dirty guard mọi đường rời trang; create timeout không tự gửi lại gây trùng; form dùng được ở 360px và zoom 200%.
+**Nghiệm thu:** không mở dashboard trước khi liên kết có hiệu lực; quota/capability từ server; dirty guard, Enter submit một lần, lỗi field có label rõ; dùng được ở 360px và zoom 200%.
 
 ### 11.4. Hồ sơ và chỉnh sửa — `/parent/children/:childId`
 
@@ -486,7 +524,7 @@ Desktop: nội dung chính khoảng 2/3, gói và hỗ trợ khoảng 1/3; mobil
 - Detail dùng panel rộng hoặc màn detail trong cùng route với `itemId`; mobile chiếm vùng nội dung, Back về danh sách. Truyện hiển thị mô tả/chủ đề và preview trang nếu contract có; nhân vật hiển thị ảnh/phiên bản/trạng thái duyệt. Không xây reader tương tác hoặc quiz của Mobile.
 - “Ẩn khỏi thư viện” và “Hiện lại” phải ghi phạm vi đúng theo contract. Filter “Đã ẩn” luôn giúp tìm lại item; không hứa rằng ẩn cũng thu hồi quyền ở tất cả truyện nếu chưa có quy tắc đó.
 - Xóa có dialog “Xóa [Tên nội dung] khỏi thư viện của [Tên bé]?” + tác động đã xác nhận. CTA “Giữ lại”/“Xóa khỏi thư viện”; focus mặc định về lựa chọn an toàn. Không hứa khôi phục hoặc undo khi chưa có API.
-- Link xuất truyện từ detail chỉ xuất hiện với resource hợp lệ và capability phù hợp; đi `/parent/exports?childId=...&storyId=...` để điền trước, vẫn kiểm tra lại quyền khi submit.
+- Link xuất truyện từ detail chỉ xuất hiện với resource hợp lệ và capability phù hợp; đi `/parent/children/:childId/exports?storyId=...` để điền trước, vẫn kiểm tra lại quyền khi submit.
 
 **States:** ảnh lỗi giữ kích thước card và tên; thư viện trống khác với tìm không ra kết quả; mutation pending khóa đúng item, server lỗi giữ item; xóa item cuối trang chuyển về trang còn hợp lệ. Item không còn khả dụng không có CTA mở giả.
 
@@ -521,17 +559,17 @@ Desktop: nội dung chính khoảng 2/3, gói và hỗ trợ khoảng 1/3; mobil
 
 **Nghiệm thu:** Free/Pro/Family là fixture kiểm thử, quyền thực tế theo response; không dựng phần trăm giả; ngày reset rõ timezone; lỗi entitlement không chặn xem các nội dung khác đã có quyền.
 
-### 11.10. Xuất truyện — `/parent/exports`
+### 11.10. Bản xuất của bé — `/parent/children/:childId/exports` (P2)
 
 **Mục tiêu:** chọn đúng câu chuyện, biết điều kiện xuất, theo dõi và tải kết quả.
 
-**Bố cục:** header “Xuất truyện”; form tạo bản xuất ở đầu, danh sách gần đây bên dưới. Desktop form chia hai cột field/tóm tắt nếu đủ chỗ; mobile form một cột. Báo cáo Family là tab phụ theo mục 11.11, không chen vào giữa form và lịch sử export.
+**Bố cục:** header “Xuất truyện”; form tạo bản xuất ở đầu, danh sách gần đây bên dưới. Desktop form chia hai cột field/tóm tắt nếu đủ chỗ; mobile form một cột. Báo cáo Family có trang cấu hình riêng theo mục 11.11; không gộp vào lịch sử xuất truyện của bé.
 
-1. Chọn Child → chọn truyện hợp lệ trong thư viện → chọn định dạng từ capability. PDF/video hiện có trong mock chỉ là baseline cho thiết kế, cần contract trước nghiệm thu.
+1. Child cố định theo workspace → chọn truyện hợp lệ của bé → chọn định dạng từ capability. PDF/video hiện có trong mock chỉ là baseline cho thiết kế, cần contract trước nghiệm thu.
 2. Đổi Child reset truyện đã chọn; từ library đi sang thì điền sẵn Child/truyện và tải kiểm tra quyền. Truyện không còn hợp lệ phải được giải thích, không âm thầm đổi sang truyện đầu.
 3. Summary trước submit có tên bé/truyện/định dạng, quota cần dùng nếu đã biết, lưu ý thời gian chờ bằng dữ liệu thật; không hứa số phút xử lý cố định.
 4. CTA “Tạo bản xuất”; sau thành công hiển thị job vừa tạo và “Bạn có thể rời trang, bản xuất sẽ tiếp tục được xử lý” chỉ khi Backend đảm bảo.
-5. Lịch sử có tên truyện, bé, định dạng, thời gian, trạng thái, action; filter theo bé/trạng thái và pagination khi cần. `jobId` mở chi tiết trong panel/màn con cùng route.
+5. Lịch sử chỉ gồm job của bé trong URL, có tên truyện, định dạng, thời gian, trạng thái, action; filter theo trạng thái và pagination khi cần. `jobId` mở chi tiết trong panel/màn con cùng route.
 
 | Trạng thái | Nội dung và action |
 | --- | --- |
@@ -544,19 +582,17 @@ Desktop: nội dung chính khoảng 2/3, gói và hỗ trợ khoảng 1/3; mobil
 
 **Nghiệm thu:** double click/timeout không tạo trùng; refresh khôi phục job; polling dừng đúng terminal/unmount, retry tải file không đồng nghĩa tạo job; lỗi tải không làm mất lịch sử.
 
-### 11.11. Báo cáo Family — khu vực trong `/parent/exports?tab=reports`
+### 11.11. Báo cáo Family — `/parent/reports` (P2)
 
-**Quyết định thiết kế đề xuất:** giữ route hiện có, tách hai tab “Xuất truyện”/“Báo cáo học tập”. Link từ Tiến độ và Gói dẫn thẳng tab báo cáo. Không thêm trang cấp một chỉ cho một khối cấu hình.
+**Đề xuất:** tách cấu hình nhận email khỏi công cụ xuất truyện. Family là quyền lợi gói, không phải lý do gộp dashboard học tập của các bé.
 
-- Header “Báo cáo học tập tháng”; mô tả phạm vi theo dữ liệu thật: từng bé hay cả gia đình phải chốt trước.
-- Gói không có quyền: một khối thông tin ngắn + link Gói; không dùng bảng thống kê làm mờ với số giả.
-- Có quyền nhưng dịch vụ chưa sẵn sàng: thông báo khả dụng, không có nút gửi thành công giả. Không đưa “backend chưa bật” vào copy sản phẩm.
-- Có dịch vụ: hiển thị kỳ báo cáo gần nhất, trạng thái tạo/gửi và ngày, địa chỉ nhận đã che một phần nếu API cung cấp; download chỉ nếu có file và quyền.
-- Lịch mặc định hàng tháng theo nghiệp vụ nguồn. Không giữ option “Mỗi quý” chỉ vì mock đang có. Bật/tắt, thay lịch hoặc gửi lại chỉ xuất hiện sau khi contract cho phép.
-- Form cấu hình nếu có phải khởi tạo từ settings tải về, không mặc định `enabled: true` rồi ghi đè lựa chọn đã lưu. Có dirty/save/error giống các form khác.
-- Chưa có kỳ báo cáo: ghi “Chưa có báo cáo tháng”; lỗi gửi và chưa đến lịch là hai trạng thái khác nhau.
+- Trang cấp tài khoản hiển thị lịch gửi tháng, trạng thái gửi, nơi nhận đã che một phần và cấu hình được contract hỗ trợ. Nội dung email theo bé hay gia đình vẫn cần chốt.
+- Nếu có báo cáo riêng của một bé, link từ Tiến độ mang childId; server kiểm tra quyền và trả đúng báo cáo. Không lọc tài liệu gia đình tại client rồi gọi đó là báo cáo riêng.
+- Không có capability: giải thích ngắn và link Gói. Dịch vụ chưa triển khai: chưa mở mục điều hướng ở bản phát hành, không giả lập đã gửi.
+- Phân biệt chưa đến kỳ, chưa có báo cáo, lỗi gửi, đã tạo file và đã gửi email. Download/gửi lại/bật tắt chỉ có khi API hỗ trợ.
+- Lịch mặc định theo tháng, không thêm lựa chọn quý. Form khởi tạo từ dữ liệu đã lưu, có dirty/save/error; không mặc định enabled rồi ghi đè.
 
-**Nghiệm thu:** không nhầm trạng thái “đã tạo file” với “đã gửi email”; trạng thái/cấu hình theo response; chưa có dịch vụ thì module còn pending tích hợp.
+**Nghiệm thu:** đổi hồ sơ không đổi cấu hình cấp Parent; báo cáo riêng không lẫn trẻ; trạng thái gửi được dịch vụ thật xác nhận.
 
 ### 11.12. Các trang shared trong hành trình Parent
 
@@ -576,7 +612,7 @@ Không xây lại auth/profile riêng cho Parent. Bảng dưới là yêu cầu 
 
 | Luồng | Các bước mong đợi | Điểm cần giữ ngữ cảnh |
 | --- | --- | --- |
-| Parent mới | Login → empty dashboard → mời/liên kết Child → chi tiết → cài đặt → lưu | Không bắt xem tour dài; không tự tạo account hoặc setting thay Child khi chưa có contract |
+| Parent mới | Login → danh sách trống → mời/liên kết Child → xác nhận → dashboard bé → cài đặt → lưu | Không bắt xem tour dài; không tự tạo account hoặc setting thay Child khi chưa có contract |
 | Child mới | Child register → verify/link nếu cần → login Mobile → tạo nhân vật/đọc truyện | Không hiển thị Child như account đã được link khi Backend chưa xác nhận |
 | Duyệt nội dung | Dashboard → yêu cầu của đúng bé → xem ảnh → quyết định → kết quả/tiếp theo | Child, approval và version giữ nguyên đến khi server xác nhận |
 | Duyệt quyền vai | Yêu cầu vai nhạy cảm → đọc phạm vi quyền → xác nhận → kết quả riêng | Không gộp với approve hình; không kế thừa quyền phiên bản theo suy đoán |
@@ -601,20 +637,20 @@ Tên và con số trong thiết kế là fixture, không phải nội dung hardc
 
 ## 13. Backlog thực hiện thiết kế và tiêu chí bàn giao
 
-Các ticket dưới đây **bổ sung chi tiết UI/UX cho M1–M6**, không thay lịch tổng thể hoặc được tự cộng vào 13–18 ngày của bản kế hoạch gốc. Do đã có code nhưng chưa audit render và API, cần ước lượng lại sau UX-01; không coi ước lượng cũ là cam kết cho toàn bộ đợt hoàn thiện này.
+Các ticket dưới đây **bổ sung chi tiết UI/UX cho M1–M6**, không cộng thêm vào 14–19 ngày ở mục 5. Do đã có code nhưng chưa audit render và API, cần ước lượng phần còn lại sau UX-01; không coi ước lượng này là cam kết cho toàn bộ đợt hoàn thiện.
 
 | Ticket | Công việc và đầu ra | Phụ thuộc/ưu tiên |
 | --- | --- | --- |
 | UX-01 | Chụp baseline desktop/mobile từng route; kiểm kê component/state, xác nhận contract còn thiếu và các quyết định mục 14 | Làm đầu tiên |
 | UX-02 | Tokens workspace, page header, nav mobile, child selector, state primitives, dialog/focus, dirty guard dùng chung | Shared; trước các màn form |
-| UX-03 | Wireframe + triển khai list/create/detail bé, quota và sau tạo; mock hai bé/tài khoản | M1; UX-02 |
+| UX-03 | Wireframe + list/link/detail, entry và dashboard cơ bản; quota, mock hai bé/tài khoản | M1; UX-02 |
 | UX-04 | Settings rõ đơn vị/ý nghĩa lựa chọn; error/dirty/save; copy tiếng Việt | M2; contract settings |
 | UX-05 | Approval list/detail desktop/mobile, preview ảnh, reject, quyền vai, conflict | M2; contract version/role |
 | UX-06 | Library filter URL, card, preview, menu ẩn/xóa, pagination | M3; resource actions |
 | UX-07 | Gói/usage hữu hạn/unlimited/unknown và trạng thái hết quota xuyên trang | M4; entitlement |
 | UX-08 | Progress có định nghĩa số liệu, range, lịch sử và mobile; chart nếu cần | M5; analytics contract |
-| UX-09 | Dashboard theo 0 bé/có bé/có yêu cầu; link đúng tài nguyên và partial error | M5; tái sử dụng summary thực |
-| UX-10 | Export tạo/theo dõi/tải, pending/timeout/expired; báo cáo Family tách tab | M6; capability/job/report contract |
+| UX-09 | Số liệu dashboard từng bé, link đúng tài nguyên và partial error; entry 0/1/nhiều bé ở M1 | M5; tái sử dụng summary thực |
+| UX-10 | Export theo childId, tạo/theo dõi/tải, pending/timeout/expired; cấu hình Family cấp tài khoản | M6; capability/job/report contract |
 | UX-11 | Regression các luồng mục 12, kiểm tra bàn phím/axe, responsive và usability với phụ huynh | Theo từng milestone và trước bàn giao |
 
 ### Bộ đầu ra cho mỗi trang
@@ -649,7 +685,7 @@ Khi code xong từng milestone mới chạy lint/build và test liên quan theo 
 - Giữ nhận diện SketchTale, Nunito/Phosphor và CSS tokens hiện có; workspace ít trang trí hơn public landing.
 - Desktop sidebar, mobile drawer; Child nav dùng chung; form mời/liên kết một trang; profile xem trước rồi chỉnh sửa.
 - Dashboard ưu tiên việc cần xử lý; approval desktop list/detail và mobile chuyển màn trong route; library có preview theo khả năng dữ liệu.
-- Gộp export/report dưới route hiện có bằng tabs là **đề xuất thiết kế**, chưa phải quyết định nghiệp vụ đã xác nhận.
+- Dashboard và export có childId trong path; profile giữ route hiện tại. Cấu hình email Family tách cấp tài khoản, chỉ bật sau contract.
 - Thực hiện skeleton/empty/error/focus/dirty-state và copy rõ ràng trước khi thêm chart hoặc animation.
 
 ### Cần chốt trước khi triển khai phần phụ thuộc
@@ -665,6 +701,45 @@ Khi code xong từng milestone mới chạy lint/build và test liên quan theo 
 | Quyền vai nhạy cảm kế thừa thế nào khi recolor/tạo version mới? | Tách action/state; không tự mở quyền từ approve hình | Approval/sensitive roles |
 | Ẩn/xóa ảnh hưởng nội dung Mobile và truyện đã tạo thế nào? Có khôi phục không? | Dialog chỉ hứa tác động đã xác nhận; chưa có API thì không có undo | Library |
 | Quota theo account hay bé; lượt lỗi/retry tính thế nào? | Không suy diễn từ tên gói; hiển thị unit/scope/period theo response | Plan/export |
-| Report tháng theo bé hay gia đình, có cấu hình và lịch sử gửi không? | Dành tab báo cáo, chỉ hiển thị khả năng đã được xác nhận; bỏ tùy chọn quý khỏi phạm vi mặc định | Family report |
+| Report tháng theo bé hay gia đình, có cấu hình và lịch sử gửi không? | Trang cấu hình cấp tài khoản; báo cáo riêng theo quyền/childId khi có contract; bỏ tùy chọn quý khỏi phạm vi mặc định | Family report |
 
 Các câu hỏi trên không chặn hoàn thiện bố cục và state mocks. Mỗi quyết định khi được chốt phải cập nhật cả tài liệu, fixture và contract tương ứng; không coi giao diện đang có là bằng chứng nghiệp vụ đã đúng.
+
+## 15. Chuyển đổi từ hiện trạng sang dashboard theo hồ sơ
+
+### 15.1. Phạm vi thay đổi khi triển khai
+
+| Hiện trạng trong repository | Đích cần triển khai |
+| --- | --- |
+| `App.jsx`: `/parent` render `ParentOverviewPage` | Entry xử lý 0/1/nhiều bé; thêm child dashboard nested trong `ChildWorkspaceLayout`, giữ index profile hiện tại |
+| `WorkspaceLayout.jsx`: Tổng quan và Xuất truyện cấp Parent | Menu cấp tài khoản theo mục 10.2; tác vụ của bé trong child workspace; tránh thay đổi menu Content/Admin |
+| `ParentOverviewPage.jsx`: query dashboard/export cấp Parent | Tách entry khỏi `ChildDashboardPage`; tái sử dụng khối UI phù hợp, lấy child từ route/layout; không mang query tổng gia đình sang màn mới |
+| `ChildWorkspaceLayout.jsx`: profile/settings/approval/library/progress | Thêm Tổng quan đầu nav, Bản xuất ở P2; bảo vệ dirty-state và reset resource khi đổi bé |
+| `childrenService.dashboard`, query keys và mock handlers | Contract theo childId mục 6.1; fixtures hai bé có số liệu/yêu cầu khác nhau; bỏ dependency endpoint tổng cũ khi migration hoàn tất |
+| `ParentExportsPage.jsx`: export/report chung | Tách danh sách job theo bé và cấu hình Family cấp tài khoản; service kiểm tra child/resource, không chỉ lọc client |
+| Route title, links, tests và tài liệu | Cập nhật title theo bé, CTA từ children/library/progress, return URL và các kiểm thử dùng route cũ |
+
+Không đổi cấu trúc thư mục toàn bộ feature để thực hiện việc này. Giữ React/JSX, shared auth/query/layout và design tokens hiện có. Rà working tree trước khi code để giữ các cải tiến giao diện đang làm; audit cũ không phải chỉ thị khôi phục code cũ.
+
+### 15.2. Tương thích đường dẫn
+
+- `/parent/children/:childId` vẫn là thông tin hồ sơ; chỉ CTA chọn bé đổi sang `/dashboard`. URL module hiện tại tiếp tục hoạt động.
+- `/parent` dùng entry logic mục 3, không giữ dashboard gia đình ẩn phía sau.
+- P2: `/parent/exports?childId=...` chuyển bằng replace sang `/parent/children/:childId/exports` sau khi kiểm tra quyền; chỉ giữ query hợp lệ như storyId/jobId/status/page. ID không hợp lệ trả lỗi, không chọn bé khác.
+- Link export cũ chỉ có jobId/storyId: chỉ resolve Child qua endpoint được phân quyền nếu contract có; nếu không, yêu cầu chọn hồ sơ, không đoán ownership. Link không có ngữ cảnh mở danh sách bé với thông báo chọn bé để xem bản xuất.
+- `/parent/exports?tab=reports` chuyển sang `/parent/reports` khi module P2 sẵn sàng. Không phát hành link đến route mới trước khi màn đích sẵn sàng.
+- Back, refresh và return URL sau login không thay childId; chuyển bé chỉ giữ module và range hợp lệ, bỏ ID tài nguyên, page, search/filter không tương thích.
+
+### 15.3. Checklist nghiệm thu bổ sung
+
+- [ ] Entry 0 bé → hướng dẫn liên kết; 1 bé → dashboard bé đó; nhiều bé → chủ động chọn. Lỗi tải danh sách không bị coi là 0 bé.
+- [ ] Hai bé có số liệu khác nhau; dashboard A không chứa tên/resource/count của B, kể cả khi request A hoàn tất sau B.
+- [ ] Chuyển bé lúc đang lưu: chặn chuyển hoặc hoàn tất mutation cho ID ban đầu; kết quả không ghi sang bé mới. Form dirty có lựa chọn ở lại/bỏ thay đổi.
+- [ ] Duyệt yêu cầu A cập nhật count/dashboard A ở mọi range liên quan, không sửa B; settings đọc lại đúng và không áp dụng chung gia đình.
+- [ ] Refresh/Back/deep link giữ đúng bé/module/range; link item của bé khác bị từ chối bằng API thật.
+- [ ] Thu hồi liên kết khi đang xem chặn mutation, xóa dữ liệu riêng tư và không để response cũ khôi phục dữ liệu.
+- [ ] Chờ duyệt hiện tại, usage hôm nay và học tập 7/30 ngày có nhãn khác nhau; missing/error không trở thành số 0.
+- [ ] P2: lịch sử export và tải file đúng bé; cấu hình Family cấp Parent không đổi khi đổi bé; route cũ chuyển đúng và không vòng lặp.
+- [ ] Không phát sinh regression shared shell, auth, Content/Admin; kiểm tra responsive/bàn phím cho selector và nav bổ sung.
+
+Các checkbox là công việc tương lai. Đợt 01/10 đã triển khai entry chọn hồ sơ, dashboard riêng, settings/library/progress theo bé, approval phiên bản với quyền vai nhạy cảm tách riêng, route bản xuất theo bé, báo cáo Family cấp tài khoản và mock/API boundary; luồng mời/liên kết theo auth contract, API thật và staging vẫn cần hoàn thiện/nghiệm thu.

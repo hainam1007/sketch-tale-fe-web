@@ -8,6 +8,8 @@
 >
 > **Cập nhật scope ngày 29/09/2026:** sản phẩm phục vụ trẻ 6–10 tuổi; Child có thể tự đăng ký và đăng nhập bằng tài khoản riêng. Các flow Parent vẫn quản lý nội dung, phê duyệt và dữ liệu của Child đã được liên kết; cơ chế liên kết, mời và xác nhận quyền giữa Parent–Child cần được chốt trong auth/relationship contract.
 
+> **Quyết định trải nghiệm Parent ngày 01/10/2026:** Parent chọn hồ sơ trẻ để quản lý; mỗi trẻ có dashboard riêng. Cài đặt, phê duyệt (duyệt phiên bản tách khỏi quyền vai nhạy cảm), thư viện, tiến độ và bản xuất đều theo Child đang chọn. Danh sách trẻ là nơi chọn hồ sơ; tài khoản Parent/gói/cấu hình email Family ở cấp chung. Dashboard theo hồ sơ, route và mock API đã có trong working tree; API thật và staging vẫn cần nghiệm thu. Xem [PARENT_IMPLEMENTATION_PLAN.md](PARENT_IMPLEMENTATION_PLAN.md), đặc biệt mục 15.
+
 ## 1. Cách đọc tài liệu
 
 Các nhãn sau giúp phân biệt thông tin gốc với đề xuất triển khai:
@@ -157,6 +159,7 @@ Giá trị chính của sản phẩm là kết hợp ba yếu tố:
 **[Đã xác nhận]**
 
 - Quản lý nhiều Child account/hồ sơ đã liên kết; flow mời/liên kết theo auth contract.
+- Mỗi Child có dashboard riêng dành cho Parent, mở sau khi chọn hồ sơ; không tổng hợp học tập nhiều trẻ thành dashboard gia đình.
 - Cấu hình category/chủ đề được phép; toàn bộ nội dung hiện hướng tới nhóm tuổi 6–10.
 - Đặt giới hạn thời gian sử dụng mỗi ngày.
 - Phiếu ban đầu cho phép đặt giới hạn số nhân vật mới mỗi ngày; quyết định giữ hay bỏ đang chờ chốt.
@@ -280,7 +283,7 @@ Giá tính bằng VND theo tháng. Đây là cấu hình sản phẩm được c
 3. Hệ thống ghi nhận trang cuối, thời lượng đọc; truyện hoàn thành khi trẻ đọc hết trang cuối.
 4. Sau truyện, trẻ trả lời quiz multiple choice có một đáp án đúng.
 5. Hệ thống chấm kết quả và cập nhật riêng số lần từ xuất hiện, được nghe và được trả lời đúng.
-6. Dashboard phụ huynh hiển thị dữ liệu tổng hợp.
+6. Dashboard phụ huynh hiển thị dữ liệu tổng hợp của riêng Child đang chọn, theo kỳ; đổi hồ sơ tải dữ liệu của Child tương ứng.
 
 ### 6.4. Xuất truyện
 
@@ -489,11 +492,13 @@ Danh sách dưới đây đã đối chiếu router ngày 01/10/2026. `/auth/ver
 /parent/children
 /parent/children/new
 /parent/children/:childId
+/parent/children/:childId/dashboard
 /parent/children/:childId/settings
 /parent/children/:childId/approvals
 /parent/children/:childId/library
 /parent/children/:childId/progress
-/parent/exports
+/parent/children/:childId/exports
+/parent/reports
 /parent/plan
 
 /content
@@ -638,6 +643,7 @@ Với scope mới, auth contract phải hỗ trợ cả Parent và Child: đăng
 GET    /children
 POST   /children
 GET    /children/:childId
+GET    /children/:childId/dashboard?range=7d|30d
 PATCH  /children/:childId
 PATCH  /children/:childId/settings
 

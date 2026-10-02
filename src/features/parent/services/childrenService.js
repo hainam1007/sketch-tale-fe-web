@@ -7,8 +7,8 @@ export const childrenService = {
   update: ({ childId, ...payload }) =>
     apiRequest({ path: `/children/${childId}`, method: "PATCH", body: payload }),
   entitlement: ({ signal } = {}) => apiRequest({ path: "/entitlements", signal }),
-  dashboard: ({ range = "7d", simulate = "", signal } = {}) => apiRequest({ path: `/parent/dashboard?range=${range}${simulate ? `&simulate=${encodeURIComponent(simulate)}` : ""}`, signal }),
-  listExports: ({ status = "all", signal } = {}) => apiRequest({ path: `/parent/exports?status=${status}`, signal }),
+  dashboard: ({ childId, range = "7d", simulate = "", signal } = {}) => apiRequest({ path: childId ? `/children/${childId}/dashboard?range=${range}${simulate ? `&simulate=${encodeURIComponent(simulate)}` : ""}` : `/parent/dashboard?range=${range}${simulate ? `&simulate=${encodeURIComponent(simulate)}` : ""}`, signal }),
+  listExports: ({ status = "all", childId = "", signal } = {}) => apiRequest({ path: `/parent/exports?status=${status}${childId ? `&childId=${encodeURIComponent(childId)}` : ""}`, signal }),
   getExport: ({ exportId, signal }) => apiRequest({ path: `/parent/exports/${exportId}`, signal }),
   createExport: (payload) => apiRequest({ path: "/parent/exports", method: "POST", body: payload }),
   retryExport: ({ exportId, revision }) => apiRequest({ path: `/parent/exports/${exportId}`, method: "PATCH", body: { action: "retry", revision } }),
@@ -22,6 +22,7 @@ export const childrenService = {
   listApprovals: ({ childId, status = "all", signal }) => apiRequest({ path: `/children/${childId}/approvals?status=${status}`, signal }),
   getApproval: ({ childId, approvalId, signal }) => apiRequest({ path: `/children/${childId}/approvals/${approvalId}`, signal }),
   updateApproval: ({ childId, approvalId, ...payload }) => apiRequest({ path: `/children/${childId}/approvals/${approvalId}`, method: "PATCH", body: payload }),
+  updateSensitiveRolePermission: ({ childId, approvalId, ...payload }) => apiRequest({ path: `/children/${childId}/approvals/${approvalId}/sensitive-role`, method: "PATCH", body: payload }),
   listLibrary: ({ childId, type = "all", search = "", signal }) => apiRequest({ path: `/children/${childId}/library?type=${type}&search=${encodeURIComponent(search)}`, signal }),
   updateLibraryItem: ({ childId, itemId, ...payload }) => apiRequest({ path: `/children/${childId}/library/${itemId}`, method: "PATCH", body: payload }),
   deleteLibraryItem: ({ childId, itemId }) => apiRequest({ path: `/children/${childId}/library/${itemId}`, method: "DELETE" }),
