@@ -1,6 +1,7 @@
 # Content Manager contract v0.1
 
 > Updated 2026-09-23: the frontend-first tool plan below is provisional. It does not declare new fields implemented or the backend/mobile contract approved.
+> Reviewed 2026-09-30 against the current working tree: local Blob storage and PATCH services for slots/vocabulary/quizzes now exist. These are code observations, not runtime or backend acceptance. Per-page UI/UX requirements and the current completion backlog are in [implementation plan, sections 11–15](CONTENT_MANAGER_IMPLEMENTATION_PLAN.md#11-audit-cập-nhật-và-phạm-vi-hoàn-thiện-từng-trang--30092026).
 
 This is the frontend-owned contract used by the editor, mock adapter and preview spike. The backend adapter may translate endpoint names or response envelopes, but IDs and relationships remain stable.
 
@@ -52,7 +53,7 @@ Implementation order and acceptance criteria: [Content Manager plan, section 10]
 | Selection | Image-only for cover/background/default role image; audio playback uses audio UI when implemented; reject incompatible or not-ready assets |
 | Failure | Missing record, missing local Blob, URL load failure and processing failure are visible; never substitute an unrelated image silently |
 
-The current mock upload reads FormData metadata but returns `/images/hero.webp` for every file. Multipart support in `assetService.js` therefore does not yet prove local file persistence or a working backend upload. F1 must preserve actual selected bytes. Keep local Blob writes and metadata writes consistent with rollback/cleanup; namespace by demo account and reset together. Object URLs are runtime resources: release them when unused and do not serialize them into draft/version snapshots. Local storage is browser-specific and is not a mobile-accessible upload service.
+The mock endpoint still returns a fixture URL, but `assetService.js` now stores selected bytes through `localAssetStore.js` and resolves runtime Blob URLs in mock mode. Verify actual file persistence, refresh, missing Blob, cancellation and quota failures before accepting F1; multipart and local storage code do not prove a working backend upload. Keep local Blob writes and metadata writes consistent with rollback/cleanup; namespace by demo account and reset together. Object URLs are runtime resources: release them when unused and do not serialize them into draft/version snapshots. Local storage is browser-specific and is not a mobile-accessible upload service.
 
 No asset deletion/replacement tool in this first scope. A later deletion feature must check draft and published references; replacing bytes behind an existing ID must not mutate the appearance of an immutable published version. Real asset retention/versioning remains a backend review item.
 
@@ -69,8 +70,8 @@ These rules target F0–F5 and must be recorded in the shared renderer/config, r
 
 ### Mutations and save state to complete
 
-Keep `pageId`/`roleId`/`slotId` stable. Add slot update to the service and mock adapter using the same expected revision semantics as existing mutations; do not emulate update by deleting/recreating a slot. Vocabulary/quiz updates follow in the subsequent completion phase.
+Keep `pageId`/`roleId`/`slotId` stable. PATCH service methods for slot, vocabulary and quiz updates now exist; verify their adapter behavior and expected revision semantics rather than recreating them. Do not emulate update by deleting/recreating an entity.
 
-Every editable form must contribute dirty/pending state before publishing can be treated as safe. Existing metadata dirty handling is a starting point, not evidence of all-form coverage. Validation results apply only to their story/revision; any content save invalidates them. Proposed issues retain `code`, `message`, `tab`, `entityId`, `fieldPath` so the UI can navigate to the failing control.
+Every editable form must contribute dirty/pending state before publishing can be treated as safe. The shared save-state hook and several form callers now exist, but do not prove all-form coverage or correct dirty baselines. Validation results apply only to their story/revision; any content save invalidates them. Proposed issues retain `code`, `message`, `tab`, `entityId`, `fieldPath` so the UI can navigate to the failing control. UI completion details do not expand backend permissions, approve proposed fields or replace the pending Mobile canvas review.
 
 Frontend validation, revision conflicts and mock snapshots support tool development. Backend ownership, atomic publish, durable media and GeneratedStory/version behavior require separate real integration evidence.

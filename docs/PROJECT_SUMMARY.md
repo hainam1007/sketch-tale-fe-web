@@ -1,10 +1,14 @@
 # SketchTale — Tóm tắt dự án và định hướng triển khai Frontend
 
-> Cập nhật: 17/09/2026  
+> Cập nhật: 01/10/2026 — đối chiếu code trong working tree, gồm thay đổi chưa commit.
 > Thời gian dự kiến của đồ án: 09/2026–03/2027  
 > Nhóm: 5 thành viên  
 > Phạm vi của bạn: Web Frontend cho Parent, Content Manager và Admin  
 > Trạng thái: Tài liệu khởi tạo để thống nhất phạm vi; chưa thay thế SRS, API contract hoặc quyết định chính thức của nhóm.
+>
+> **Cập nhật scope ngày 29/09/2026:** sản phẩm phục vụ trẻ 6–10 tuổi; Child có thể tự đăng ký và đăng nhập bằng tài khoản riêng. Các flow Parent vẫn quản lý nội dung, phê duyệt và dữ liệu của Child đã được liên kết; cơ chế liên kết, mời và xác nhận quyền giữa Parent–Child cần được chốt trong auth/relationship contract.
+
+> **Quyết định trải nghiệm Parent ngày 01/10/2026:** Parent chọn hồ sơ trẻ để quản lý; mỗi trẻ có dashboard riêng. Cài đặt, phê duyệt (duyệt phiên bản tách khỏi quyền vai nhạy cảm), thư viện, tiến độ và bản xuất đều theo Child đang chọn. Danh sách trẻ là nơi chọn hồ sơ; tài khoản Parent/gói/cấu hình email Family ở cấp chung. Dashboard theo hồ sơ, route và mock API đã có trong working tree; API thật và staging vẫn cần nghiệm thu. Xem [PARENT_IMPLEMENTATION_PLAN.md](PARENT_IMPLEMENTATION_PLAN.md), đặc biệt mục 15.
 
 ## 1. Cách đọc tài liệu
 
@@ -30,7 +34,7 @@ Nguồn dùng để tổng hợp:
 Hệ thống đồng thời cung cấp:
 
 - Ứng dụng di động dành cho trẻ.
-- Parent Portal để phụ huynh quản lý hồ sơ trẻ, giới hạn sử dụng, nội dung, phê duyệt nhân vật và theo dõi tiến độ học tập.
+- Parent Portal để phụ huynh quản lý Child account/hồ sơ đã liên kết, giới hạn sử dụng, nội dung, phê duyệt nhân vật và theo dõi tiến độ học tập.
 - Story Content Management Web System để quản lý mẫu truyện, trang truyện, vai trò, tài sản, từ vựng và câu hỏi.
 - Admin Web System để quản lý tài khoản, quyền, giới hạn hệ thống, an toàn nội dung và báo cáo.
 - Web API và các tích hợp với dịch vụ tạo nhân vật AI, lưu trữ đám mây, giọng đọc và xuất truyện.
@@ -57,8 +61,8 @@ Giá trị chính của sản phẩm là kết hợp ba yếu tố:
 | Actor                 | Vai trò chính                                                                                    |
 | --------------------- | ------------------------------------------------------------------------------------------------ |
 | User                  | Nhóm chức năng dùng chung: đăng ký, đăng nhập, đăng xuất, quên mật khẩu và hồ sơ cá nhân.        |
-| Parent                | Quản lý hồ sơ trẻ, giới hạn sử dụng, thư viện, phê duyệt nhân vật và tiến độ học tập.            |
-| Child                 | Tạo nhân vật từ tranh, chọn/đọc truyện, làm quiz và xem thư viện cá nhân trên mobile.            |
+| Parent                | Quản lý Child account/hồ sơ đã liên kết, giới hạn sử dụng, thư viện, phê duyệt nhân vật và tiến độ học tập. |
+| Child                 | Tự đăng ký/đăng nhập, tạo nhân vật từ tranh, chọn/đọc truyện, làm quiz và xem thư viện cá nhân trên mobile. |
 | Content Manager       | Xây dựng, chỉnh sửa, xuất bản và theo dõi hiệu quả nội dung truyện.                              |
 | Admin                 | Quản trị tài khoản, phân quyền, giới hạn hệ thống, từ khóa hạn chế, báo cáo và an toàn nội dung. |
 | AI Generation Service | Tạo phiên bản nhân vật hoạt hình từ tranh của trẻ.                                               |
@@ -75,19 +79,19 @@ Giá trị chính của sản phẩm là kết hợp ba yếu tố:
 
 **Mobile:**
 
-- Luồng dành cho trẻ.
-- Đăng nhập/đăng xuất được use case gắn với Parent.
+- Luồng dành cho trẻ 6–10 tuổi.
+- Child tự đăng ký, đăng nhập và đăng xuất bằng tài khoản riêng.
 - Tích hợp AI và Cloud Storage.
 
 **[Cần xác nhận]** Ba khu vực web sẽ là một SPA có phân quyền hay ba ứng dụng/deployment riêng. Với quy mô đồ án, một SPA dùng chung design system và route guard thường tiết kiệm công sức hơn.
 
 ### 4.3. Quyết định nghiệp vụ đã chốt
 
-**[Đã xác nhận ngày 14/09/2026]**
+**[Đã xác nhận ngày 14/09/2026; cập nhật scope ngày 29/09/2026]**
 
-- Parent đăng nhập, sau đó chọn child profile để trẻ sử dụng ứng dụng; trẻ không có luồng đăng nhập tài khoản riêng.
-- Parent và child profile có quan hệ 1–N: một Parent có thể quản lý nhiều child profile; mỗi child profile thuộc đúng một Parent.
-- Sản phẩm chỉ phục vụ trẻ 3–6 tuổi trong phạm vi hiện tại.
+- Child có thể tự đăng ký, đăng nhập và đăng xuất bằng tài khoản riêng; không còn giả định Child chỉ là profile được chọn sau khi Parent đăng nhập.
+- Parent vẫn quản lý hồ sơ, cài đặt, approval, thư viện và tiến độ của Child đã được liên kết. Mô hình một Parent quản lý nhiều Child vẫn là hướng nghiệp vụ hiện tại, nhưng cách mời/liên kết, consent và việc một Child có thể liên kết với bao nhiêu Parent cần được chốt trong auth/relationship contract.
+- Sản phẩm phục vụ trẻ 6–10 tuổi trong phạm vi hiện tại.
 - Truyện xuất hiện cho trẻ khi đã được publish và thuộc category mà phụ huynh cho phép.
 - Nhân vật phải được phụ huynh duyệt; recolor hoặc chỉnh sửa nhân vật làm phát sinh phiên bản cần duyệt lại.
 - Quyền dùng vai nhạy cảm được phụ huynh duyệt một lần cho từng nhân vật, không duyệt lại theo từng lần gán vào truyện.
@@ -117,8 +121,8 @@ Giá trị chính của sản phẩm là kết hợp ba yếu tố:
 
 **[Đã xác nhận]**
 
-- Đăng ký tài khoản và xác minh tài khoản.
-- Đăng nhập, đăng xuất.
+- Đăng ký tài khoản Parent hoặc Child theo role/flow được Backend cho phép và xác minh tài khoản.
+- Đăng nhập, đăng xuất và khôi phục session cho Parent và Child.
 - Quên mật khẩu.
 - Xem và cập nhật hồ sơ cá nhân.
 
@@ -128,7 +132,7 @@ Giá trị chính của sản phẩm là kết hợp ba yếu tố:
 - Cách đăng nhập: email/mật khẩu, social login hay SSO.
 - Cơ chế cấp role và quyền chi tiết.
 
-**[Đã xác nhận]** Parent đăng nhập và chọn child profile để chuyển sang trải nghiệm dành cho trẻ.
+**[Đã xác nhận theo scope mới]** Parent đăng nhập để quản lý các Child đã liên kết; Child đăng nhập độc lập để vào trải nghiệm trẻ em.
 
 ### 5.2. Ứng dụng trẻ em
 
@@ -154,8 +158,9 @@ Giá trị chính của sản phẩm là kết hợp ba yếu tố:
 
 **[Đã xác nhận]**
 
-- Tạo và quản lý nhiều child profile.
-- Cấu hình category/chủ đề được phép; toàn bộ nội dung hiện hướng tới nhóm tuổi 3–6.
+- Quản lý nhiều Child account/hồ sơ đã liên kết; flow mời/liên kết theo auth contract.
+- Mỗi Child có dashboard riêng dành cho Parent, mở sau khi chọn hồ sơ; không tổng hợp học tập nhiều trẻ thành dashboard gia đình.
+- Cấu hình category/chủ đề được phép; toàn bộ nội dung hiện hướng tới nhóm tuổi 6–10.
 - Đặt giới hạn thời gian sử dụng mỗi ngày.
 - Phiếu ban đầu cho phép đặt giới hạn số nhân vật mới mỗi ngày; quyết định giữ hay bỏ đang chờ chốt.
 - Duyệt nhân vật trước khi được dùng trong truyện.
@@ -168,7 +173,7 @@ Giá trị chính của sản phẩm là kết hợp ba yếu tố:
 
 **[Đã xác nhận]**
 
-- Tạo/sửa mẫu truyện: tiêu đề, mô tả, category/chủ đề và ảnh bìa; tất cả nội dung hiện dành cho trẻ 3–6 tuổi.
+- Tạo/sửa mẫu truyện: tiêu đề, mô tả, category/chủ đề và ảnh bìa; tất cả nội dung hiện dành cho trẻ 6–10 tuổi.
 - Quản lý nội dung từng trang.
 - Định nghĩa vai trò: nhân vật chính, bạn đồng hành, nhân vật phụ và vai khác.
 - Chỉ định vai cho phép dùng nhân vật do trẻ tạo.
@@ -183,7 +188,7 @@ Giá trị chính của sản phẩm là kết hợp ba yếu tố:
 
 **[Đã xác nhận]**
 
-- Quản lý tài khoản Parent và Content Manager.
+- Quản lý tài khoản Parent, Child và Content Manager theo permission được cấp.
 - Phân quyền.
 - Khóa/mở khóa tài khoản vi phạm.
 - Cấu hình giới hạn sử dụng chung.
@@ -259,7 +264,7 @@ Giá tính bằng VND theo tháng. Đây là cấu hình sản phẩm được c
 7. Phụ huynh duyệt/từ chối.
 8. Nhân vật đã duyệt xuất hiện trong danh sách có thể gán vào vai truyện.
 
-**Điểm Frontend cần xử lý:** upload progress, trạng thái bất đồng bộ, retry không tải lại, timeout, hủy tác vụ, giới hạn hằng ngày nếu được bật và thông báo bằng hình ảnh/âm thanh dễ hiểu cho trẻ 3–6 tuổi.
+**Điểm Frontend cần xử lý:** upload progress, trạng thái bất đồng bộ, retry không tải lại, timeout, hủy tác vụ, giới hạn hằng ngày nếu được bật và thông báo phù hợp với trẻ 6–10 tuổi.
 
 ### 6.2. Tạo phiên bản truyện cá nhân hóa
 
@@ -278,7 +283,7 @@ Giá tính bằng VND theo tháng. Đây là cấu hình sản phẩm được c
 3. Hệ thống ghi nhận trang cuối, thời lượng đọc; truyện hoàn thành khi trẻ đọc hết trang cuối.
 4. Sau truyện, trẻ trả lời quiz multiple choice có một đáp án đúng.
 5. Hệ thống chấm kết quả và cập nhật riêng số lần từ xuất hiện, được nghe và được trả lời đúng.
-6. Dashboard phụ huynh hiển thị dữ liệu tổng hợp.
+6. Dashboard phụ huynh hiển thị dữ liệu tổng hợp của riêng Child đang chọn, theo kỳ; đổi hồ sơ tải dữ liệu của Child tương ứng.
 
 ### 6.4. Xuất truyện
 
@@ -304,7 +309,7 @@ Giá tính bằng VND theo tháng. Đây là cấu hình sản phẩm được c
 - Trẻ không được dùng nhân vật chưa được phê duyệt khi chính sách yêu cầu.
 - Recolor/chỉnh sửa tạo phiên bản nhân vật mới và phiên bản đó phải được duyệt lại.
 - Quyền dùng vai nhạy cảm được duyệt một lần cho từng nhân vật.
-- Thư viện chỉ hiển thị truyện đã publish và thuộc category được phụ huynh cho phép; đối tượng sử dụng hiện cố định ở tuổi 3–6.
+- Thư viện chỉ hiển thị truyện đã publish, thuộc category được phụ huynh cho phép và phù hợp phạm vi trẻ 6–10 tuổi.
 - Thời gian sử dụng được tính khi app trẻ em đang mở; cảnh báo trước 5 phút. Backend phải kiểm soát giới hạn, Frontend chỉ phản ánh trạng thái.
 - Mỗi lần publish tạo version mới; `GeneratedStory` giữ snapshot version đã chọn.
 - Nếu tạo nhân vật thất bại, tranh gốc vẫn phải còn để retry.
@@ -341,7 +346,7 @@ Tên entity dưới đây được đọc từ ERD; tên cột/cardinality cần
 
 | Miền dữ liệu        | Entity chính                                                         | Ý nghĩa                                                                |
 | ------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Identity            | `Users`, `ChildProfiles`                                             | Tài khoản Parent và các child profile thuộc Parent đó.                 |
+| Identity            | `Users`, `ChildProfiles` và quan hệ Parent–Child                    | Tài khoản Parent/Child, hồ sơ hiển thị và liên kết quản lý giữa hai loại tài khoản. |
 | Audit               | `AuditLogs`                                                          | Ghi lại hành động, entity, khóa chính, giá trị cũ/mới và cột thay đổi. |
 | Drawing & Character | `Drawings`, `Characters`, `CharType`                                 | Tranh gốc, nhân vật được sinh và loại nhân vật.                        |
 | Story Catalog       | `Categories`, `StoryTemplates`                                       | Danh mục và metadata mẫu truyện.                                       |
@@ -353,7 +358,7 @@ Tên entity dưới đây được đọc từ ERD; tên cột/cardinality cần
 
 ### 9.1. Quan hệ chính
 
-- Một `User` có role Parent quản lý 0–N `ChildProfiles`; mỗi `ChildProfile` thuộc đúng một Parent qua `ParentId`.
+- Parent và Child đều là account có thể đăng nhập. Parent có thể quản lý 0–N Child đã được liên kết; cách lưu liên kết (ParentId nullable trên profile hay bảng quan hệ riêng), consent và cardinality phía Child cần được chốt trong auth/relationship contract.
 - `ChildProfiles` 1–N `Drawings`, `Characters`, `GeneratedStories` và `ReadingLogs`.
 - `Drawings` liên kết với `Characters` để giữ nguồn tạo nhân vật.
 - `Categories` 1–N `StoryTemplates`.
@@ -372,13 +377,15 @@ Tên entity dưới đây được đọc từ ERD; tên cột/cardinality cần
 - `CharacterSlotTemplates` có tọa độ X/Y, scale và lật ngang; editor cần preview đúng tỷ lệ canvas.
 - `StoryQuizTemplates` lưu nội dung câu hỏi, audio, danh sách lựa chọn và chỉ số đáp án đúng.
 - `ChildProfiles` chứa giới hạn thời gian/ngày và category được phép; giới hạn nhân vật/ngày đang chờ quyết định.
+- `ChildProfiles` cần tham chiếu tới Child account (`UserId` hoặc tương đương) và trạng thái link với Parent; không coi `ChildProfile` là identity đăng nhập duy nhất.
 - `AuditLogs` không nên được render như dữ liệu tin cậy từ client; server quyết định nội dung audit.
 
 ### 9.3. Khoảng trống dữ liệu cần xử lý
 
 - Chưa thấy entity rõ ràng cho role/permission, token/refresh session hoặc account verification.
 - `AllowedCategoryIdsJson` có dấu hiệu lưu danh sách ID dạng JSON; cân nhắc bảng many-to-many để đảm bảo toàn vẹn dữ liệu.
-- Quan hệ Parent–Child được chốt là 1–N; `ChildProfiles.ParentId` là khóa ngoại bắt buộc. Không cần bảng nối `ParentChildProfiles`.
+- Quan hệ Parent–Child không còn được mô hình hóa đơn giản là profile bắt buộc có `ParentId`, vì Child có thể tự đăng ký trước. Cần xác định cơ chế invite/link/consent, ownership dữ liệu và có cần bảng `ParentChildLinks` hay không.
+- Child account cần trạng thái xác minh, session/refresh token và chính sách bảo vệ đăng ký phù hợp với nhóm tuổi 6–10; không tự suy diễn chi tiết consent pháp lý khi chưa có quyết định của nhóm.
 - Phê duyệt nhân vật cần ít nhất Pending/Approved/Rejected, người duyệt và thời gian. Lý do từ chối nên phục vụ Parent/audit; trẻ chỉ cần thông báo thân thiện bằng biểu tượng hoặc âm thanh.
 - Cần version cho nhân vật vì recolor/chỉnh sửa phải duyệt lại; phiên bản đã duyệt không được bị ghi đè.
 - Cần story version/snapshot để mỗi lần publish tạo version mới và `GeneratedStory` không đổi ngoài ý muốn.
@@ -396,11 +403,18 @@ Tên entity dưới đây được đọc từ ERD; tên cột/cardinality cần
 - Dự án dùng React + Vite; public website prototype đã được triển khai theo `docs/Public Website.md`.
 - React `19.2.8`, React DOM `19.2.8` và Vite `8.3.0`.
 - Source dùng JavaScript/JSX; đây là convention triển khai của dự án.
-- Đã có React Router, CSS tokens, Nunito tự host, Phosphor icons, service mock và Playwright/axe để kiểm thử. Chưa tích hợp API thật, auth, thanh toán hoặc dashboard theo role.
-- Màn hình starter đã thay bằng trang chủ, thư viện/reader/quiz, demo phụ huynh, so sánh gói và các trang thông tin/auth minh họa. Mã bắt đầu tại `src/app/App.jsx`.
-- Repository hiện chưa có Git metadata trong thư mục dự án.
+- Đã có React Router, TanStack Query, CSS tokens, Nunito tự host, Phosphor icons và Playwright/axe. Dự án dùng CSS thường; React Hook Form, Zod, MSW, Vitest và Testing Library chưa có trong `package.json`.
+- Một SPA có public layout và workspace dùng chung, `AuthProvider`, `RequireAuth`, `RequireRole`, login/logout/session mock và trang hồ sơ chỉ đọc với lối tắt theo role. Register/forgot password hiện chỉ kiểm tra biểu mẫu; chưa tạo tài khoản hoặc gửi email.
+- Parent có tổng quan, danh sách/tạo/chi tiết bé, settings, approvals, library, progress, plan và exports. Flow tạo hồ sơ mock chưa thay thế contract liên kết tài khoản Child độc lập.
+- Content Manager có tổng quan riêng tại `/content`, danh sách/tạo truyện, editor metadata/pages/roles/vocabulary/quizzes/preview, kho asset và thống kê. Đợt sửa hiện tại bổ sung validation, cảnh báo draft chưa lưu và phản hồi lỗi; chưa đồng nghĩa đã nghiệm thu toàn bộ editor.
+- Admin có tổng quan riêng tại `/admin`, users/detail, permissions, reports/detail, system limits, restrictions, monitoring, statistics và audit. Service/query key/mock endpoint cho overview đã được thêm.
+- Public hiện là landing cùng FAQ, contact, about, policy và auth. Stories/pricing/parents là section trên landing; router hiện không khai báo reader/quiz public riêng. Mã route nằm tại `src/app/App.jsx`.
+- HTTP boundary tại `src/lib/api/httpClient.js` mặc định gọi mock trong ứng dụng; `VITE_API_MODE=real` chuyển sang fetch với `VITE_API_URL` (mặc định `/api`). Có đường gọi thật không có nghĩa đã tích hợp/nghiệm thu Backend. Thanh toán, AI/media, email và export thật còn phụ thuộc dịch vụ.
+- Repository đã có Git metadata; snapshot này bao gồm cả file đang sửa và file mới chưa commit.
 
-Điều này có nghĩa Frontend vẫn đang ở giai đoạn khởi tạo và đây là thời điểm phù hợp để chốt cấu trúc trước khi phát triển nhiều màn hình.
+Frontend đã có khung nghiệp vụ cho ba role trên mock. Bước tiếp theo là kiểm chứng các luồng, hoàn thiện UI/UX theo kế hoạch từng role và tích hợp contract thật. Các ưu tiên ở mục 11 là phân loại phạm vi, không phải danh sách toàn bộ việc chưa bắt đầu.
+
+**Tài liệu thiết kế:** [DESIGN.md](DESIGN.md) là đầu mối tổng hợp; [Public Website.md](<Public Website.md>) chứa định hướng thương hiệu và public UI; kế hoạch Parent/Content/Admin chứa đặc tả theo trang. [ASSETS.md](../design/ASSETS.md) ghi nguồn và giới hạn asset.
 
 ## 11. Phạm vi Web Frontend của bạn
 
@@ -420,14 +434,14 @@ Tên entity dưới đây được đọc từ ERD; tên cột/cardinality cần
 
 ### 11.1.1. Điểm bắt đầu khuyến nghị — Sprint 1
 
-Đừng bắt đầu bằng Story Editor. Hãy làm một **vertical slice** nhỏ nhưng hoàn chỉnh: người dùng đăng nhập → nhận role → vào đúng dashboard → Parent tạo/xem một child profile bằng mock data.
+Đừng bắt đầu bằng Story Editor. Hãy làm một **vertical slice** nhỏ nhưng hoàn chỉnh: Parent đăng nhập → vào Parent Portal → xem/liên kết một Child; song song kiểm chứng Child tự đăng ký → đăng nhập → vào trải nghiệm trẻ em bằng mock data.
 
 1. Chốt React Router, thư viện UI/styling, cách gọi API và convention JavaScript (naming, cấu trúc module, JSDoc khi cần).
 2. Tạo app shell: sidebar, header, trang 403/404, loading và error state.
-3. Khai báo role `PARENT`, `CONTENT_MANAGER`, `ADMIN`; tạo route guard và ba dashboard placeholder.
-4. Tạo mock API cho `GET /me`, login, danh sách/tạo/sửa child profile.
-5. Hoàn thiện Parent Children List + Create/Edit Child Profile, gồm validation và responsive state.
-6. Viết component test cho route guard và form child profile; E2E happy path nếu môi trường test đã sẵn sàng.
+3. Khai báo role `PARENT`, `CHILD`, `CONTENT_MANAGER`, `ADMIN`; tạo route guard và dashboard/entry point phù hợp.
+4. Tạo mock API cho `GET /me`, Parent login, Child register/login và danh sách Child đã liên kết.
+5. Hoàn thiện Parent Children/Linked Accounts và flow Child registration/login, gồm validation và responsive state.
+6. Viết component test cho route guard, auth role và liên kết Child; E2E happy path nếu môi trường test đã sẵn sàng.
 
 Sau Sprint 1, bạn có nền dùng chung cho cả ba role và một luồng Parent demo được. Khi API Backend thay đổi, chỉ cần thay mock adapter thay vì viết lại màn hình.
 
@@ -435,7 +449,8 @@ Sau Sprint 1, bạn có nền dùng chung cho cả ba role và một luồng Par
 
 - Authentication: login, register, verify, forgot/reset password.
 - Profile: xem/cập nhật hồ sơ.
-- Parent: danh sách child profile, tạo/sửa profile và usage limits.
+- Parent: danh sách Child đã liên kết, profile/settings và usage limits.
+- Child: tự đăng ký, xác minh, đăng nhập, đăng xuất và khôi phục session.
 - Parent: hàng đợi phê duyệt nhân vật.
 - Content Manager: danh sách story template và editor metadata.
 - Content Manager: quản lý page, role, slot, vocabulary và quiz.
@@ -463,6 +478,8 @@ Sau Sprint 1, bạn có nền dùng chung cho cả ba role và một luồng Par
 
 ## 12. Sitemap/route đề xuất
 
+Danh sách dưới đây đã đối chiếu router ngày 01/10/2026. `/auth/verify` và `/auth/reset-password` vẫn là đề xuất, chưa được khai báo; Child chưa có workspace web riêng.
+
 ```text
 /auth/login
 /auth/register
@@ -473,12 +490,16 @@ Sau Sprint 1, bạn có nền dùng chung cho cả ba role và một luồng Par
 
 /parent
 /parent/children
+/parent/children/new
 /parent/children/:childId
+/parent/children/:childId/dashboard
 /parent/children/:childId/settings
 /parent/children/:childId/approvals
 /parent/children/:childId/library
 /parent/children/:childId/progress
-/parent/exports
+/parent/children/:childId/exports
+/parent/reports
+/parent/plan
 
 /content
 /content/stories
@@ -488,6 +509,7 @@ Sau Sprint 1, bạn có nền dùng chung cho cả ba role và một luồng Par
 /content/stories/:storyId/roles
 /content/stories/:storyId/vocabulary
 /content/stories/:storyId/quizzes
+/content/stories/:storyId/preview
 /content/assets
 /content/statistics
 
@@ -498,7 +520,10 @@ Sau Sprint 1, bạn có nền dùng chung cho cả ba role và một luồng Par
 /admin/system-limits
 /admin/restrictions
 /admin/reports
-/admin/audit-logs
+/admin/reports/:reportId
+/admin/monitoring
+/admin/statistics
+/admin/audit
 ```
 
 **[Đề xuất]** Dùng route theo role nhưng tái sử dụng shell, component, form và data layer. Không chỉ ẩn menu ở client; Backend phải kiểm tra quyền cho mọi endpoint.
@@ -610,12 +635,15 @@ GET    /me
 PATCH  /me
 ```
 
+Với scope mới, auth contract phải hỗ trợ cả Parent và Child: đăng ký, xác minh, đăng nhập, refresh/logout và khôi phục mật khẩu; response phải trả role `PARENT` hoặc `CHILD` cùng trạng thái liên kết Parent–Child nếu có. Tên endpoint và cách phân nhánh form chưa được chốt, không tự hardcode hai bộ endpoint khác nhau ở frontend.
+
 ### 15.2. Parent
 
 ```text
 GET    /children
 POST   /children
 GET    /children/:childId
+GET    /children/:childId/dashboard?range=7d|30d
 PATCH  /children/:childId
 PATCH  /children/:childId/settings
 
@@ -687,8 +715,10 @@ GET    /admin/audit-logs
 
 | Chức năng                  | Parent | Content Manager |       Admin       | Child |
 | -------------------------- | :----: | :-------------: | :---------------: | :---: |
-| Quản lý hồ sơ cá nhân      |   ✓    |        ✓        |         ✓         |   —   |
-| Quản lý child profile      |   ✓    |        —        | Có thể chỉ hỗ trợ |   —   |
+| Quản lý hồ sơ cá nhân      |   ✓    |        ✓        |         ✓         |   ✓   |
+| Quản lý Child đã liên kết |   ✓    |        —        | Có thể chỉ hỗ trợ |   ✓*  |
+| Đăng nhập/đăng xuất tài khoản |   ✓    |        ✓        |        ✓        |   ✓   |
+| Tự đăng ký tài khoản          |   ✓    |        —        |        —        |   ✓   |
 | Duyệt nhân vật/vai         |   ✓    |        —        |  Có thể điều tra  |   —   |
 | Xem learning progress      |   ✓    |        —        | Báo cáo tổng hợp  |   —   |
 | Quản lý story template     |   —    |        ✓        |    Theo quyền     |   —   |
@@ -697,7 +727,9 @@ GET    /admin/audit-logs
 | Xử lý content report       |   —    |        —        |         ✓         |   —   |
 | Tạo nhân vật và đọc truyện |   —    |        —        |         —         |   ✓   |
 
-**[Cần xác nhận]** Admin có quyền sửa nội dung trực tiếp hay chỉ quản trị/giám sát; Parent có được tạo account riêng cho Child hay Child chỉ là profile.
+`*` Child chỉ được cập nhật profile/account của chính mình trong phạm vi Backend cho phép; Parent quản lý dữ liệu của Child đã liên kết.
+
+**[Cần xác nhận]** Admin có quyền sửa nội dung trực tiếp hay chỉ quản trị/giám sát; Child link với Parent bằng invite, mã ghép nối, email hay cơ chế khác; một Child có thể liên kết với một hay nhiều Parent; Parent có được tạo hộ tài khoản Child hay chỉ được mời/liên kết.
 
 ## 17. Phân công gợi ý cho nhóm 5 người
 
@@ -705,7 +737,7 @@ GET    /admin/audit-logs
 
 | Thành viên | Trách nhiệm chính                                                    | Trách nhiệm phối hợp              |
 | ---------- | -------------------------------------------------------------------- | --------------------------------- |
-| 1          | Backend Core: auth, user, child profile, permission, audit           | Tech lead/architecture            |
+| 1          | Backend Core: auth Parent/Child, user, relationship, permission, audit | Tech lead/architecture            |
 | 2          | Backend Domain: story template, generated story, progress, reporting | Database và OpenAPI               |
 | 3 — bạn    | Web Frontend: shared UI, Parent, Content Manager, Admin              | UX, API contract và E2E web       |
 | 4          | Mobile Frontend: drawing, character, library, reader, quiz           | Mobile UX và integration          |
@@ -732,10 +764,10 @@ Nếu thành viên 5 phải dành nhiều thời gian cho AI, nên luân phiên 
 
 ### Giai đoạn 2 — Nội dung và tài khoản (10–11/2026)
 
-- Auth, profile, child profile và quyền.
+- Auth Parent/Child, profile, relationship và quyền.
 - Story template CRUD, page/role/vocabulary/quiz editor bản cơ bản.
 - Upload asset và lưu trữ.
-- Mobile shell, child profile selection và thư viện.
+- Mobile shell, Child login và thư viện.
 
 ### Giai đoạn 3 — Luồng chính (11–12/2026)
 
@@ -818,15 +850,16 @@ Một user story chỉ nên được xem là hoàn thành khi:
 11. Xuất video đã có trong quyền lợi Pro/Family; cần chốt định dạng, API job và phạm vi MVP. PDF hoặc link web chưa được xác nhận.
 12. Recommendation là rule-based hay AI-based?
 13. Admin có quyền chỉnh sửa nội dung hay chỉ giám sát?
-14. Với nhóm tuổi cố định 3–6, có cần chia nội dung thành các mức nhỏ như 3–4 và 5–6 hay không?
+14. Với nhóm tuổi cố định 6–10, có cần chia nội dung thành các mức nhỏ như 6–7, 8–9 và 10 hay chỉ dùng age range chung?
+15. Child tự đăng ký bằng email, username hay mã do Parent/nhà trường cấp; có cần Parent consent hoặc bước link account trước khi sử dụng đầy đủ không?
 
 ### P2 — trước khi release
 
-15. Hỗ trợ ngôn ngữ nào?
-16. Browser, thiết bị và phiên bản OS tối thiểu?
-17. Chính sách lưu/xóa tranh, nhân vật, audio và file export?
-18. Cần audit những hành động nào và ai được xem audit log?
-19. SLA cho AI/export và chiến lược thông báo khi job hoàn tất?
+16. Hỗ trợ ngôn ngữ nào?
+17. Browser, thiết bị và phiên bản OS tối thiểu?
+18. Chính sách lưu/xóa tranh, nhân vật, audio và file export?
+19. Cần audit những hành động nào và ai được xem audit log?
+20. SLA cho AI/export và chiến lược thông báo khi job hoàn tất?
 
 ## 22. Việc Frontend nên làm tiếp theo
 
@@ -834,8 +867,8 @@ Một user story chỉ nên được xem là hoàn thành khi:
 - [ ] Chốt câu hỏi P0 còn lại với nhóm và giảng viên.
 - [ ] Chốt React Router, styling, thư viện form/query và convention JavaScript/JSDoc.
 - [ ] Tạo sitemap + permission matrix bản chính thức.
-- [ ] Xây app shell, route guard và mock API cho `/me`, auth và child profiles.
-- [ ] Hoàn thiện luồng Parent: Children List → Create/Edit Child Profile.
+- [ ] Xây app shell, route guard và mock API cho `/me`, Parent/Child auth và linked Child accounts.
+- [ ] Hoàn thiện luồng Parent: Linked Children List → Link/Manage Child Account.
 - [ ] Vẽ low-fidelity wireflow cho parent approval, story editor và admin report.
 - [ ] Thống nhất OpenAPI/error envelope/enum với Backend.
 - [ ] Làm Story Template editor dạng form trước.

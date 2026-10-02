@@ -23,12 +23,15 @@ import ChildSettingsPage from "../features/parent/pages/ChildSettingsPage";
 import ChildApprovalsPage from "../features/parent/pages/ChildApprovalsPage";
 import ChildLibraryPage from "../features/parent/pages/ChildLibraryPage";
 import ChildProgressPage from "../features/parent/pages/ChildProgressPage";
+import ChildDashboardPage from "../features/parent/pages/ChildDashboardPage";
 import ParentPlanPage from "../features/parent/pages/ParentPlanPage";
 import ChildWorkspaceLayout from "../features/parent/layouts/ChildWorkspaceLayout";
 import ParentExportsPage from "../features/parent/pages/ParentExportsPage";
+import ChildExportsPage from "../features/parent/pages/ChildExportsPage";
+import ParentReportsPage from "../features/parent/pages/ParentReportsPage";
 import ProfilePage from "../features/profile/pages/ProfilePage";
-import RoleOverviewPage from "../features/workspace/pages/RoleOverviewPage";
 import AdminUsersPage from "../features/admin/pages/AdminUsersPage";
+import AdminOverviewPage from "../features/admin/pages/AdminOverviewPage";
 import AdminUserDetailPage from "../features/admin/pages/AdminUserDetailPage";
 import AdminReportsPage from "../features/admin/pages/AdminReportsPage";
 import AdminReportDetailPage from "../features/admin/pages/AdminReportDetailPage";
@@ -47,6 +50,7 @@ import StoryQuizPage from "../features/content/pages/StoryQuizPage";
 import StoryPreviewPage from "../features/content/pages/StoryPreviewPage";
 import AssetsPage from "../features/content/pages/AssetsPage";
 import ContentStatisticsPage from "../features/content/pages/ContentStatisticsPage";
+import ContentOverviewPage from "../features/content/pages/ContentOverviewPage";
 import AdminStatisticsPage from "../features/admin/pages/AdminStatisticsPage";
 import AdminAuditPage from "../features/admin/pages/AdminAuditPage";
 import { ROLES } from "../lib/permissions/roles";
@@ -69,6 +73,7 @@ function titleForPath(pathname) {
   if (titles[pathname]) return titles[pathname];
   if (pathname === "/parent") return "Tổng quan Parent";
   if (pathname === "/parent/exports") return "Xuất truyện và báo cáo";
+  if (pathname.includes("/parent/children") && pathname.includes("/dashboard")) return "Tổng quan hồ sơ bé";
   if (pathname.includes("/parent/children")) return "Hồ sơ bé";
   if (pathname.startsWith("/parent")) return "Parent Portal";
   if (pathname === "/content") return "Tổng quan Content Manager";
@@ -119,16 +124,19 @@ export default function App() {
                 <Route path="parent/children/new" element={<NewChildPage />} />
                 <Route path="parent/children/:childId" element={<ChildWorkspaceLayout />}>
                   <Route index element={<ChildDetailPage />} />
+                  <Route path="dashboard" element={<ChildDashboardPage />} />
                   <Route path="settings" element={<ChildSettingsPage />} />
                   <Route path="approvals" element={<ChildApprovalsPage />} />
                   <Route path="library" element={<ChildLibraryPage />} />
                   <Route path="progress" element={<ChildProgressPage />} />
+                  <Route path="exports" element={<ChildExportsPage />} />
                 </Route>
                 <Route path="parent/plan" element={<ParentPlanPage />} />
                 <Route path="parent/exports" element={<ParentExportsPage />} />
+                <Route path="parent/reports" element={<ParentReportsPage />} />
               </Route>
               <Route element={<RequireRole roles={[ROLES.CONTENT]} />}>
-                <Route path="content" element={<RoleOverviewPage role={ROLES.CONTENT} />} />
+                <Route path="content" element={<ContentOverviewPage />} />
                 <Route path="content/stories" element={<ContentStoriesPage />} />
                 <Route path="content/stories/new" element={<StoryEditorPage mode="new" />} />
                 <Route path="content/stories/:storyId" element={<StoryEditorLayout />}>
@@ -143,7 +151,7 @@ export default function App() {
                 <Route path="content/statistics" element={<ContentStatisticsPage />} />
               </Route>
               <Route element={<RequireRole roles={[ROLES.ADMIN]} />}>
-                <Route path="admin" element={<RoleOverviewPage role={ROLES.ADMIN} />} />
+                <Route path="admin" element={<AdminOverviewPage />} />
                 <Route path="admin/users" element={<AdminUsersPage />} />
                 <Route path="admin/users/:userId" element={<AdminUserDetailPage />} />
                 <Route path="admin/reports" element={<AdminReportsPage />} />

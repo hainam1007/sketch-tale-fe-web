@@ -3,10 +3,11 @@ import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   BookOpen,
   ChartLineUp,
-  DownloadSimple,
+  Gauge,
   House,
   List,
   Package,
+  Prohibit,
   SignOut,
   ShieldCheck,
   UserCircle,
@@ -25,7 +26,7 @@ const roleNavigation = {
     { to: "/parent", label: "Tổng quan", icon: House, end: true },
     { to: "/parent/children", label: "Hồ sơ bé", icon: UsersThree },
     { to: "/parent/plan", label: "Gói sử dụng", icon: Package },
-    { to: "/parent/exports", label: "Xuất truyện", icon: DownloadSimple },
+    { to: "/parent/reports", label: "Báo cáo Family", icon: ChartLineUp },
   ],
   [ROLES.CONTENT]: [
     { to: "/content", label: "Tổng quan", icon: House, end: true },
@@ -36,7 +37,10 @@ const roleNavigation = {
   [ROLES.ADMIN]: [
     { to: "/admin", label: "Tổng quan", icon: House, end: true },
     { to: "/admin/users", label: "Tài khoản", icon: UsersThree },
+    { to: "/admin/permissions", label: "Phân quyền", icon: ShieldCheck },
     { to: "/admin/reports", label: "Báo cáo nội dung", icon: ShieldCheck },
+    { to: "/admin/system-limits", label: "Giới hạn hệ thống", icon: Gauge },
+    { to: "/admin/restrictions", label: "Nội dung hạn chế", icon: Prohibit },
     { to: "/admin/monitoring", label: "Giám sát", icon: ChartLineUp },
     { to: "/admin/statistics", label: "Số liệu", icon: ChartLineUp },
     { to: "/admin/audit", label: "Audit", icon: ShieldCheck },
@@ -56,7 +60,7 @@ export default function WorkspaceLayout() {
   }
 
   return (
-    <div className="workspace-app">
+    <div className={`workspace-app ${user.role === ROLES.PARENT ? "workspace-app-parent" : ""}`}>
       <aside className={`workspace-sidebar ${mobileOpen ? "workspace-sidebar-open" : ""}`}>
         <div className="workspace-sidebar-top">
           <Link to={roleHome(user.role)} className="workspace-brand" onClick={() => setMobileOpen(false)}>
@@ -67,7 +71,7 @@ export default function WorkspaceLayout() {
           </button>
         </div>
         <div className="workspace-role-label">{roleLabels[user.role]}</div>
-        <nav className="workspace-nav" aria-label="Điều hướng khu vực làm việc">
+        <nav id="workspace-navigation" className="workspace-nav" aria-label="Điều hướng khu vực làm việc">
           {navigation.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end} onClick={(event) => { if (!confirmContentEditorNavigation(event)) event.preventDefault(); else setMobileOpen(false); }}>
               <Icon size={20} aria-hidden="true" /> {label}
@@ -85,7 +89,7 @@ export default function WorkspaceLayout() {
       </aside>
       {mobileOpen && <button className="workspace-scrim" type="button" aria-label="Đóng menu" onClick={() => setMobileOpen(false)} />}
       <div className="workspace-content">
-        <button className="workspace-menu workspace-mobile-menu" type="button" aria-label="Mở điều hướng" onClick={() => setMobileOpen(true)}>
+        <button className="workspace-menu workspace-mobile-menu" type="button" aria-label="Mở điều hướng" aria-expanded={mobileOpen} aria-controls="workspace-navigation" onClick={() => setMobileOpen(true)}>
           <List size={23} aria-hidden="true" />
         </button>
         <main id="main" className="workspace-main" tabIndex={-1}>

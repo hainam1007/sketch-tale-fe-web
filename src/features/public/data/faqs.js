@@ -4,7 +4,7 @@ export const faqs = [
     group: "Bắt đầu",
     question: "SketchTale dành cho trẻ bao nhiêu tuổi?",
     answer:
-      "SketchTale hướng tới trẻ từ 3 đến 6 tuổi, với sự đồng hành của phụ huynh.",
+      "SketchTale hướng tới trẻ từ 6 đến 10 tuổi, với sự đồng hành của phụ huynh.",
   },
   {
     id: "devices",
@@ -18,14 +18,14 @@ export const faqs = [
     group: "Dành cho phụ huynh",
     question: "Bé có cần tự tạo tài khoản không?",
     answer:
-      "Phụ huynh đăng nhập và quản lý hồ sơ của bé. Bé không cần tự tạo tài khoản riêng. Chức năng tài khoản trên bản trải nghiệm này chưa kết nối hệ thống.",
+      "Trẻ 6–10 tuổi có thể tự đăng ký và đăng nhập; phụ huynh vẫn quản lý các quyền và dữ liệu của Child đã liên kết. Chức năng tài khoản trên bản trải nghiệm này chưa kết nối hệ thống.",
   },
   {
     id: "profiles",
     group: "Dành cho phụ huynh",
     question: "Một phụ huynh có thể quản lý nhiều bé không?",
     answer:
-      "Có. Mỗi hồ sơ trẻ thuộc một tài khoản phụ huynh và có cài đặt riêng. Free có 1 hồ sơ, Pro tối đa 3 và Family tối đa 5 hồ sơ.",
+      "Có, theo các Child account đã được liên kết và được Backend cho phép. Free có 1, Pro tối đa 3 và Family tối đa 5 Child theo cấu hình hiện tại.",
   },
   {
     id: "controls",

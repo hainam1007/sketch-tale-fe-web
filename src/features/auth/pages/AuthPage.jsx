@@ -7,7 +7,6 @@ import {
   EnvelopeSimple,
   Eye,
   EyeSlash,
-  Info,
   LockKey,
   Sparkle,
   Star,
@@ -227,15 +226,6 @@ export default function AuthPage({ mode }) {
             {copy.button}
             <ArrowRight size={20} aria-hidden="true" />
           </button>
-          {mode === "login" && (
-            <div className="auth-demo-accounts">
-              <strong>Tài khoản demo</strong>
-              <span>Parent: parent@example.com / parent123</span>
-              <span>Family: family@example.com / family123</span>
-              <span>Content: content@example.com / content123</span>
-              <span>Admin: admin@example.com / admin123</span>
-            </div>
-          )}
           <div role="status">
             {message && <p className={`${messageType === "error" ? "auth-error-message" : "success-message"}`}>{message}</p>}
           </div>
@@ -244,15 +234,11 @@ export default function AuthPage({ mode }) {
           {mode === "login" ? (
             <>
               Chưa có tài khoản?{" "}
-              <Link to="/auth/register">Xem mẫu đăng ký</Link>
+              <Link to="/auth/register">Đăng ký</Link>
             </>
           ) : (
             <Link to="/auth/login">Quay lại đăng nhập</Link>
           )}
-        </p>
-        <p className="auth-demo-note">
-          <Info size={18} aria-hidden="true" />
-          <span>{mode === "login" ? "Phiên đăng nhập đang dùng mock API và chỉ dành cho demo. Không dùng mật khẩu thật." : "Bản trải nghiệm, chưa tạo tài khoản thật. Bố mẹ hãy dùng thông tin thử, không dùng mật khẩu thật."}</span>
         </p>
       </section>
     </div>

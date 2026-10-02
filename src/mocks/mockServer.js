@@ -62,6 +62,7 @@ const seedDatabase = {
         displayName: "Mây",
         birthDate: "2021-05-14",
         avatar: "seed",
+        linkStatus: "active",
         createdAt: "2026-09-01T08:00:00.000Z",
       },
       {
@@ -69,6 +70,7 @@ const seedDatabase = {
         displayName: "Nắng",
         birthDate: "2020-11-02",
         avatar: "rabbit",
+        linkStatus: "active",
         createdAt: "2026-09-02T08:00:00.000Z",
       },
     ],
@@ -78,6 +80,7 @@ const seedDatabase = {
         displayName: "Bông",
         birthDate: "2022-03-18",
         avatar: "rabbit",
+        linkStatus: "active",
         createdAt: "2026-09-03T08:00:00.000Z",
       },
     ],
@@ -306,7 +309,7 @@ const seedDatabase = {
   ],
   systemLimits: { maxAssetSizeMb: 5, maxStoryPages: 12, maxSlotsPerRole: 8, aiGenerationsPerMinute: 10, parentChildProfileLimit: 5, revision: 1, updatedAt: "2026-09-10T08:00:00.000Z" },
   restrictions: [
-    { id: "restriction-01", type: "keyword", value: "bạo lực", scope: "story", status: "active", reason: "Không phù hợp độ tuổi 3–6", updatedAt: "2026-09-10T08:00:00.000Z" },
+    { id: "restriction-01", type: "keyword", value: "bạo lực", scope: "story", status: "active", reason: "Không phù hợp độ tuổi 6–10", updatedAt: "2026-09-10T08:00:00.000Z" },
     { id: "restriction-02", type: "topic", value: "nội dung kinh dị", scope: "story", status: "active", reason: "Cần kiểm duyệt thủ công", updatedAt: "2026-09-10T08:00:00.000Z" },
   ],
   monitoring: [
@@ -506,13 +509,23 @@ function ensureContentCollections(database) {
     database.approvals[child.id] ||= [];
     database.library[child.id] ||= [];
   });
+  Object.values(database.approvals).flat().forEach((approval) => {
+    if (!approval.sensitive) return;
+    approval.permissionGranted ??= false;
+    approval.permissionRevision ||= 1;
+  });
 }
 
 function ownedChild(database, user, childId) {
   requireParent(user);
   const children = database.children[user.id] || [];
   const child = children.find((item) => item.id === childId);
-  if (child) return child;
+  if (child) {
+    if (child.linkStatus && child.linkStatus !== "active") {
+      throw new ApiError({ status: 403, code: "RELATIONSHIP_INACTIVE", message: "Hồ sơ này chưa có quan hệ quản lý đang hoạt động." });
+    }
+    return child;
+  }
   const belongsToAnotherAccount = Object.values(database.children).some((list) => list.some((item) => item.id === childId));
   throw new ApiError({ status: belongsToAnotherAccount ? 403 : 404, code: belongsToAnotherAccount ? "FORBIDDEN" : "NOT_FOUND", message: belongsToAnotherAccount ? "Hồ sơ này không thuộc tài khoản của bạn." : "Không tìm thấy hồ sơ bé." });
 }
@@ -691,7 +704,7 @@ function delay(signal) {
 }
 
 function childResponse(child) {
-  return { ...child };
+  return { ...child, linkStatus: child.linkStatus || "active" };
 }
 
 function exportQuota(database, user) {
@@ -805,11 +818,16 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const params = new URLSearchParams(queryString);
     const status = params.get("status") || "all";
     const search = params.get("search")?.toLowerCase() || "";
+    const sort = params.get("sort") || "updated_desc";
     const page = Math.max(1, Number(params.get("page") || 1));
     const pageSize = Math.min(50, Math.max(1, Number(params.get("pageSize") || 10)));
     const items = database.reports
       .filter((report) => (status === "all" || report.status === status) && (!search || `${report.targetTitle} ${report.reason} ${report.reporter}`.toLowerCase().includes(search)))
-      .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+      .sort((left, right) => {
+        if (sort === "created_asc") return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+        const priority = { open: 0, under_review: 1, rejected: 2, resolved: 3 };
+        return (priority[left.status] ?? 9) - (priority[right.status] ?? 9) || new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+      });
     const total = items.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     return { items: items.slice((page - 1) * pageSize, page * pageSize).map(clone), total, page, pageSize, totalPages };
@@ -857,7 +875,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const index = database.users.findIndex((candidate) => candidate.id === permissionMatch[1]);
     if (index < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy tài khoản." });
     if (database.users[index].id === user.id) throw new ApiError({ status: 409, code: "SELF_ROLE_CHANGE_NOT_ALLOWED", message: "Không thể tự đổi role của tài khoản đang đăng nhập." });
-    if (!["parent", "content_manager", "admin"].includes(body?.role)) fieldError("Role chưa hợp lệ.", { role: "Chọn role được server hỗ trợ." });
+    if (!["parent", "child", "content_manager", "admin"].includes(body?.role)) fieldError("Role chưa hợp lệ.", { role: "Chọn role được server hỗ trợ." });
     if (database.users[index].role === "admin" && body.role !== "admin" && database.users.filter((candidate) => candidate.role === "admin").length === 1) throw new ApiError({ status: 409, code: "LAST_ADMIN_NOT_ALLOWED", message: "Không thể hạ role của admin cuối cùng." });
     const target = database.users[index];
     if (body?.revision !== undefined && body.revision !== target.revision) {
@@ -887,7 +905,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
 
   if (pathname === "/admin/restrictions" && method === "GET") {
     requireRole(user, "admin", "Chỉ quản trị viên mới có thể xem restrictions.");
-    return { items: clone(database.restrictions) };
+    return { items: clone(database.restrictions).map((item) => ({ ...item, revision: item.revision || 1 })) };
   }
   const restrictionMatch = pathname.match(/^\/admin\/restrictions\/([^/]+)$/);
   if (restrictionMatch && method === "PATCH") {
@@ -895,7 +913,10 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const index = database.restrictions.findIndex((item) => item.id === restrictionMatch[1]);
     if (index < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy restriction." });
     if (!["active", "disabled"].includes(body?.status)) fieldError("Trạng thái restriction chưa hợp lệ.", { status: "Chọn active hoặc disabled." });
-    database.restrictions[index] = { ...database.restrictions[index], status: body.status, updatedAt: new Date().toISOString() };
+    const previous = database.restrictions[index];
+    if (body?.revision !== undefined && body.revision !== (previous.revision || 1)) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Rule đã được cập nhật. Hãy tải lại trước khi thao tác." });
+    database.restrictions[index] = { ...previous, status: body.status, revision: (previous.revision || 1) + 1, updatedAt: new Date().toISOString() };
+    appendAuditEvent(database, { actor: user, action: `restriction.${body.status}`, targetType: "restriction", target: previous.value });
     writeDatabase(database);
     return clone(database.restrictions[index]);
   }
@@ -914,8 +935,46 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     else if (body?.action === "cancel" && job.status === "processing") Object.assign(job, { status: "cancelled", error: null });
     else fieldError("Thao tác monitoring chưa hợp lệ.", { action: "Chỉ retry tác vụ failed hoặc cancel tác vụ processing." });
     job.updatedAt = new Date().toISOString();
+    appendAuditEvent(database, { actor: user, action: `monitoring.${body.action}`, targetType: "job", target: job.target });
     writeDatabase(database);
     return clone(job);
+  }
+
+  if (pathname === "/admin/overview" && method === "GET") {
+    requireRole(user, "admin", "Chỉ quản trị viên mới có thể xem tổng quan.");
+    const reports = database.reports || [];
+    const jobs = database.monitoring || [];
+    const queue = [
+      ...reports.filter((item) => ["open", "under_review"].includes(item.status)).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)).slice(0, 4).map((item) => ({
+        id: item.id,
+        kind: "report",
+        kindLabel: "Báo cáo nội dung",
+        title: item.targetTitle,
+        status: item.status,
+        meta: `${item.reason} · ${item.assignee || "Chưa phân công"}`,
+        to: `/admin/reports/${item.id}`,
+      })),
+      ...jobs.filter((item) => ["failed", "processing"].includes(item.status)).slice(0, 3).map((item) => ({
+        id: item.id,
+        kind: "job",
+        kindLabel: "Tác vụ vận hành",
+        title: item.target,
+        status: item.status,
+        meta: item.error || `${item.type} · ${item.progress ?? "Chưa có"}%`,
+        to: "/admin/monitoring",
+      })),
+    ].slice(0, 5);
+    return {
+      counts: {
+        reportsOpen: reports.filter((item) => item.status === "open").length,
+        reportsUnderReview: reports.filter((item) => item.status === "under_review").length,
+        jobsFailed: jobs.filter((item) => item.status === "failed").length,
+        jobsProcessing: jobs.filter((item) => item.status === "processing").length,
+      },
+      queue,
+      recentAudit: clone((database.auditEvents || []).slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5)),
+      generatedAt: new Date().toISOString(),
+    };
   }
 
   if (pathname === "/admin/statistics" && method === "GET") {
@@ -1216,6 +1275,69 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     return { items: clone(database.categories) };
   }
 
+  const childDashboardMatch = pathname.match(/^\/children\/([^/]+)\/dashboard$/);
+  if (childDashboardMatch && method === "GET") {
+    const child = ownedChild(database, user, childDashboardMatch[1]);
+    const childId = child.id;
+    const params = new URLSearchParams(queryString);
+    const range = params.get("range") || "7d";
+    const simulate = params.get("simulate");
+    const progress = database.progress[childId] || seedDatabase.progress["child-minh-02"];
+    const period = progress.ranges[range] || progress.ranges["30d"];
+    const approvals = database.approvals[childId] || [];
+    const settings = database.childSettings[childId] || { readingTimeLimitMinutes: null, allowedCategories: [] };
+    const recentActivities = [];
+    if (period.latestActivity) {
+      recentActivities.push({
+        id: `${childId}-latest-reading`,
+        childId,
+        type: "reading",
+        title: period.latestActivity.title,
+        detail: period.latestActivity.type,
+        createdAt: period.latestActivity.date,
+        resourceId: period.latestActivity.storyId || null,
+      });
+    }
+    approvals.filter((item) => item.status === "pending").slice(0, 3).forEach((item) => {
+      recentActivities.push({
+        id: `${childId}-${item.id}`,
+        childId,
+        type: "approval",
+        title: item.name,
+        detail: item.kind === "sensitive_role" ? "Quyền vai cần xem" : "Phiên bản cần xem",
+        createdAt: item.updatedAt,
+        resourceId: item.id,
+      });
+    });
+    const dashboard = {
+      childId,
+      child: childResponse(child),
+      range,
+      period: {
+        from: new Date(Date.now() - (range === "30d" ? 30 : 7) * 24 * 60 * 60 * 1000).toISOString(),
+        to: new Date().toISOString(),
+        timezone: database.entitlements[user.id]?.timezone || "Asia/Ho_Chi_Minh",
+      },
+      generatedAt: new Date().toISOString(),
+      summary: {
+        ...(period.summary || { readingMinutes: 0, storiesCompleted: 0, vocabularyReviewed: 0, quizAccuracy: null }),
+        pendingApprovals: approvals.filter((item) => item.status === "pending").length,
+      },
+      pendingApprovals: approvals.filter((item) => item.status === "pending").length,
+      recentActivities,
+      settingsSummary: {
+        readingTimeLimitMinutes: settings.readingTimeLimitMinutes ?? null,
+        allowedCategories: clone(settings.allowedCategories || []),
+      },
+      errors: [],
+    };
+    if (simulate === "recent-error") {
+      dashboard.recentActivities = [];
+      dashboard.errors = [{ section: "recentActivities", message: "Hoạt động gần đây tạm thời chưa tải được." }];
+    }
+    return clone(dashboard);
+  }
+
   if (pathname === "/parent/dashboard" && method === "GET") {
     requireParent(user);
     const params = new URLSearchParams(queryString);
@@ -1234,7 +1356,9 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     requireParent(user);
     const params = new URLSearchParams(queryString);
     const status = params.get("status") || "all";
+    const childId = params.get("childId") || "";
     const items = (database.exports[user.id] || [])
+      .filter((item) => !childId || item.childId === childId)
       .filter((item) => status === "all" || item.status === status)
       .map((item) => ({ ...clone(item), downloadExpired: exportIsExpired(item) }));
     return { items, total: items.length, quota: exportQuota(database, user) };
@@ -1356,6 +1480,26 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     }
   }
 
+  const sensitivePermissionMatch = pathname.match(/^\/children\/([^/]+)\/approvals\/([^/]+)\/sensitive-role$/);
+  if (sensitivePermissionMatch) {
+    ownedChild(database, user, sensitivePermissionMatch[1]);
+    const childId = sensitivePermissionMatch[1];
+    const approvalId = sensitivePermissionMatch[2];
+    const items = database.approvals[childId] || [];
+    const approval = items.find((item) => item.id === approvalId);
+    if (!approval) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy yêu cầu phê duyệt." });
+    if (!approval.sensitive) throw new ApiError({ status: 409, code: "NOT_SENSITIVE_ROLE", message: "Mục này không phải vai nhạy cảm." });
+    if (method !== "PATCH") throw new ApiError({ status: 405, code: "METHOD_NOT_ALLOWED", message: "Thao tác quyền vai không được hỗ trợ." });
+    if (body?.permissionRevision && body.permissionRevision !== approval.permissionRevision) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Quyền vai đã thay đổi. Hãy tải lại trước khi cập nhật." });
+    if (!["allow", "revoke"].includes(body?.action)) fieldError("Thao tác quyền vai chưa hợp lệ.", { action: "Chọn allow hoặc revoke." });
+    approval.permissionGranted = body.action === "allow";
+    approval.permissionRevision += 1;
+    approval.permissionUpdatedBy = user.email;
+    approval.permissionUpdatedAt = new Date().toISOString();
+    writeDatabase(database);
+    return clone(approval);
+  }
+
   const approvalsMatch = pathname.match(/^\/children\/([^/]+)\/approvals(?:\/([^/]+))?$/);
   if (approvalsMatch) {
     ownedChild(database, user, approvalsMatch[1]);
@@ -1375,7 +1519,6 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       if (body?.revision && body.revision !== approval.revision) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Yêu cầu đã có phiên bản mới. Hãy tải lại trước khi phê duyệt." });
       if (!["approve", "reject"].includes(body?.action)) fieldError("Thao tác phê duyệt chưa hợp lệ.", { action: "Chọn approve hoặc reject." });
       approval.status = body.action === "approve" ? "approved" : "rejected";
-      approval.permissionGranted = approval.sensitive && body.action === "approve";
       approval.revision += 1;
       approval.reviewedBy = user.email;
       approval.reviewNote = body.note?.trim() || "";
@@ -1483,6 +1626,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       displayName: body.displayName.trim(),
       birthDate: body.birthDate,
       avatar: body.avatar || "seed",
+      linkStatus: "active",
       createdAt: new Date().toISOString(),
     };
     database.children[user.id] = [...children, child];

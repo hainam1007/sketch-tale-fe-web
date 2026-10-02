@@ -177,6 +177,10 @@
   line-height: 1.4;
   text-transform: uppercase;
 }
+.landing-kicker svg {
+  display: block;
+  flex: 0 0 auto;
+}
 .landing-actions {
   display: flex;
   align-items: center;
