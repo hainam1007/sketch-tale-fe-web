@@ -1,0 +1,107 @@
+﻿/* Shared dropdown treatment. Native selects retain browser form and keyboard semantics. */
+select {
+  accent-color: #8a6200;
+}
+
+option {
+  color: #001050;
+}
+
+select:focus-visible {
+  outline: 3px solid #a57405 !important;
+  outline-offset: 2px;
+}
+
+@supports (appearance: base-select) {
+  select,
+  select::picker(select) {
+    appearance: base-select;
+  }
+
+  select {
+    color-scheme: light;
+  }
+
+  select::picker-icon {
+    color: #795a12;
+    transition: transform 180ms ease;
+  }
+
+  select:open::picker-icon {
+    transform: rotate(180deg);
+  }
+
+  select::picker(select) {
+    box-sizing: border-box;
+    min-width: anchor-size(width);
+    max-width: min(24rem, calc(100vw - 2rem));
+    max-height: min(19rem, 48vh);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-color: #d8c48b transparent;
+    scrollbar-width: thin;
+    padding: 6px;
+    border: 1px solid #e5dcc6;
+    border-radius: 13px;
+    color: #001050;
+    background: #fffefa;
+    box-shadow: 0 14px 32px rgb(33 39 53 / 16%), 0 2px 5px rgb(33 39 53 / 7%);
+    opacity: 0;
+    transform: translateY(-7px);
+    transform-origin: top center;
+    transition: opacity 160ms ease, transform 180ms cubic-bezier(.2, .75, .25, 1), overlay 180ms allow-discrete, display 180ms allow-discrete;
+  }
+
+  select:open::picker(select) {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @starting-style {
+    select:open::picker(select) {
+      opacity: 0;
+      transform: translateY(-7px);
+    }
+  }
+
+  select option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 8px 11px;
+    border: 0;
+    border-radius: 8px;
+    color: #24324d;
+    background: transparent;
+    font: inherit;
+    text-align: start;
+    transition: color 140ms ease, background-color 140ms ease;
+  }
+
+  select option:hover,
+  select option:focus-visible {
+    color: #001050;
+    background: #fff4ce;
+  }
+
+  select option:checked {
+    color: #604500;
+    background: #fff0bf;
+    font-weight: 800;
+  }
+
+  select option::checkmark {
+    color: #806016;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  select::picker-icon,
+  select::picker(select),
+  select option {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+  }
+}

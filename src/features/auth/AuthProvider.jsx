@@ -1,16 +1,26 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { authService } from "./authService";
+import { authService, isRealApi } from "./authService";
+import { hasAccessToken } from "../../lib/api/httpClient";
 import { normalizeApiError } from "../../lib/api/errors";
 
 const AuthContext = createContext(null);
 
 export default function AuthProvider({ children }) {
   const queryClient = useQueryClient();
-  const [session, setSession] = useState({ status: "loading", user: null });
+  const [session, setSession] = useState(() =>
+    isRealApi && !hasAccessToken()
+      ? { status: "anonymous", user: null }
+      : { status: "loading", user: null },
+  );
 
   useEffect(() => {
     let active = true;
+    if (isRealApi && !hasAccessToken()) {
+      return () => {
+        active = false;
+      };
+    }
     authService
       .restore()
       .then((user) => {

@@ -53,7 +53,7 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
     mutationFn: (payload) => childrenService.createExport(payload),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.exports(user.id) });
-      setFormMessage({ type: "success", text: data.deduplicated ? "Yêu cầu đã tồn tại; không tạo bản trùng." : "Export đã được tạo và đang chờ hệ thống xử lý." });
+      setFormMessage({ type: "success", text: data.deduplicated ? "Yêu cầu đã tồn tại; không tạo bản trùng." : "Bản xuất đã được tạo và đang chờ xử lý." });
       idempotencyKeyRef.current = null;
     },
     onError: (error) => setFormMessage({ type: "error", text: error.message }),
@@ -74,7 +74,7 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
     mutationFn: (payload) => childrenService.updateFamilyReportSettings(payload),
     onSuccess: (data) => {
       queryClient.setQueryData(queryKeys.familyReport(user.id), data);
-      setReportMessage({ type: "success", text: "Đã lưu cài đặt báo cáo. Việc tạo và gửi email vẫn do backend quản lý." });
+      setReportMessage({ type: "success", text: "Đã lưu cài đặt báo cáo. Việc tạo và gửi email do dịch vụ báo cáo xử lý." });
     },
     onError: (error) => setReportMessage({ type: "error", text: error.message }),
   });
@@ -110,14 +110,15 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
   const jobs = exportsQuery.data?.items || [];
   const quota = exportsQuery.data?.quota;
   const report = reportQuery.data;
+  const canSubmitExport = Boolean(selectedChildId && form.storyId) && !createMutation.isPending && !childrenQuery.isLoading && !libraryQuery.isLoading && !libraryQuery.isError;
 
   return (
-    <div className="parent-page export-page">
+    <div className={`parent-page export-page ${fixedChildId ? "export-page-child" : "export-page-family"}`}>
       <div className="workspace-page-heading">
         <div>
-          <p className="workspace-eyebrow">GIA ĐÌNH / EXPORT</p>
+          <p className="workspace-eyebrow">GIA ĐÌNH / BẢN XUẤT</p>
           <h1>Giữ lại những trang đã cùng nhau đọc.</h1>
-          <p>Tạo file từ dữ liệu server, theo dõi trạng thái xử lý và chỉ tải xuống khi link còn hiệu lực.</p>
+          <p>Tạo bản xuất từ truyện của gia đình, theo dõi trạng thái xử lý và tải xuống khi sẵn sàng.</p>
         </div>
         <span className="parent-feature-icon"><FileArrowDown size={29} aria-hidden="true" /></span>
       </div>
@@ -125,9 +126,9 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
       <section className="export-quota-card" aria-label="Hạn mức export">
         <div className="export-quota-icon"><Lightning size={21} weight="fill" aria-hidden="true" /></div>
         <div>
-          <span className="export-kicker">HẠN MỨC TỪ ENTITLEMENT SERVER</span>
+          <span className="export-kicker">HẠN MỨC CỦA GIA ĐÌNH</span>
           <strong>{quota ? quota.limit === null ? `${quota.used} lượt đã tạo · không giới hạn` : `${quota.used} / ${quota.limit} lượt trong chu kỳ` : "Đang tải hạn mức…"}</strong>
-          <p>{quota?.plan === "Free" ? "Gói Free vẫn có thể xuất PDF; xuất video cần gói Pro hoặc Family." : "Quota được tính ở server để tránh tạo file trùng hoặc vượt giới hạn."}</p>
+          <p>{quota?.plan === "Free" ? "Gói Free vẫn có thể xuất PDF; xuất video cần gói Pro hoặc Family." : "Mỗi yêu cầu được tính một lần theo hạn mức của tài khoản."}</p>
         </div>
         {quota?.remaining !== null && quota?.remaining !== undefined && <span className={quota.remaining === 0 ? "export-quota-warning" : "export-quota-remaining"}>Còn {quota.remaining}</span>}
       </section>
@@ -138,16 +139,16 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
             <span className="export-section-icon"><FileArrowDown size={20} aria-hidden="true" /></span>
             <div><p className="workspace-eyebrow">TẠO YÊU CẦU</p><h2 id="export-create-title">Xuất một câu chuyện</h2></div>
           </div>
-          <p className="export-muted-copy">Một yêu cầu chỉ được tính quota một lần. Bạn có thể rời trang và quay lại theo dõi job sau.</p>
+          <p className="export-muted-copy">Một yêu cầu chỉ được tính một lần. Bạn có thể rời trang và quay lại theo dõi trạng thái sau.</p>
           <form onSubmit={submitExport}>
             <div className="export-form-grid">
               {!fixedChildId && <label className="export-field" htmlFor="export-child"><span>Hồ sơ bé</span><select id="export-child" name="childId" value={form.childId} onChange={updateForm} disabled={childrenQuery.isLoading}><option value="">Chọn hồ sơ bé</option>{children.map((child) => <option key={child.id} value={child.id}>{child.displayName}</option>)}</select></label>}
-              <label className="export-field" htmlFor="export-story"><span>Truyện trong thư viện{fixedChildId ? ` của ${children.find((child) => child.id === fixedChildId)?.displayName || "bé"}` : ""}</span><select id="export-story" name="storyId" value={form.storyId} onChange={updateForm} disabled={!selectedChildId || libraryQuery.isLoading}><option value="">{libraryQuery.isLoading ? "Đang tải thư viện…" : "Chọn truyện"}</option>{stories.map((story) => <option key={story.id} value={story.sourceId || story.id}>{story.title}</option>)}</select></label>
+              <label className="export-field" htmlFor="export-story"><span>Truyện trong thư viện{fixedChildId ? ` của ${children.find((child) => child.id === fixedChildId)?.displayName || "bé"}` : ""}</span><select id="export-story" name="storyId" value={form.storyId} onChange={updateForm} disabled={!selectedChildId || libraryQuery.isLoading || libraryQuery.isError}><option value="">{libraryQuery.isLoading ? "Đang tải thư viện…" : "Chọn truyện"}</option>{stories.map((story) => <option key={story.id} value={story.sourceId || story.id}>{story.title}</option>)}</select>{libraryQuery.isError ? <small className="export-field-help export-field-error">Không thể tải truyện. Hãy thử lại sau.</small> : selectedChildId && !libraryQuery.isLoading && !stories.length ? <small className="export-field-help">Bé chưa có truyện khả dụng để tạo bản xuất.</small> : null}</label>
               <label className="export-field" htmlFor="export-format"><span>Định dạng</span><select id="export-format" name="format" value={form.format} onChange={updateForm}><option value="pdf">{formatLabels.pdf}</option><option value="video" disabled={quota?.plan === "Free"}>{formatLabels.video}{quota?.plan === "Free" ? " (không có trong gói hiện tại)" : ""}</option></select></label>
             </div>
-            <p className="export-field-note"><Info size={15} aria-hidden="true" /> Video có thể mất thời gian xử lý; tiến độ chỉ hiển thị khi server trả về giá trị thật.</p>
+            <p className="export-field-note"><Info size={15} aria-hidden="true" /> Video có thể mất thời gian xử lý; thanh tiến độ chỉ hiển thị khi có dữ liệu.</p>
             {formMessage && <div className={formMessage.type === "error" ? "export-alert" : "export-success"} role={formMessage.type === "error" ? "alert" : "status"}>{formMessage.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />}<span>{formMessage.text}</span></div>}
-            <button className="workspace-button" type="submit" disabled={createMutation.isPending || childrenQuery.isLoading || !children.length}>{createMutation.isPending ? <><SpinnerGap className="workspace-spinner" size={17} aria-hidden="true" /> Đang tạo…</> : <><FileArrowDown size={17} aria-hidden="true" /> Tạo export</>}</button>
+            <button className="workspace-button" type="submit" disabled={!canSubmitExport}>{createMutation.isPending ? <><SpinnerGap className="workspace-spinner" size={17} aria-hidden="true" /> Đang tạo…</> : <><FileArrowDown size={17} aria-hidden="true" /> Tạo bản xuất</>}</button>
           </form>
         </section>
 
@@ -158,7 +159,7 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
           </div>
           {reportQuery.isLoading && <LoadingState label="Đang tải trạng thái báo cáo" />}
           {reportQuery.isError && <ErrorState title="Không thể tải trạng thái báo cáo" message={reportQuery.error.message} onRetry={() => reportQuery.refetch()} />}
-          {report && !report.available && <div className="report-unavailable"><StatusBadge value="unavailable" tone="neutral" /><p>{report.reason}</p><small>Frontend không hiển thị thao tác gửi email khi service backend chưa bật.</small></div>}
+          {report && !report.available && <div className="report-unavailable"><StatusBadge value="unavailable" tone="neutral" /><p>{report.reason}</p><small>Chức năng sẽ hiển thị khi gói và dịch vụ báo cáo hỗ trợ.</small></div>}
           {report?.available && <>
             <div className="report-ready-line"><StatusBadge value={report.status} tone="success" /><span>Trạng thái do service báo cáo trả về.</span></div>
             <p className="export-muted-copy">Cài đặt chu kỳ chỉ điều khiển cấu hình. Backend chịu trách nhiệm tạo báo cáo và gửi email, nên UI không giả lập trạng thái đã gửi.</p>
@@ -168,20 +169,26 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
               {reportMessage && <div className={reportMessage.type === "error" ? "export-alert" : "export-success"} role={reportMessage.type === "error" ? "alert" : "status"}>{reportMessage.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />}<span>{reportMessage.text}</span></div>}
               <button className="workspace-button workspace-button-quiet" type="submit" disabled={reportMutation.isPending}>{reportMutation.isPending ? "Đang lưu…" : "Lưu cài đặt"}</button>
             </form>
-            {report.lastReport && <div className="report-last"><span><CheckCircle size={17} aria-hidden="true" /><strong>Bản gần nhất: {report.lastReport.period}</strong></span><small>{report.lastReport.fileName} · tạo bởi backend</small></div>}
+            {report.lastReport && <div className="report-last"><span><CheckCircle size={17} aria-hidden="true" /><strong>Bản gần nhất: {report.lastReport.period}</strong></span><small>{report.lastReport.fileName} · tạo bởi dịch vụ</small></div>}
           </>}
         </section>}
+        {fixedChildId && <ExportHistorySection fixedChildId={fixedChildId} childItems={children} jobs={jobs} exportsQuery={exportsQuery} downloadLinks={downloadLinks} downloadErrorId={downloadErrorId} downloadMutation={downloadMutation} retryMutation={retryMutation} onDownload={(exportId) => downloadMutation.mutate({ exportId })} onRetry={(exportId, revision) => retryMutation.mutate({ exportId, revision })} />}
       </div>
 
-      <section className="export-history-section" aria-labelledby="export-history-title">
-        <div className="parent-section-heading"><div><p className="workspace-eyebrow">THEO DÕI JOB</p><h2 id="export-history-title">{fixedChildId ? "Bản xuất của bé" : "Các bản xuất của gia đình"}</h2></div><span className="export-history-count">{exportsQuery.data ? `${jobs.length} yêu cầu` : "Đang tải…"}</span></div>
-        {exportsQuery.isLoading && <LoadingState label="Đang tải lịch sử export" />}
-        {exportsQuery.isError && <ErrorState title="Không thể tải lịch sử export" message={exportsQuery.error.message} onRetry={() => exportsQuery.refetch()} />}
-        {exportsQuery.data && !jobs.length && <div className="export-empty"><DownloadSimple size={28} aria-hidden="true" /><strong>Chưa có bản xuất nào</strong><p>Tạo export đầu tiên từ form bên trên để lưu lại câu chuyện của gia đình.</p></div>}
-        {exportsQuery.data && jobs.length > 0 && <div className="export-job-list">{jobs.map((job) => <ExportJobCard key={job.id} job={job} childList={children} downloadLink={downloadLinks[job.id]} downloadError={downloadErrorId === job.id ? downloadMutation.error : null} isDownloading={downloadMutation.isPending && downloadErrorId === job.id} isRetrying={retryMutation.isPending && retryMutation.variables?.exportId === job.id} onDownload={() => downloadMutation.mutate({ exportId: job.id })} onRetry={() => retryMutation.mutate({ exportId: job.id, revision: job.revision })} />)}</div>}
-      </section>
+      {!fixedChildId && <ExportHistorySection childItems={children} jobs={jobs} exportsQuery={exportsQuery} downloadLinks={downloadLinks} downloadErrorId={downloadErrorId} downloadMutation={downloadMutation} retryMutation={retryMutation} onDownload={(exportId) => downloadMutation.mutate({ exportId })} onRetry={(exportId, revision) => retryMutation.mutate({ exportId, revision })} />}
     </div>
   );
+}
+
+function ExportHistorySection({ fixedChildId = "", jobs, childItems, exportsQuery, downloadLinks, downloadErrorId, downloadMutation, retryMutation, onDownload, onRetry }) {
+  const fixedChild = childItems.find((child) => child.id === fixedChildId);
+  return <section className="export-history-section" aria-labelledby="export-history-title">
+    <div className="parent-section-heading"><div><p className="workspace-eyebrow">LỊCH SỬ BẢN XUẤT</p><h2 id="export-history-title">{fixedChild ? `Bản xuất của ${fixedChild.displayName}` : "Các bản xuất của gia đình"}</h2></div><span className="export-history-count">{exportsQuery.data ? `${jobs.length} yêu cầu` : "Đang tải…"}</span></div>
+    {exportsQuery.isLoading && <LoadingState label="Đang tải lịch sử bản xuất" />}
+    {exportsQuery.isError && <ErrorState title="Không thể tải lịch sử bản xuất" message={exportsQuery.error.message} onRetry={() => exportsQuery.refetch()} />}
+    {exportsQuery.data && !jobs.length && <div className="export-empty"><DownloadSimple size={28} aria-hidden="true" /><strong>Chưa có bản xuất nào</strong><p>Tạo bản xuất đầu tiên từ form bên trên để lưu lại câu chuyện của gia đình.</p></div>}
+    {exportsQuery.data && jobs.length > 0 && <div className="export-job-list">{jobs.map((job) => <ExportJobCard key={job.id} job={job} childList={childItems} downloadLink={downloadLinks[job.id]} downloadError={downloadErrorId === job.id ? downloadMutation.error : null} isDownloading={downloadMutation.isPending && downloadErrorId === job.id} isRetrying={retryMutation.isPending && retryMutation.variables?.exportId === job.id} onDownload={() => onDownload(job.id)} onRetry={() => onRetry(job.id, job.revision)} />)}</div>}
+  </section>;
 }
 
 function ExportJobCard({ job, childList, downloadLink, downloadError, isDownloading, isRetrying, onDownload, onRetry }) {
@@ -194,7 +201,7 @@ function ExportJobCard({ job, childList, downloadLink, downloadError, isDownload
     <div className="export-job-main">
       <div className="export-job-title-row"><div><span className="export-job-format">{formatLabels[job.format] || job.format}</span><h3>{job.storyTitle}</h3></div><StatusBadge value={status} tone={tone} /></div>
       <p className="export-job-meta">{child?.displayName || "Hồ sơ đã lưu"} · {job.fileName}</p>
-      {job.progress !== null && job.status !== "completed" && <div className="export-progress-wrap"><div className="export-progress-label"><span>Tiến độ server trả về</span><strong>{job.progress}%</strong></div><div className="export-progress"><span style={{ width: `${job.progress}%` }} /></div></div>}
+      {job.progress !== null && job.status !== "completed" && <div className="export-progress-wrap"><div className="export-progress-label"><span>Tiến độ xử lý</span><strong>{job.progress}%</strong></div><div className="export-progress"><span style={{ width: `${job.progress}%` }} /></div></div>}
       {job.error && <p className="export-job-error"><WarningCircle size={16} aria-hidden="true" /> {job.error}</p>}
       {expired && <p className="export-job-error"><WarningCircle size={16} aria-hidden="true" /> Link tải đã hết hạn; tạo lại sẽ phát sinh một job mới.</p>}
       <small className="export-job-date">Cập nhật {formatDate(job.updatedAt)}</small>
@@ -202,8 +209,8 @@ function ExportJobCard({ job, childList, downloadLink, downloadError, isDownload
     <div className="export-job-actions">
       {job.status === "completed" && !expired && !downloadLink && <button className="workspace-button workspace-button-quiet" type="button" onClick={onDownload} disabled={isDownloading}><DownloadSimple size={16} aria-hidden="true" /> {isDownloading ? "Đang lấy link…" : "Tải file"}</button>}
       {downloadLink && <a className="workspace-button workspace-button-quiet" href={downloadLink.url} download={downloadLink.fileName}><DownloadSimple size={16} aria-hidden="true" /> Tải file</a>}
-      {canRetry && <button className="workspace-button" type="button" onClick={onRetry} disabled={isRetrying}><ArrowClockwise size={16} aria-hidden="true" /> {isRetrying ? "Đang tạo lại…" : "Tạo lại export"}</button>}
-      {job.status === "queued" && <span className="export-job-waiting"><SpinnerGap size={16} aria-hidden="true" /> Đang chờ worker</span>}
+      {canRetry && <button className="workspace-button" type="button" onClick={onRetry} disabled={isRetrying}><ArrowClockwise size={16} aria-hidden="true" /> {isRetrying ? "Đang tạo lại…" : "Tạo lại bản xuất"}</button>}
+      {job.status === "queued" && <span className="export-job-waiting"><SpinnerGap size={16} aria-hidden="true" /> Đang chờ xử lý</span>}
       {downloadError && <span className="export-action-error" role="alert">{downloadError.message}</span>}
     </div>
   </article>;

@@ -1,6 +1,7 @@
 import { ArrowRight, BookOpen, ChartLineUp, Gear, LockKey, Package, Prohibit, ShieldCheck, UsersThree } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
+import { isRealApi } from "../../auth/authService";
 import { roleLabels, ROLES } from "../../../lib/permissions/roles";
 
 const copy = {
@@ -11,5 +12,5 @@ const copy = {
 export default function RoleOverviewPage({ role }) {
   const { user } = useAuth();
   const page = copy[role];
-  return <div className="workspace-dashboard"><div className="workspace-page-heading"><div><p className="workspace-eyebrow">{page.eyebrow}</p><h1>{page.title}</h1><p>{page.description}</p></div><span className="workspace-dashboard-chip"><LockKey size={15} aria-hidden="true" /> Mock session</span></div><section className="workspace-dashboard-intro"><div><span className="workspace-dashboard-kicker">XIN CHÀO, {user.name.toUpperCase()}</span><h2>Một workspace, ba vai trò, cùng một tiêu chuẩn rõ ràng.</h2><p>Route guard đã xác nhận quyền <strong>{roleLabels[user.role]}</strong>. Các module nghiệp vụ sẽ được triển khai tiếp theo backlog trong hai implementation plan.</p></div><div className="workspace-dashboard-mark"><BookOpen size={62} weight="duotone" aria-hidden="true" /></div></section><div className="workspace-dashboard-grid">{page.items.map(({ icon: Icon, title, text, to }) => <Link className="workspace-module-card" to={to} key={to}><span><Icon size={24} aria-hidden="true" /></span><strong>{title}</strong><p>{text}</p><ArrowRight size={18} aria-hidden="true" /></Link>)}</div></div>;
+  return <div className="workspace-dashboard"><div className="workspace-page-heading"><div><p className="workspace-eyebrow">{page.eyebrow}</p><h1>{page.title}</h1><p>{page.description}</p></div><span className="workspace-dashboard-chip"><LockKey size={15} aria-hidden="true" /> {isRealApi ? "Backend session" : "Mock session"}</span></div><section className="workspace-dashboard-intro"><div><span className="workspace-dashboard-kicker">XIN CHÀO, {user.name.toUpperCase()}</span><h2>Một workspace, ba vai trò, cùng một tiêu chuẩn rõ ràng.</h2><p>Route guard đã xác nhận quyền <strong>{roleLabels[user.role]}</strong>. Các module nghiệp vụ sẽ được triển khai tiếp theo backlog trong hai implementation plan.</p></div><div className="workspace-dashboard-mark"><BookOpen size={62} weight="duotone" aria-hidden="true" /></div></section><div className="workspace-dashboard-grid">{page.items.map(({ icon: Icon, title, text, to }) => <Link className="workspace-module-card" to={to} key={to}><span><Icon size={24} aria-hidden="true" /></span><strong>{title}</strong><p>{text}</p><ArrowRight size={18} aria-hidden="true" /></Link>)}</div></div>;
 }

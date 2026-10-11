@@ -37,7 +37,7 @@ export default function StoryVocabularyPage() {
 
   function saveVocabulary() {
     const payload = { ...values, word: values.word.trim(), meaning: values.meaning.trim(), audioUrl: values.audioUrl.trim() };
-    if (!payload.pageId) return setValidationError("Chọn page chứa từ này.");
+    if (!payload.pageId) return setValidationError("Chọn trang có từ này.");
     if (!payload.word) return setValidationError("Nhập từ hoặc cụm từ.");
     if (!payload.meaning) return setValidationError("Nhập nghĩa dễ hiểu cho bé.");
     const action = editingId ? "update" : "add";
@@ -53,19 +53,25 @@ export default function StoryVocabularyPage() {
     setValidationError("");
   }
 
-  return <EditorPanel eyebrow="VOCABULARY" title="Từ vựng theo ngữ cảnh" description="Mỗi từ gắn với một page để mobile có thể hiển thị đúng lúc đọc và mở rộng sang audio sau này." action={<span className="story-editor-count"><BookOpenText size={17} aria-hidden="true" /> {story.vocabulary.length} từ</span>}>
+  function deleteVocabulary(item) {
+    if (dirty && !window.confirm("Bạn có thay đổi từ vựng chưa lưu. Xóa mục này sẽ bỏ chúng?")) return;
+    if (!window.confirm(`Xóa từ “${item.word}” khỏi ${story.pages.find((page) => page.id === item.pageId)?.title || "trang này"}?`)) return;
+    mutation.mutate({ action: "delete", vocabularyId: item.id }, { onSuccess: () => { if (editingId === item.id) resetForm(); } });
+  }
+
+  return <EditorPanel eyebrow="TỪ VỰNG" title="Từ vựng theo ngữ cảnh" description="Gắn mỗi từ với một trang để hiển thị đúng lúc đọc; có thể bổ sung âm thanh phát âm sau." action={<span className="story-editor-count"><BookOpenText size={17} aria-hidden="true" /> {story.vocabulary.length} từ</span>}>
     <div className="editor-form-card">
       <div className="editor-form-card-heading"><div><h3>{editingId ? "Sửa từ vựng" : "Thêm từ vựng"}</h3><p className="editor-help">Từ và nghĩa nên xuất hiện đúng trong câu chuyện.</p></div>{editingId && <button className="workspace-text-link" type="button" onClick={resetForm}><X size={15} aria-hidden="true" /> Hủy sửa</button>}</div>
       <div className="editor-form-grid">
-        <EditorField label="Page chứa từ" name="vocabulary-page" value={values.pageId} onChange={(value) => update("pageId", value)}><select id="story-editor-vocabulary-page" value={values.pageId} onChange={(event) => update("pageId", event.target.value)}><option value="">Chọn page</option>{story.pages.map((page) => <option key={page.id} value={page.id}>Page {page.order}: {page.title}</option>)}</select></EditorField>
+        <EditorField label="Trang có từ này" name="vocabulary-page" value={values.pageId} onChange={(value) => update("pageId", value)}><select id="story-editor-vocabulary-page" value={values.pageId} onChange={(event) => update("pageId", event.target.value)}><option value="">Chọn trang</option>{story.pages.map((page) => <option key={page.id} value={page.id}>Trang {page.order}: {page.title}</option>)}</select></EditorField>
         <EditorField label="Từ / cụm từ" name="vocabulary-word" value={values.word} onChange={(value) => update("word", value)} placeholder="Ví dụ: nảy mầm" />
         <EditorField label="Nghĩa" name="vocabulary-meaning" value={values.meaning} onChange={(value) => update("meaning", value)} placeholder="Giải thích ngắn, dễ hiểu" />
-        <EditorField label="Audio URL (tuỳ chọn)" name="vocabulary-audio" value={values.audioUrl} onChange={(value) => update("audioUrl", value)} placeholder="https://..." />
+        <EditorField label="Đường dẫn âm thanh (không bắt buộc)" name="vocabulary-audio" value={values.audioUrl} onChange={(value) => update("audioUrl", value)} placeholder="https://..." />
       </div>
       {validationError && <p className="editor-field-error" role="alert">{validationError}</p>}
       <button className="workspace-button" type="button" onClick={saveVocabulary} disabled={mutation.isPending || !story.pages.length}><FloppyDisk size={16} aria-hidden="true" /> {mutation.isPending ? "Đang lưu..." : editingId ? "Lưu từ" : "Thêm từ"}</button>
     </div>
     <EditorMutationMessage mutation={mutation} />
-    {story.vocabulary.length ? <div className="editor-list" aria-label="Danh sách từ vựng">{story.vocabulary.map((item) => <article className="editor-item vocabulary-item" key={item.id}><div><span className="editor-item-index">{story.pages.find((page) => page.id === item.pageId)?.title || "Page không còn tồn tại"}</span><h3>{item.word}</h3><p>{item.meaning}</p>{item.audioUrl && <small>{item.audioUrl}</small>}</div><div className="editor-item-actions"><button className="icon-button" type="button" aria-label={`Sửa từ ${item.word}`} onClick={() => beginEdit(item)}><PencilSimple size={17} aria-hidden="true" /></button><button className="icon-button icon-button-danger" type="button" aria-label={`Xoá từ ${item.word}`} onClick={() => mutation.mutate({ action: "delete", vocabularyId: item.id })}><Trash size={17} aria-hidden="true" /></button></div></article>)}</div> : <div className="editor-empty"><p>Chưa có từ vựng trong story.</p><p className="editor-help">Thêm các từ thật sự xuất hiện trong câu chuyện để phần đọc cùng bé không bị rời ngữ cảnh.</p></div>}
+    {story.vocabulary.length ? <div className="editor-list" aria-label="Danh sách từ vựng">{story.vocabulary.map((item) => <article className="editor-item vocabulary-item" key={item.id}><div><span className="editor-item-index">{story.pages.find((page) => page.id === item.pageId)?.title || "Trang không còn tồn tại"}</span><h3>{item.word}</h3><p>{item.meaning}</p>{item.audioUrl && <audio controls preload="none" src={item.audioUrl} aria-label={`Nghe cách đọc ${item.word}`} />}</div><div className="editor-item-actions"><button className="icon-button" type="button" aria-label={`Sửa từ ${item.word}`} onClick={() => beginEdit(item)}><PencilSimple size={17} aria-hidden="true" /></button><button className="icon-button icon-button-danger" type="button" aria-label={`Xóa từ ${item.word}`} onClick={() => deleteVocabulary(item)}><Trash size={17} aria-hidden="true" /></button></div></article>)}</div> : <div className="editor-empty"><p>Truyện chưa có từ vựng.</p><p className="editor-help">Thêm các từ xuất hiện trong câu chuyện để phần đọc cùng bé luôn đúng ngữ cảnh.</p></div>}
   </EditorPanel>;
 }

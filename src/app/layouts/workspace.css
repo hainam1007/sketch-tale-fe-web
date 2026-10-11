@@ -33,6 +33,8 @@
 .workspace-content { min-width: 0; }
 .workspace-mobile-menu { display: none; }
 .workspace-main { width: min(100%, 1240px); margin: 0 auto; padding: clamp(28px, 4vw, 52px); }
+.admin-demo-notice { display: flex; flex-wrap: wrap; gap: 4px; padding: 11px 14px; margin-bottom: 22px; border: 1px solid #efd98d; border-radius: 10px; color: #725000; background: #fff8dc; font-size: 12px; line-height: 1.5; }
+.admin-demo-notice strong { flex: 0 0 auto; }
 .workspace-page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 34px; }
 .workspace-eyebrow { margin: 0 0 9px; color: #96701c; font-size: 11px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; }
 .workspace-page-heading h1 { margin: 0; color: #1b2432; font-size: clamp(28px, 4vw, 43px); letter-spacing: -1.6px; line-height: 1.08; }
@@ -518,6 +520,8 @@
 .story-preview-stage-copy small { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; color: #f5e5bc; font-size: 10px; }
 .story-preview-slot { position: absolute; z-index: 1; display: grid; place-items: center; width: 19%; min-width: 62px; aspect-ratio: 1; border: 1px dashed rgb(255 255 255 / .8); border-radius: 50%; background: rgb(255 246 211 / .22); color: #fff; font-size: 10px; font-weight: 900; text-align: center; }
 .story-preview-slot img { width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+.story-preview-stage:not(.story-preview-stage-editable) .story-preview-slot { width: 24%; min-width: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.story-preview-stage:not(.story-preview-stage-editable) .story-preview-slot img { border-radius: 0; }
 .story-preview-slot-missing { border-color: #ffb2bf; background: rgb(119 20 45 / .78); }
 .story-preview-slot-missing span { display: grid; gap: 3px; padding: 8px; }
 .story-preview-slot-missing small { color: #ffd6dd; font-size: 8px; }
@@ -691,11 +695,11 @@
 
 /* Parent dashboard shell: the family workspace uses the warmer, wider frame from the product direction. */
 .workspace-app-parent {
-  grid-template-columns: clamp(280px, 18.6vw, 382px) minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr);
   background: #fff9ec;
 }
 .workspace-app-parent .workspace-sidebar {
-  padding: 42px clamp(24px, 2.2vw, 48px) 28px;
+  padding: 28px 16px 20px;
   border-right-color: #ece3d2;
 }
 .workspace-app-parent .workspace-brand {
@@ -703,14 +707,14 @@
   min-height: 58px;
 }
 .workspace-app-parent .workspace-brand .brand-logo {
-  width: min(100%, 272px);
-  max-height: 72px;
+  width: min(100%, 190px);
+  max-height: 58px;
 }
 .workspace-app-parent .workspace-role-label {
-  margin: 57px 17px 17px;
+  margin: 40px 10px 13px;
   color: #536187;
-  font-size: 14px;
-  letter-spacing: 1.8px;
+  font-size: 11px;
+  letter-spacing: 1.4px;
 }
 .workspace-app-parent .workspace-nav,
 .workspace-app-parent .workspace-sidebar-bottom {
@@ -719,11 +723,11 @@
 .workspace-app-parent .workspace-nav a,
 .workspace-app-parent .workspace-sidebar-bottom a,
 .workspace-app-parent .workspace-logout {
-  min-height: 59px;
-  padding: 13px 18px;
-  border-radius: 32px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 10px;
   color: #536187;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 800;
 }
 .workspace-app-parent .workspace-nav a svg,
@@ -750,8 +754,8 @@
 }
 .workspace-app-parent .workspace-main {
   width: 100%;
-  max-width: none;
-  padding: clamp(32px, 4vw, 62px) clamp(28px, 3.2vw, 66px) 86px;
+  max-width: 1240px;
+  padding: 32px;
 }
 @media (max-width: 800px) {
   .workspace-app-parent {

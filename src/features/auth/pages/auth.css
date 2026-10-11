@@ -287,6 +287,31 @@
   font-size: 13px;
   margin-bottom: 0;
 }
+.auth-verify-email {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  overflow-wrap: anywhere;
+  border: 1px solid #eee4d1;
+  border-radius: 11px;
+  background: #fffcf5;
+  color: #42465a;
+  font-size: 14px;
+  font-weight: 750;
+}
+.auth-verify-email svg {
+  flex: 0 0 auto;
+  color: #997018;
+}
+.auth-verify-link {
+  text-decoration: none;
+}
+.auth-verify-warning {
+  color: #9f3047;
+  margin-top: 16px;
+}
 .auth-error-message {
   padding: 13px 15px;
   border-radius: 9px;

@@ -8,7 +8,7 @@ async function login(page, email, password, home) {
   await expect(page).toHaveURL(new RegExp(`/${home}$`));
 }
 
-test("Pro parent can inspect server entitlement and usage", async ({ page }) => {
+test("Pro parent can inspect account entitlement and usage", async ({ page }) => {
   await login(page, "parent.pro@example.com", "parent123", "parent");
   await page.goto("/parent/plan");
 
@@ -16,7 +16,7 @@ test("Pro parent can inspect server entitlement and usage", async ({ page }) => 
   await expect(page.locator(".plan-summary-primary")).toContainText("Pro");
   await expect(page.locator(".plan-stat-value")).toContainText("2");
   await expect(page.locator(".plan-stat-value")).toContainText("3");
-  await expect(page.locator(".plan-entitlement-card")).toContainText("server xác nhận");
+  await expect(page.locator(".plan-entitlement-card")).toContainText("Quyền lợi trong gói");
 });
 
 test("Admin can update permissions, limits, restrictions and monitoring states", async ({ page }) => {
@@ -36,7 +36,7 @@ test("Admin can update permissions, limits, restrictions and monitoring states",
 
   await page.goto("/admin/restrictions");
   const restriction = page.locator(".restriction-card").first();
-  await expect(restriction.locator(".workspace-badge")).toHaveText("Đang hoạt động");
+  await expect(restriction.locator(".workspace-badge")).toHaveText("Đang áp dụng");
   await restriction.getByRole("button").click();
   await expect(restriction.locator(".workspace-badge")).toHaveText("Đã tắt");
 
