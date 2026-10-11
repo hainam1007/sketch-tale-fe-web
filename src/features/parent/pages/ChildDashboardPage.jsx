@@ -14,6 +14,7 @@ import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { useAuth } from "../../auth/AuthProvider";
 import { childrenService } from "../services/childrenService";
+import "../child-dashboard.css";
 
 const rangeOptions = [
   ["7d", "7 ngày gần đây"],
@@ -36,7 +37,8 @@ export default function ChildDashboardPage() {
 
   const dashboard = dashboardQuery.data;
   const summary = dashboard.summary || {};
-  const pendingApprovals = dashboard.pendingApprovals ?? summary.pendingApprovals ?? 0;
+  const pendingApprovals = dashboard.pendingApprovals ?? summary.pendingApprovals;
+  const hasPendingApprovalData = pendingApprovals !== null && pendingApprovals !== undefined;
   const activities = dashboard.recentActivities || [];
   const settings = dashboard.settingsSummary || {};
 
@@ -54,6 +56,7 @@ export default function ChildDashboardPage() {
           <h2>Tổng quan của {child.displayName}</h2>
           <p>Một góc riêng để theo dõi những gì {child.displayName} đang đọc, học và cần bố mẹ xem.</p>
         </div>
+        <img className="child-dashboard-illustration" src="/images/seed.webp" alt="" width="240" height="180" />
         <label className="child-dashboard-range">
           <span>Khoảng thời gian</span>
           <select aria-label={`Khoảng thời gian của ${child.displayName}`} value={range} onChange={changeRange}>
@@ -67,8 +70,8 @@ export default function ChildDashboardPage() {
           <div className="child-dashboard-focus-icon"><CheckCircle size={24} weight="fill" aria-hidden="true" /></div>
           <div>
             <span className="child-dashboard-kicker">CẦN BỐ MẸ XEM</span>
-            <h3>{pendingApprovals ? `${pendingApprovals} yêu cầu đang chờ` : "Không có yêu cầu đang chờ"}</h3>
-            <p>{pendingApprovals ? "Xem từng phiên bản hoặc quyền vai trước khi bé dùng trong truyện." : "Mọi nội dung của bé hiện đã được xem qua."}</p>
+            <h3>{!hasPendingApprovalData ? "Chưa có dữ liệu yêu cầu" : pendingApprovals ? `${pendingApprovals} yêu cầu đang chờ` : "Không có yêu cầu đang chờ"}</h3>
+            <p>{pendingApprovals ? "Xem từng phiên bản hoặc quyền vai trước khi bé dùng trong truyện." : !hasPendingApprovalData ? "Thử tải lại để kiểm tra các yêu cầu mới nhất." : "Hiện không có yêu cầu cần bạn xem."}</p>
           </div>
           {pendingApprovals > 0 && <Link className="workspace-button workspace-button-quiet" to={`/parent/children/${child.id}/approvals?status=pending`}>Xem yêu cầu <ArrowRight size={16} aria-hidden="true" /></Link>}
         </article>
@@ -84,10 +87,10 @@ export default function ChildDashboardPage() {
       <section className="child-dashboard-section" aria-labelledby="child-dashboard-progress-title">
         <div className="child-dashboard-section-heading"><div><p className="workspace-eyebrow">HÀNH TRÌNH HỌC TẬP</p><h3 id="child-dashboard-progress-title">Những bước nhỏ của {child.displayName}</h3></div><Link className="child-dashboard-text-link" to={`/parent/children/${child.id}/progress?range=${range}`}>Xem tiến độ <ArrowRight size={15} aria-hidden="true" /></Link></div>
         <div className="child-dashboard-stat-grid">
-          <DashboardMetric icon={Clock} label="Phút đọc" value={summary.readingMinutes ?? 0} unit="phút" />
-          <DashboardMetric icon={BookOpen} label="Truyện hoàn thành" value={summary.storiesCompleted ?? 0} unit="truyện" />
-          <DashboardMetric icon={Sparkle} label="Từ đã ôn" value={summary.vocabularyReviewed ?? 0} unit="từ" />
-          <DashboardMetric icon={CheckCircle} label="Quiz" value={summary.quizAccuracy === null || summary.quizAccuracy === undefined ? "Chưa có" : `${summary.quizAccuracy}%`} unit="" />
+          <DashboardMetric icon={Clock} label="Phút đọc" value={summary.readingMinutes} unit="phút" />
+          <DashboardMetric icon={BookOpen} label="Truyện hoàn thành" value={summary.storiesCompleted} unit="truyện" />
+          <DashboardMetric icon={Sparkle} label="Từ đã ôn" value={summary.vocabularyReviewed} unit="từ" />
+          <DashboardMetric icon={CheckCircle} label="Tỷ lệ trả lời đúng" value={summary.quizAccuracy === null || summary.quizAccuracy === undefined ? "Chưa có" : `${summary.quizAccuracy}%`} unit="" />
         </div>
         <p className="child-dashboard-period">Số liệu trong {rangeOptions.find(([value]) => value === range)?.[1].toLowerCase()} · {dashboard.period?.timezone || "Asia/Ho_Chi_Minh"}</p>
       </section>
@@ -101,7 +104,8 @@ export default function ChildDashboardPage() {
 }
 
 function DashboardMetric({ icon: Icon, label, value, unit }) {
-  return <article className="child-dashboard-metric"><span className="child-dashboard-metric-icon"><Icon size={19} aria-hidden="true" /></span><span>{label}</span><strong>{value}</strong>{unit && <small>{unit}</small>}</article>;
+  const displayValue = value === null || value === undefined ? "Chưa có" : value;
+  return <article className="child-dashboard-metric"><span className="child-dashboard-metric-icon"><Icon size={19} aria-hidden="true" /></span><span>{label}</span><strong>{displayValue}</strong>{unit && displayValue !== "Chưa có" && <small>{unit}</small>}</article>;
 }
 
 function formatDate(value) {

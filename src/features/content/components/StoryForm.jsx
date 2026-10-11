@@ -4,7 +4,6 @@ import AssetPicker from "./AssetPicker";
 import { useEditorSaveState } from "../hooks/useEditorSaveState";
 
 const emptyStory = { title: "", description: "", category: "", coverAssetId: "" };
-const fallbackCategories = ["Thiên nhiên", "Gia đình", "Khám phá", "Cảm xúc"];
 
 function validateStory(values) {
   const errors = {};
@@ -15,8 +14,7 @@ function validateStory(values) {
 }
 
 function categoryOptions(categories) {
-  const source = categories.length ? categories : fallbackCategories;
-  return source.map((category) => typeof category === "string" ? { id: category, label: category } : { id: category.id, label: category.label || category.name || category.id });
+  return categories.map((category) => typeof category === "string" ? { id: category, label: category } : { id: category.id, label: category.label || category.name || category.id });
 }
 
 export default function StoryForm({ assets, categories = [], initialValues, isSaving, serverError, onSubmit, onCancel, onDirtyChange }) {
@@ -56,16 +54,16 @@ export default function StoryForm({ assets, categories = [], initialValues, isSa
   }
 
   return <form className="content-form" onSubmit={submit} noValidate>
-    <div className="content-form-alerts">{serverError && <div className="parent-form-alert" role="alert"><strong>Chưa thể lưu story</strong><p>{serverError.message}</p></div>}{Object.keys(errors).length > 0 && <div className="content-form-summary" role="alert"><strong>Kiểm tra lại thông tin</strong><span>{Object.keys(errors).length} trường cần chỉnh sửa.</span></div>}{saveState.dirty && !saveState.isSaving && <p className="content-form-dirty" role="status">Có thay đổi chưa lưu</p>}</div>
+    <div className="content-form-alerts">{serverError && <div className="parent-form-alert" role="alert"><strong>Chưa thể lưu truyện</strong><p>{serverError.message}</p></div>}{Object.keys(errors).length > 0 && <div className="content-form-summary" role="alert"><strong>Kiểm tra lại thông tin</strong><span>{Object.keys(errors).length} trường cần chỉnh sửa.</span></div>}{saveState.dirty && !saveState.isSaving && <p className="content-form-dirty" role="status">Có thay đổi chưa lưu</p>}</div>
     <div className="content-form-grid"><div>
-      <div className="content-form-section"><span className="content-form-icon"><TextT size={20} aria-hidden="true" /></span><div><h2>Thông tin story</h2><p>Metadata giúp đội ngũ và Mobile hiểu đúng nội dung.</p></div></div>
+      <div className="content-form-section"><span className="content-form-icon"><TextT size={20} aria-hidden="true" /></span><div><h2>Thông tin truyện</h2><p>Thông tin này giúp đội ngũ và ứng dụng đọc hiểu đúng nội dung.</p></div></div>
       <div className="parent-field"><label htmlFor="story-title">Tên truyện <span>*</span></label><input id="story-title" maxLength="80" value={values.title} onChange={(event) => update("title", event.target.value)} onBlur={() => setTouched((current) => ({ ...current, title: true }))} placeholder="Ví dụ: Hạt mầm đầu tiên" aria-invalid={Boolean(touched.title && (errors.title || serverFields.title))} aria-describedby={touched.title && (errors.title || serverFields.title) ? "story-title-error" : undefined} />{touched.title && (errors.title || serverFields.title) && <p id="story-title-error" className="parent-field-error">{errors.title || serverFields.title}</p>}<small className="content-field-hint">{values.title.length}/80 ký tự</small></div>
-      <div className="parent-field"><label htmlFor="story-description">Mô tả ngắn</label><textarea id="story-description" maxLength="240" rows="4" value={values.description} onChange={(event) => update("description", event.target.value)} placeholder="Một câu mô tả giúp người khác nhận biết story." /><small className="content-field-hint">{values.description.length}/240 ký tự</small></div>
-      <div className="parent-field"><label htmlFor="story-category">Category <span>*</span></label><select id="story-category" value={values.category} onChange={(event) => update("category", event.target.value)} aria-invalid={Boolean(touched.category && (errors.category || serverFields.category))} aria-describedby={touched.category && (errors.category || serverFields.category) ? "story-category-error" : undefined}><option value="">Chọn category</option>{options.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}</select>{touched.category && (errors.category || serverFields.category) && <p id="story-category-error" className="parent-field-error">{errors.category || serverFields.category}</p>}</div>
+      <div className="parent-field"><label htmlFor="story-description">Mô tả ngắn</label><textarea id="story-description" maxLength="240" rows="4" value={values.description} onChange={(event) => update("description", event.target.value)} placeholder="Một câu mô tả giúp người đọc nhận biết truyện." /><small className="content-field-hint">{values.description.length}/240 ký tự</small></div>
+      <div className="parent-field"><label htmlFor="story-category">Danh mục <span>*</span></label><select id="story-category" value={values.category} onChange={(event) => update("category", event.target.value)} aria-invalid={Boolean(touched.category && (errors.category || serverFields.category))} aria-describedby={touched.category && (errors.category || serverFields.category) ? "story-category-error" : undefined}><option value="">{options.length ? "Chọn danh mục" : "Chưa có danh mục"}</option>{options.map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}</select>{touched.category && (errors.category || serverFields.category) && <p id="story-category-error" className="parent-field-error">{errors.category || serverFields.category}</p>}{!options.length && <small className="content-field-hint">Chưa tải được danh mục; hãy thử tải lại trước khi lưu.</small>}</div>
     </div><aside className="content-cover-picker">
-      <div className="content-form-section"><span className="content-form-icon"><ImageSquare size={20} aria-hidden="true" /></span><div><h2>Ảnh cover</h2><p>Chọn asset đã có trong kho dùng chung.</p></div></div>
-      <AssetPicker assets={assets} id="story-cover" label="Asset cover" value={values.coverAssetId} onChange={(value) => update("coverAssetId", value)} />
-      {!assets.length && <p className="content-muted-note">Chưa có asset. Bạn vẫn có thể lưu draft rồi bổ sung sau.</p>}
+      <div className="content-form-section"><span className="content-form-icon"><ImageSquare size={20} aria-hidden="true" /></span><div><h2>Ảnh bìa</h2><p>Chọn tư liệu hình ảnh trong kho dùng chung.</p></div></div>
+      <AssetPicker assets={assets} id="story-cover" label="Ảnh bìa" value={values.coverAssetId} onChange={(value) => update("coverAssetId", value)} />
+      {!assets.length && <p className="content-muted-note">Chưa có tư liệu hình ảnh. Bạn vẫn có thể lưu bản nháp rồi bổ sung sau.</p>}
     </aside></div><div className="parent-form-actions"><button className="workspace-button workspace-button-quiet" type="button" onClick={() => { if (!dirty || window.confirm("Bạn có thay đổi chưa lưu. Rời trang?")) onCancel(); }}>Hủy</button><button className="workspace-button" type="submit" disabled={isSaving}><UploadSimple size={17} aria-hidden="true" /> {isSaving ? "Đang lưu..." : "Lưu bản nháp"}</button></div>
   </form>;
 }

@@ -41,6 +41,28 @@ Only `content_manager` is granted authoring permissions in the frontend matrix. 
 
 Implementation order and acceptance criteria: [Content Manager plan, section 10](CONTENT_MANAGER_IMPLEMENTATION_PLAN.md#10-đợt-ưu-tiên-bộ-công-cụ-dựng-truyện-trên-frontend-23092026). UI depends on service/domain shapes; mock persistence and real transport remain behind the service boundary. Existing routes remain unchanged.
 
+### Story composer audio and motion fields — frontend proposal, updated 2026-10-12
+
+The Story Studio now sends optional audio timing and `animationClips` on a page mutation through the frontend contract and mock adapter. This remains a frontend proposal; it is not confirmed as part of a deployed backend/mobile API. Agree the shape, migration and validation with Backend and Mobile before enabling real transport.
+
+```js
+PageDraft.audioTracks = Array<{
+  id, assetId, name?, type: "voiceover"|"music"|"effect",
+  startMs?: number, trimStartMs?: number, durationMs?: number, volume?: number // volume 0..1
+}>;
+PageDraft.sequence = Array<{ id, slotId, preset: "appear"|"move"|"jump"|"spin"|"walk", durationMs: number }>;
+PageDraft.animationClips = Array<{
+  id, targetId, kind: "preset"|"keyframes"|"path", startMs, durationMs,
+  preset?, easing?: "linear"|"ease-in"|"ease-out"|"ease-in-out",
+  params?: { distance?: number },
+  keyframes?: Array<{ id, timeMs, x?, y?, scale?, rotation?, opacity?, easing? }>,
+  points?: Array<{ x: number, y: number }> // percentages in the design stage
+}>;
+SlotDraft.rotation = number; // base rotation in degrees
+```
+
+Audio asset bytes use the existing mock-only IndexedDB Blob store and stable asset ID; image limits stay 5 MB, audio is limited to 25 MB in the current frontend/mock implementation. Tracks may overlap and share the page playhead with animation; `durationMs` is the playable clip length after `trimStartMs`. `sequence` remains readable and migrates to sequential preset clips at the editor boundary. `animationClips` supports presets, property keyframes and freehand paths. Overlapping clips that control the same property on the same slot are invalid. Publish mock validation checks audio references, slot references, timing, bounds and property conflicts. Real API upload limits, supported codecs, duration metadata and published snapshot retention still require backend agreement.
+
 ### Assets
 
 | Field / concern | Frontend convention for the first tool release |

@@ -13,6 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import "./auth.css";
 import { useAuth } from "../AuthProvider";
+import { authService, isRealApi } from "../authService";
 import BrandLogo from "../../../components/branding/BrandLogo";
 import { roleHome } from "../../../lib/permissions/roles";
 const content = {
@@ -48,10 +49,14 @@ export default function AuthPage({ mode }) {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
     const next = {};
+    if (isRealApi && mode === "register" && !values.username?.trim())
+      next.username = "Vui lòng nhập tên tài khoản.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email))
       next.email = "Vui lòng nhập email đúng định dạng.";
-    if (!forgot && values.password.length < 8)
-      next.password = "Nhập ít nhất 8 ký tự để thử biểu mẫu.";
+    if (!forgot && values.password.length < (isRealApi && mode === "register" ? 6 : 8))
+      next.password = "Nhập mật khẩu đủ độ dài yêu cầu.";
+    if (isRealApi && mode === "register" && values.password && !/(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/.test(values.password))
+      next.password = "Mật khẩu cần có chữ hoa, chữ số và ký tự đặc biệt.";
     if (mode === "register" && values.confirm !== values.password)
       next.confirm = "Hai mật khẩu chưa trùng nhau.";
     setErrors(next);
@@ -64,6 +69,34 @@ export default function AuthPage({ mode }) {
       try {
         const user = await login({ email: values.email, password: values.password });
         navigate(roleHome(user.role), { replace: true });
+      } catch (error) {
+        setMessageType("error");
+        setMessage(error.message);
+      } finally {
+        setSubmitting(false);
+      }
+    } else if (isRealApi && mode === "register") {
+      setSubmitting(true);
+      try {
+        await authService.registerParent({
+          username: values.username.trim(),
+          email: values.email.trim(),
+          password: values.password,
+        });
+        setMessage("Đăng ký thành công. Bạn có thể đăng nhập bằng email hoặc tên tài khoản.");
+        form.current?.reset();
+        setVisiblePasswords({});
+      } catch (error) {
+        setMessageType("error");
+        setMessage(error.message);
+      } finally {
+        setSubmitting(false);
+      }
+    } else if (isRealApi && forgot) {
+      setSubmitting(true);
+      try {
+        await authService.forgotPassword(values.email.trim());
+        setMessage("Nếu email tồn tại, hệ thống sẽ gửi hướng dẫn đặt lại mật khẩu.");
       } catch (error) {
         setMessageType("error");
         setMessage(error.message);
@@ -158,6 +191,7 @@ export default function AuthPage({ mode }) {
           }}
         >
           {[
+            ...(mode === "register" ? [["username", "Tên tài khoản", "text"]] : []),
             ["email", "Email", "email"],
             ...(!forgot ? [["password", "Mật khẩu", "password"]] : []),
             ...(mode === "register"

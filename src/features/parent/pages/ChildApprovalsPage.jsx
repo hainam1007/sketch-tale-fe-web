@@ -67,7 +67,7 @@ export default function ChildApprovalsPage() {
   return (
     <div className="parent-approval-page">
       <div className="parent-feature-heading">
-        <div><p className="workspace-eyebrow">PHÊ DUYỆT / {child.displayName.toUpperCase()}</p><h2>Chọn điều gì được đồng hành cùng bé</h2><p>Mỗi quyết định gắn với đúng phiên bản đang chờ duyệt; vai nhạy cảm có quyền riêng cho từng nhân vật.</p></div>
+        <div><p className="workspace-eyebrow">PHÊ DUYỆT / {child.displayName.toUpperCase()}</p><h2>Phê duyệt nội dung cùng bé</h2><p>Mỗi quyết định gắn với đúng phiên bản đang chờ duyệt; vai nhạy cảm có quyền riêng cho từng nhân vật.</p></div>
         <span className="parent-feature-icon"><ShieldCheck size={27} aria-hidden="true" /></span>
       </div>
       <div className="approval-filter-row">

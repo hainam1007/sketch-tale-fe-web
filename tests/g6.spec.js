@@ -53,7 +53,7 @@ test("Admin can inspect aggregate statistics and filter the read-only audit view
   await expect(page.locator(".workspace-stat-grid")).toContainText("1086");
 
   await page.goto("/admin/audit");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lịch sử thao tác");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nhật ký thao tác");
   await expect(page.locator(".audit-table tbody tr")).toHaveCount(4);
   await page.getByLabel("Lọc actor").selectOption("admin@example.com");
   await expect(page.locator(".audit-table tbody tr")).toHaveCount(3);

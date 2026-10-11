@@ -1,0 +1,62 @@
+.parent-entry-page { display: grid; gap: 30px; max-width: 1180px; margin-inline: auto; font-family: "Nunito Variable", Nunito, system-ui, sans-serif; }
+.parent-entry-page .workspace-page-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; max-width: none; margin-bottom: 8px; }
+.parent-entry-page .workspace-page-heading > div:first-child { min-width: 0; }
+.parent-entry-page .workspace-page-heading h1 { font-size: clamp(25px, 2.6vw, 34px); letter-spacing: -.8px; text-wrap: balance; }
+.parent-entry-page .workspace-page-heading p:not(.workspace-eyebrow) { max-width: none; margin-top: 10px; line-height: 1.65; white-space: nowrap; }
+.parent-entry-page .workspace-button { flex-shrink: 0; }
+.parent-entry-page .parent-entry-add-button { justify-self: end; margin-inline-start: auto; }
+.parent-entry-section-label { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 14px; color: #64708a; font-size: 11px; letter-spacing: 0; }
+.parent-entry-section-label h2 { margin: 0; font: inherit; }
+.parent-entry-page .parent-entry-picker { padding: 26px; border: 1px solid #ececf0; border-radius: 20px; box-shadow: 0 6px 22px #00105008, 0 2px 3px #00105005; }
+.parent-entry-page .parent-entry-picker-heading { align-items: center; margin-bottom: 20px; }
+.parent-entry-page .parent-entry-picker-heading h2 { margin: 0; color: #001050; font-size: 20px; letter-spacing: -.3px; }
+.parent-entry-page .parent-entry-picker-heading > span { font-size: 12px; font-weight: 400; text-align: right; }
+.parent-entry-page .parent-entry-child-grid { grid-template-columns: 1fr; gap: 0; }
+.parent-entry-page .parent-entry-child { grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 16px; min-height: 88px; padding: 16px; border: 0; border-radius: 10px; }
+.parent-entry-page .parent-entry-child:nth-child(odd) { background: #f8f9fb; }
+.parent-entry-page .parent-entry-child:hover { background: #fff5d9; transform: none; }
+.parent-entry-page .parent-entry-child img { width: 56px; height: 56px; border: 2px solid #f7bd35; border-radius: 50%; background: #fff3ce; object-fit: cover; }
+.parent-entry-page .parent-entry-child:nth-child(even) img { border-color: #46cce5; }
+.parent-entry-page .parent-entry-child strong { color: #001050; font-size: 17px; overflow-wrap: anywhere; }
+.parent-entry-page .parent-entry-child small { color: #6c758b; font-size: 12px; }
+.parent-entry-page .parent-entry-metrics { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.parent-entry-page .parent-entry-metric { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 99px; background: #fff1c3; color: #925600; font-size: 12px; font-variant-numeric: tabular-nums; }
+.parent-entry-page .parent-entry-metric.is-blue { background: #e3edff; color: #254ab0; }
+.parent-entry-page .parent-entry-arrow { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #f7bd35; color: #001050; }
+.parent-entry-hint { margin: 18px 0 0; color: #778096; font-size: 12px; font-style: italic; text-align: center; }
+.parent-entry-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.parent-entry-action { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding: 24px; border: 1px solid #e9e9ef; border-radius: 17px; background: #fff; box-shadow: 0 5px 18px #00105007, 0 2px 3px #00105005; }
+.parent-entry-kicker { margin-bottom: 16px; color: #946000; font-size: 10px; letter-spacing: 1px; font-weight: 700; }
+.parent-entry-action-icon { display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 10px; border-radius: 50%; color: #936000; background: #fff3ca; }
+.parent-entry-action h3 { margin: 0 0 8px; color: #001050; font-size: 17px; }
+.parent-entry-action p { margin: 0 0 20px; color: #6c758b; font-size: 13px; line-height: 1.65; }
+.parent-entry-action > a, .parent-entry-action > button { display: inline-flex; align-items: center; gap: 6px; margin-top: auto; color: #946000; font-size: 13px; font-weight: 700; text-decoration: none; }
+.parent-entry-action > button { margin-bottom: 14px; cursor: pointer; }
+.parent-entry-action > a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.parent-entry-action.is-plan { color: #fff; background: #0b1b60; border-color: #192b71; }
+.is-plan .parent-entry-kicker, .is-plan p { color: #c6cee8; }
+.is-plan .parent-entry-plan-name { display: flex; gap: 12px; align-items: center; color: #fff; font-size: 26px; }
+.parent-entry-plan-name svg { color: #f7bd35; }
+.parent-entry-quota { display: flex; justify-content: space-between; gap: 10px; width: 100%; margin-bottom: 8px; color: #c6cee8; font-size: 12px; font-variant-numeric: tabular-nums; }
+.is-plan progress { display: block; width: 100%; height: 7px; margin-bottom: 20px; overflow: hidden; border: 0; border-radius: 99px; background: #34447f; }
+.is-plan progress::-webkit-progress-bar { background: #34447f; }
+.is-plan progress::-webkit-progress-value { background: #f7bd35; border-radius: 99px; }
+.is-plan progress::-moz-progress-bar { background: #f7bd35; border-radius: 99px; }
+.is-plan > a { color: #ffce52; }
+.parent-entry-page a:focus-visible, .parent-entry-page button:focus-visible { outline: 3px solid #268aa8; outline-offset: 4px; }
+@media (max-width: 1100px) { .parent-entry-page .workspace-page-heading p:not(.workspace-eyebrow) { white-space: normal; } }
+@media (max-width: 1050px) { .parent-entry-actions { gap: 12px; } .parent-entry-action { padding: 20px; } .parent-entry-page .parent-entry-picker-heading { align-items: flex-start; flex-direction: column; gap: 6px; } }
+@media (max-width: 800px) { .parent-entry-page .workspace-page-heading { display: flex; align-items: flex-start; flex-direction: column; gap: 18px; } }
+@media (max-width: 650px) {
+  .parent-entry-page { gap: 24px; }
+  .parent-entry-page .parent-entry-picker { padding: 18px 12px; }
+  .parent-entry-page .parent-entry-picker-heading { padding-inline: 4px; }
+  .parent-entry-page .parent-entry-picker-heading h2 { font-size: 18px; }
+  .parent-entry-page .parent-entry-child { grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; padding: 14px 10px; }
+  .parent-entry-page .parent-entry-child img { grid-row: span 2; width: 48px; height: 48px; }
+  .parent-entry-page .parent-entry-metrics { grid-column: 2; grid-row: 2; justify-content: flex-start; gap: 5px; }
+  .parent-entry-page .parent-entry-metric { padding: 4px 7px; font-size: 11px; }
+  .parent-entry-page .parent-entry-arrow { grid-column: 3; grid-row: 1 / span 2; }
+  .parent-entry-actions { grid-template-columns: 1fr; }
+  .parent-entry-action { padding: 22px; }
+}

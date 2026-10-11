@@ -1,0 +1,115 @@
+const createdAt = "2026-10-11T08:00:00.000Z";
+
+export const bobbyAssetFixtures = [
+  { id: "asset-bobby-garden", name: "Khu vườn trước nhà", kind: "image", mimeType: "image/jpeg", size: 62340, url: "/images/bobby-vuon-nha.jpg", createdAt },
+  { id: "asset-bobby-hallway", name: "Hành lang ấm áp", kind: "image", mimeType: "image/jpeg", size: 65442, url: "/images/bobby-hanh-lang.jpg", createdAt },
+  { id: "asset-bobby-living-room", name: "Phòng khách đầy nắng", kind: "image", mimeType: "image/jpeg", size: 40584, url: "/images/bobby-phong-khach.jpg", createdAt },
+  { id: "asset-bobby-walk", name: "Bobby đi bộ", kind: "image", mimeType: "image/webp", size: 308516, url: "/images/bobby-di-bo.webp", createdAt },
+  { id: "asset-bobby-stand-right", name: "Bobby đứng nhìn sang phải", kind: "image", mimeType: "image/webp", size: 286444, url: "/images/bobby-dung-phai.webp", createdAt },
+  { id: "asset-bobby-stand-left", name: "Bobby đứng nhìn sang trái", kind: "image", mimeType: "image/webp", size: 346114, url: "/images/bobby-dung-trai.webp", createdAt },
+  { id: "asset-bobby-front", name: "Bobby nhìn thẳng", kind: "image", mimeType: "image/webp", size: 285754, url: "/images/bobby-chinh-dien.webp", createdAt },
+  { id: "asset-bobby-back", name: "Bobby quay lưng", kind: "image", mimeType: "image/webp", size: 222518, url: "/images/bobby-quay-lung.webp", createdAt },
+  { id: "asset-bobby-sit", name: "Bobby ngồi vui vẻ", kind: "image", mimeType: "image/webp", size: 321178, url: "/images/bobby-ngoi.webp", createdAt },
+  { id: "asset-bobby-jump", name: "Bobby nhảy lên", kind: "image", mimeType: "image/webp", size: 333616, url: "/images/bobby-nhay.webp", createdAt },
+];
+
+export const bobbyStoryFixture = {
+  id: "story-bobby-chiec-la-vang",
+  title: "Bobby và chiếc lá vàng",
+  description: "Theo chân Bobby từ hành lang ấm áp ra khu vườn đầy nắng để khám phá một chiếc lá nhỏ.",
+  category: "Thiên nhiên",
+  status: "draft",
+  coverAssetId: "asset-bobby-garden",
+  pagesCount: 4,
+  updatedAt: createdAt,
+  revision: 1,
+  publishedVersionId: null,
+  draftDirty: false,
+  pages: [
+    {
+      id: "page-bobby-1",
+      order: 1,
+      title: "Bobby nghe tiếng lá xào xạc",
+      text: "Trong hành lang ấm áp, Bobby nghe tiếng lá xào xạc phía trước. Chú vẫy đuôi, bước theo chiếc lá vàng đang bay ra cửa.",
+      backgroundAssetId: "asset-bobby-hallway",
+      narration: "Bobby nghe tiếng lá xào xạc rồi tò mò bước theo.",
+      audioTracks: [],
+      sequence: [
+        { id: "motion-bobby-1-1", slotId: "slot-bobby-1", preset: "appear", durationMs: 600 },
+        { id: "motion-bobby-1-2", slotId: "slot-bobby-1", preset: "walk", durationMs: 1400 },
+        { id: "motion-bobby-1-3", slotId: "slot-bobby-1", preset: "move", durationMs: 900 },
+      ],
+    },
+    {
+      id: "page-bobby-2",
+      order: 2,
+      title: "Chiếc lá trong vệt nắng",
+      text: "Vệt nắng trải dài trên sàn phòng khách. Bobby nhìn thấy chiếc lá vàng lượn quanh cửa sổ, rồi bay ra khu vườn.",
+      backgroundAssetId: "asset-bobby-living-room",
+      narration: "Chiếc lá vàng bay quanh cửa sổ rồi hướng ra vườn.",
+      audioTracks: [],
+      sequence: [
+        { id: "motion-bobby-2-1", slotId: "slot-bobby-2", preset: "appear", durationMs: 500 },
+        { id: "motion-bobby-2-2", slotId: "slot-bobby-2", preset: "spin", durationMs: 1000 },
+        { id: "motion-bobby-2-3", slotId: "slot-bobby-2", preset: "move", durationMs: 1000 },
+      ],
+    },
+    {
+      id: "page-bobby-3",
+      order: 3,
+      title: "Cú nhảy giữa vườn hoa",
+      text: "Chiếc lá chao xuống giữa vườn hoa. Bobby chạy thật nhanh, bật nhảy lên để đón chiếc lá đang bay.",
+      backgroundAssetId: "asset-bobby-garden",
+      narration: "Bobby chạy thật nhanh và bật nhảy giữa vườn hoa.",
+      audioTracks: [],
+      sequence: [
+        { id: "motion-bobby-3-1", slotId: "slot-bobby-3", preset: "walk", durationMs: 900 },
+        { id: "motion-bobby-3-2", slotId: "slot-bobby-3", preset: "move", durationMs: 800 },
+        { id: "motion-bobby-3-3", slotId: "slot-bobby-3", preset: "jump", durationMs: 1200 },
+      ],
+    },
+    {
+      id: "page-bobby-4",
+      order: 4,
+      title: "Người bạn nhỏ trong khu vườn",
+      text: "Chiếc lá nhẹ nhàng đáp lên mũi Bobby. Chú ngồi xuống vui vẻ, còn chiếc chuông trên vòng cổ khẽ reo vang.",
+      backgroundAssetId: "asset-bobby-garden",
+      narration: "Bobby vui vẻ ngồi nghỉ bên người bạn lá vàng.",
+      audioTracks: [],
+      sequence: [
+        { id: "motion-bobby-4-1", slotId: "slot-bobby-4", preset: "appear", durationMs: 700 },
+      ],
+    },
+  ],
+  roles: [
+    {
+      id: "role-bobby",
+      name: "Bobby",
+      custom: true,
+      sensitive: false,
+      defaultAssetId: "asset-bobby-stand-right",
+      slots: [
+        { id: "slot-bobby-1", pageId: "page-bobby-1", x: 76, y: 64, scale: 0.54, flip: false, layer: 2, anchor: "center", assetId: "asset-bobby-walk" },
+        { id: "slot-bobby-2", pageId: "page-bobby-2", x: 78, y: 64, scale: 0.5, flip: false, layer: 2, anchor: "center", assetId: "asset-bobby-front" },
+        { id: "slot-bobby-3", pageId: "page-bobby-3", x: 75, y: 61, scale: 0.54, flip: false, layer: 2, anchor: "center", assetId: "asset-bobby-jump" },
+        { id: "slot-bobby-4", pageId: "page-bobby-4", x: 75, y: 64, scale: 0.5, flip: false, layer: 2, anchor: "center", assetId: "asset-bobby-sit" },
+      ],
+    },
+  ],
+  vocabulary: [
+    { id: "vocab-bobby-1", pageId: "page-bobby-1", word: "xào xạc", meaning: "Âm thanh nhỏ phát ra khi lá cây lay động.", audioUrl: "" },
+    { id: "vocab-bobby-2", pageId: "page-bobby-3", word: "bật nhảy", meaning: "Dùng chân đẩy người rời khỏi mặt đất.", audioUrl: "" },
+  ],
+  quizzes: [
+    {
+      id: "quiz-bobby-1",
+      pageId: "page-bobby-4",
+      question: "Chiếc lá vàng đáp xuống đâu?",
+      options: ["Trên mũi Bobby", "Trên chiếc bàn", "Trong chiếc giỏ"],
+      correctIndex: 0,
+      feedback: "Đúng rồi! Chiếc lá nhỏ đã đáp nhẹ lên mũi Bobby.",
+      audioUrl: "",
+    },
+  ],
+  versions: [],
+};

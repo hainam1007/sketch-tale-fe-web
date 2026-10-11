@@ -45,6 +45,7 @@ test("Content Manager can build a story draft across G3 tabs and publish a versi
   await page.getByLabel("Đáp án 1").fill("Một giọt mưa");
   await page.getByLabel("Đáp án 2").fill("Một chiếc lá");
   await page.getByLabel("Đáp án 3").fill("Một ngôi sao");
+  await page.locator('input[type="radio"][name="quiz-correct-answer"]').first().check();
   await page.getByLabel("Feedback sau khi trả lời").fill("Đúng rồi!");
   await page.getByRole("button", { name: "Thêm quiz" }).click();
   await expect(page.locator(".quiz-item h3")).toHaveText("Điều gì đánh thức khu vườn?");

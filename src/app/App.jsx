@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import PublicLayout from "../features/public/layouts/PublicLayout";
 import HomePage from "../features/public/pages/HomePage";
 import ContactPage from "../features/public/pages/ContactPage";
@@ -10,6 +10,7 @@ import {
   PolicyPage,
 } from "../features/public/pages/InfoPages";
 import AuthPage from "../features/auth/pages/AuthPage";
+import ConfirmEmailPage from "../features/auth/pages/ConfirmEmailPage";
 import ForbiddenPage from "../features/auth/pages/ForbiddenPage";
 import AppProviders from "./providers/AppProviders";
 import RequireAuth from "./router/RequireAuth";
@@ -25,10 +26,11 @@ import ChildLibraryPage from "../features/parent/pages/ChildLibraryPage";
 import ChildProgressPage from "../features/parent/pages/ChildProgressPage";
 import ChildDashboardPage from "../features/parent/pages/ChildDashboardPage";
 import ParentPlanPage from "../features/parent/pages/ParentPlanPage";
+import ParentCheckoutPage from "../features/parent/pages/ParentCheckoutPage";
 import ChildWorkspaceLayout from "../features/parent/layouts/ChildWorkspaceLayout";
 import ParentExportsPage from "../features/parent/pages/ParentExportsPage";
 import ChildExportsPage from "../features/parent/pages/ChildExportsPage";
-import ParentReportsPage from "../features/parent/pages/ParentReportsPage";
+import ParentLibraryPage from "../features/parent/pages/ParentLibraryPage";
 import ProfilePage from "../features/profile/pages/ProfilePage";
 import AdminUsersPage from "../features/admin/pages/AdminUsersPage";
 import AdminOverviewPage from "../features/admin/pages/AdminOverviewPage";
@@ -66,12 +68,14 @@ const titles = {
   "/auth/login": "Đăng nhập minh họa",
   "/auth/register": "Đăng ký minh họa",
   "/auth/forgot-password": "Quên mật khẩu minh họa",
+  "/confirm-email": "Xác nhận email",
   "/403": "Không đủ quyền",
 };
 
 function titleForPath(pathname) {
   if (titles[pathname]) return titles[pathname];
   if (pathname === "/parent") return "Tổng quan Parent";
+  if (pathname === "/parent/library") return "Thư viện truyện";
   if (pathname === "/parent/exports") return "Xuất truyện và báo cáo";
   if (pathname.includes("/parent/children") && pathname.includes("/dashboard")) return "Tổng quan hồ sơ bé";
   if (pathname.includes("/parent/children")) return "Hồ sơ bé";
@@ -110,6 +114,7 @@ export default function App() {
             <Route path="about" element={<AboutPage />} />
             <Route path="contact" element={<ContactPage />} />
             <Route path="403" element={<ForbiddenPage />} />
+            <Route path="confirm-email" element={<ConfirmEmailPage />} />
             {["privacy", "terms", "child-safety"].map((path) => <Route key={path} path={path} element={<PolicyPage path={`/${path}`} />} />)}
             {["login", "register", "forgot-password"].map((mode) => <Route key={mode} path={`auth/${mode}`} element={<AuthPage key={mode} mode={mode} />} />)}
             <Route path="*" element={<NotFoundPage />} />
@@ -132,8 +137,10 @@ export default function App() {
                   <Route path="exports" element={<ChildExportsPage />} />
                 </Route>
                 <Route path="parent/plan" element={<ParentPlanPage />} />
+                <Route path="parent/checkout" element={<ParentCheckoutPage />} />
                 <Route path="parent/exports" element={<ParentExportsPage />} />
-                <Route path="parent/reports" element={<ParentReportsPage />} />
+                <Route path="parent/library" element={<ParentLibraryPage />} />
+                <Route path="parent/reports" element={<Navigate to="/parent/library" replace />} />
               </Route>
               <Route element={<RequireRole roles={[ROLES.CONTENT]} />}>
                 <Route path="content" element={<ContentOverviewPage />} />

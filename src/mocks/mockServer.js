@@ -1,5 +1,6 @@
 import { ApiError } from "../lib/api/errors";
 import { multiRoleStoryFixture } from "../features/content/data/contentFixtures";
+import { bobbyAssetFixtures, bobbyStoryFixture } from "../features/content/data/bobbyStoryFixture";
 
 const DATABASE_KEY = "sketchtale.mock.database.v1";
 const SESSION_KEY = "sketchtale.session.v1";
@@ -95,6 +96,9 @@ const seedDatabase = {
     },
     "user-parent-02": {
       plan: "Pro",
+      subscriptionStatus: "active",
+      startedAt: "2026-10-01T00:00:00.000+07:00",
+      expiresAt: "2026-10-31T23:59:59.000+07:00",
       childProfileLimit: 3,
       usedChildProfiles: 2,
       resetAt: "2026-10-01T00:00:00.000+07:00",
@@ -102,7 +106,10 @@ const seedDatabase = {
     },
     "user-parent-03": {
       plan: "Family",
-      childProfileLimit: null,
+      subscriptionStatus: "active",
+      startedAt: "2026-09-15T00:00:00.000+07:00",
+      expiresAt: "2026-10-14T23:59:59.000+07:00",
+      childProfileLimit: 5,
       usedChildProfiles: 1,
       resetAt: null,
       timezone: "Asia/Ho_Chi_Minh",
@@ -334,6 +341,7 @@ const seedDatabase = {
       url: "/images/seed.webp",
       createdAt: "2026-09-06T08:00:00.000Z",
     },
+    ...bobbyAssetFixtures,
   ],
   stories: [
     {
@@ -384,6 +392,7 @@ const seedDatabase = {
       ],
       versions: [{ id: "version-seed-1", version: 1, publishedAt: "2026-09-10T08:00:00.000Z", revision: 2 }],
     },
+    bobbyStoryFixture,
     multiRoleStoryFixture,
   ],
 };
@@ -415,7 +424,8 @@ function currentUser(database) {
     const stored = localStorage.getItem(SESSION_KEY);
     if (!stored) return null;
     const session = JSON.parse(stored);
-    return database.users.find((user) => user.id === session.userId) || null;
+    return database.users.find((user) => user.id === session.userId) ||
+      (session.user?.id === session.userId ? session.user : null);
   } catch {
     return null;
   }
@@ -504,6 +514,12 @@ function ensureContentCollections(database) {
   if (!database.stories.some((story) => story.id === multiRoleStoryFixture.id)) {
     database.stories.push(clone(multiRoleStoryFixture));
   }
+  bobbyAssetFixtures.forEach((asset) => {
+    if (!database.assets.some((item) => item.id === asset.id)) database.assets.push(clone(asset));
+  });
+  if (!database.stories.some((story) => story.id === bobbyStoryFixture.id)) {
+    database.stories.push(clone(bobbyStoryFixture));
+  }
   Object.values(database.children).flat().forEach((child) => {
     database.childSettings[child.id] ||= { readingTimeLimitMinutes: null, allowedCategories: [], revision: 1, updatedAt: new Date().toISOString() };
     database.approvals[child.id] ||= [];
@@ -540,11 +556,15 @@ function validateChildSettings(body, categories) {
 
 function validateAsset(body) {
   const errors = {};
-  const allowed = ["image/png", "image/jpeg", "image/webp", "image/gif"];
-  if (!body?.name) errors.name = "Chọn một file ảnh.";
-  if (body?.mimeType && !allowed.includes(body.mimeType)) errors.mimeType = "Chỉ hỗ trợ PNG, JPG, WEBP hoặc GIF.";
+  const kind = body?.kind || "image";
+  const allowed = kind === "audio"
+    ? ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/ogg", "audio/webm", "audio/mp4", "audio/aac"]
+    : ["image/png", "image/jpeg", "image/webp", "image/gif"];
+  const maxSize = kind === "audio" ? 25 * 1024 * 1024 : 5 * 1024 * 1024;
+  if (!body?.name) errors.name = kind === "audio" ? "Chọn một file âm thanh." : "Chọn một file ảnh.";
+  if (body?.mimeType && !allowed.includes(body.mimeType)) errors.mimeType = kind === "audio" ? "Định dạng âm thanh chưa được hỗ trợ." : "Chỉ hỗ trợ PNG, JPG, WEBP hoặc GIF.";
   if (!Number.isFinite(Number(body?.size)) || Number(body.size) <= 0) errors.size = "Kích thước asset chưa hợp lệ.";
-  if (Number(body?.size) > 5 * 1024 * 1024) errors.size = "File ảnh tối đa 5MB.";
+  if (Number(body?.size) > maxSize) errors.size = kind === "audio" ? "File âm thanh tối đa 25MB." : "File ảnh tối đa 5MB.";
   if (Object.keys(errors).length) fieldError("Asset chưa hợp lệ.", errors);
 }
 
@@ -618,8 +638,34 @@ function storySnapshot(story) {
 function validatePage(body) {
   const errors = {};
   if (!body?.title?.trim()) errors.title = "Nhập tiêu đề trang.";
-  if (!body?.text?.trim()) errors.text = "Nhập nội dung trang.";
+  (body?.audioTracks || []).forEach((track, index) => {
+    if (!track?.assetId) errors[`audioTracks.${index}.assetId`] = "Chọn tệp âm thanh.";
+    if (!Number.isFinite(Number(track?.startMs || 0)) || Number(track?.startMs || 0) < 0) errors[`audioTracks.${index}.startMs`] = "Thời điểm bắt đầu phải từ 0 trở lên.";
+    if (track?.durationMs !== undefined && (!Number.isFinite(Number(track.durationMs)) || Number(track.durationMs) <= 0)) errors[`audioTracks.${index}.durationMs`] = "Thời lượng phải lớn hơn 0.";
+    if (track?.trimStartMs !== undefined && (!Number.isFinite(Number(track.trimStartMs)) || Number(track.trimStartMs) < 0)) errors[`audioTracks.${index}.trimStartMs`] = "Điểm cắt đầu phải từ 0 trở lên.";
+    if (track?.volume !== undefined && (!Number.isFinite(Number(track.volume)) || Number(track.volume) < 0 || Number(track.volume) > 1)) errors[`audioTracks.${index}.volume`] = "Âm lượng phải từ 0 đến 1.";
+  });
+  (body?.animationClips || []).forEach((clip, index) => {
+    if (!clip?.id || !clip.targetId) errors[`animationClips.${index}.targetId`] = "Clip cần có ID và đối tượng đích.";
+    if (!["preset", "keyframes", "path"].includes(clip.kind)) errors[`animationClips.${index}.kind`] = "Loại chuyển động chưa được hỗ trợ.";
+    if (!Number.isFinite(Number(clip.startMs)) || Number(clip.startMs) < 0 || !Number.isFinite(Number(clip.durationMs)) || Number(clip.durationMs) <= 0) errors[`animationClips.${index}.timing`] = "Thời điểm và thời lượng chuyển động chưa hợp lệ.";
+  });
   if (Object.keys(errors).length) fieldError("Trang chưa đủ thông tin.", errors);
+}
+
+const ANIMATION_PRESETS = new Set(["appear", "move", "jump", "spin", "walk"]);
+const PRESET_PROPERTIES = { appear: ["opacity", "scale"], move: ["x"], jump: ["y"], spin: ["rotation"], walk: ["y"] };
+
+function animationClipIntervals(clip) {
+  const start = Number(clip.startMs || 0);
+  const end = start + Number(clip.durationMs || 0);
+  if (clip.kind === "path") return [["x", start, end], ["y", start, end]];
+  if (clip.kind === "preset") return (PRESET_PROPERTIES[clip.preset] || []).map((property) => [property, start, end]);
+  if (clip.kind !== "keyframes") return [];
+  return ["x", "y", "scale", "rotation", "opacity"].flatMap((property) => {
+    const times = (clip.keyframes || []).filter((frame) => frame[property] !== undefined).map((frame) => Number(frame.timeMs)).filter(Number.isFinite).sort((left, right) => left - right);
+    return times.length ? [[property, start + times[0], end]] : [];
+  });
 }
 
 function validateRole(body) {
@@ -643,19 +689,66 @@ function validateQuiz(body) {
   if (Object.keys(errors).length) fieldError("Quiz chưa đủ thông tin.", errors);
 }
 
-function validateForPublish(story) {
+function validateForPublish(story, database) {
   const errors = {};
   if (!story.title?.trim()) errors.title = "Story cần có tên.";
   if (!story.category?.trim()) errors.category = "Story cần có category.";
   if (!story.pages?.length) errors.pages = "Story cần ít nhất một trang.";
   story.pages?.forEach((page, index) => {
     if (!page.text?.trim()) errors[`pages.${index}.text`] = `Trang ${index + 1} chưa có nội dung.`;
+    page.audioTracks?.forEach((track, trackIndex) => {
+      const asset = database.assets.find((item) => item.id === track.assetId && item.kind === "audio");
+      if (!asset) errors[`pages.${index}.audioTracks.${trackIndex}.assetId`] = `Trang ${index + 1} có audio không còn trong thư viện.`;
+      if (!Number.isFinite(Number(track.startMs || 0)) || Number(track.startMs || 0) < 0 || (track.durationMs !== undefined && (!Number.isFinite(Number(track.durationMs)) || Number(track.durationMs) <= 0)) || (track.trimStartMs !== undefined && (!Number.isFinite(Number(track.trimStartMs)) || Number(track.trimStartMs) < 0)) || (track.volume !== undefined && (!Number.isFinite(Number(track.volume)) || Number(track.volume) < 0 || Number(track.volume) > 1))) errors[`pages.${index}.audioTracks.${trackIndex}`] = `Trang ${index + 1} có audio với thời điểm, đoạn cắt hoặc âm lượng không hợp lệ.`;
+      if (asset?.duration > 0 && (Number(track.trimStartMs || 0) >= asset.duration * 1000 || (Number(track.durationMs) > 0 && Number(track.trimStartMs || 0) + Number(track.durationMs) > asset.duration * 1000 + 1))) errors[`pages.${index}.audioTracks.${trackIndex}.durationMs`] = `Trang ${index + 1} có đoạn âm thanh vượt quá thời lượng tệp.`;
+    });
+    const pageSlots = story.roles?.flatMap((role) => (role.slots || []).filter((slot) => slot.pageId === page.id)) || [];
+    const slotIds = new Set(pageSlots.map((slot) => slot.id));
+    const clips = page.animationClips || [];
+    const seenClipIds = new Set();
+    clips.forEach((clip, clipIndex) => {
+      const path = `pages.${index}.animationClips.${clipIndex}`;
+      if (!slotIds.has(clip.targetId)) errors[`${path}.targetId`] = `Trang ${index + 1} có chuyển động gắn với nhân vật không còn trên trang.`;
+      if (seenClipIds.has(clip.id)) errors[`${path}.id`] = `Trang ${index + 1} có ID chuyển động bị lặp.`;
+      seenClipIds.add(clip.id);
+      if (!Number.isFinite(Number(clip.startMs)) || Number(clip.startMs) < 0 || !Number.isFinite(Number(clip.durationMs)) || Number(clip.durationMs) <= 0) errors[`${path}.timing`] = `Trang ${index + 1} có thời điểm hoặc thời lượng chuyển động không hợp lệ.`;
+      if (clip.kind === "preset" && !ANIMATION_PRESETS.has(clip.preset)) errors[`${path}.preset`] = `Trang ${index + 1} có preset chuyển động không được hỗ trợ.`;
+      if (clip.easing !== undefined && !["linear", "ease-in", "ease-out", "ease-in-out"].includes(clip.easing)) errors[`${path}.easing`] = `Trang ${index + 1} có easing không hợp lệ.`;
+      if (clip.kind === "path" && ((clip.points || []).length < 2 || clip.points.some((point) => !Number.isFinite(Number(point.x)) || !Number.isFinite(Number(point.y)) || Number(point.x) < 0 || Number(point.x) > 100 || Number(point.y) < 0 || Number(point.y) > 100))) errors[`${path}.points`] = `Trang ${index + 1} có đường đi không hợp lệ.`;
+      if (clip.kind === "keyframes") {
+        const frames = clip.keyframes || [];
+        const frameTimes = new Set();
+        frames.forEach((frame, frameIndex) => {
+          const time = Number(frame.timeMs);
+          if (!Number.isFinite(time) || time < 0 || time > Number(clip.durationMs) || frameTimes.has(time)) errors[`${path}.keyframes.${frameIndex}.timeMs`] = `Trang ${index + 1} có keyframe trùng hoặc nằm ngoài clip.`;
+          frameTimes.add(time);
+          for (const property of ["x", "y", "scale", "rotation", "opacity"]) {
+            if (frame[property] === undefined) continue;
+            const value = Number(frame[property]);
+            const invalid = !Number.isFinite(value) || ((property === "x" || property === "y") && (value < 0 || value > 100)) || (property === "scale" && (value <= 0 || value > 5)) || (property === "rotation" && Math.abs(value) > 3600) || (property === "opacity" && (value < 0 || value > 1));
+            if (invalid) errors[`${path}.keyframes.${frameIndex}.${property}`] = `Trang ${index + 1} có giá trị ${property} không hợp lệ.`;
+          }
+        });
+      }
+    });
+    for (let leftIndex = 0; leftIndex < clips.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < clips.length; rightIndex += 1) {
+        const left = clips[leftIndex]; const right = clips[rightIndex];
+        if (left.targetId !== right.targetId) continue;
+        const conflict = animationClipIntervals(left).some(([leftProperty, leftStart, leftEnd]) => animationClipIntervals(right).some(([rightProperty, rightStart, rightEnd]) => leftProperty === rightProperty && leftStart < rightEnd && rightStart < leftEnd));
+        if (conflict) errors[`pages.${index}.animationClips.${rightIndex}`] = `Trang ${index + 1} có hai clip chồng nhau trên cùng thuộc tính.`;
+      }
+    }
   });
   story.roles?.forEach((role, index) => {
     role.slots?.forEach((slot, slotIndex) => {
-      if (slot.x < 0 || slot.x > 100 || slot.y < 0 || slot.y > 100) errors[`roles.${index}.slots.${slotIndex}`] = "Tọa độ slot phải nằm trong khoảng 0–100.";
+      if (slot.x < 0 || slot.x > 100 || slot.y < 0 || slot.y > 100 || !Number.isFinite(Number(slot.scale || 1)) || Number(slot.scale || 1) <= 0 || Number(slot.scale || 1) > 5 || !Number.isFinite(Number(slot.rotation || 0)) || Math.abs(Number(slot.rotation || 0)) > 3600) errors[`roles.${index}.slots.${slotIndex}`] = "Tọa độ, kích thước hoặc góc xoay của slot chưa hợp lệ.";
     });
   });
+  story.pages?.forEach((page, pageIndex) => page.sequence?.forEach((action, actionIndex) => {
+    const hasSlot = story.roles?.some((role) => role.slots?.some((slot) => slot.id === action.slotId && slot.pageId === page.id));
+    if (!hasSlot) errors[`pages.${pageIndex}.sequence.${actionIndex}.slotId`] = `Trang ${pageIndex + 1} có hoạt động thiếu nhân vật.`;
+  }));
   story.quizzes?.forEach((quiz, index) => {
     if (!Number.isInteger(quiz.correctIndex)) errors[`quizzes.${index}.correctIndex`] = "Quiz cần có một đáp án đúng.";
   });
@@ -1040,7 +1133,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     requireRole(user, "content_manager", "Chỉ Content Manager mới có thể xóa asset.");
     const assetIndex = database.assets.findIndex((asset) => asset.id === assetDetailMatch[1]);
     if (assetIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy asset." });
-    const referenced = database.stories.some((story) => story.coverAssetId === assetDetailMatch[1] || story.pages?.some((page) => page.backgroundAssetId === assetDetailMatch[1]) || story.roles?.some((role) => role.defaultAssetId === assetDetailMatch[1] || role.slots?.some((slot) => slot.assetId === assetDetailMatch[1])));
+    const referenced = database.stories.some((story) => story.coverAssetId === assetDetailMatch[1] || story.pages?.some((page) => page.backgroundAssetId === assetDetailMatch[1] || page.audioTracks?.some((track) => track.assetId === assetDetailMatch[1])) || story.roles?.some((role) => role.defaultAssetId === assetDetailMatch[1] || role.slots?.some((slot) => slot.assetId === assetDetailMatch[1])));
     if (referenced) throw new ApiError({ status: 409, code: "ASSET_IN_USE", message: "Asset đang được story tham chiếu, không thể xóa." });
     const [removed] = database.assets.splice(assetIndex, 1);
     writeDatabase(database);
@@ -1085,14 +1178,14 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     if (action === "preview" && method === "GET") return storyResponse(story);
     if (action === "validate" && method === "POST") {
       assertStoryRevision(story, body?.revision);
-      const errors = validateForPublish(story);
+      const errors = validateForPublish(story, database);
       if (Object.keys(errors).length) throw new ApiError({ status: 422, code: "PUBLISH_VALIDATION_FAILED", message: "Story chưa đủ điều kiện publish.", fieldErrors: errors });
       return { valid: true, revision: story.revision, message: "Story đã vượt qua kiểm tra publish." };
     }
     if (action === "publish" && method === "POST") {
       assertStoryRevision(story, body?.revision);
       if (body?.revision && body.revision !== story.revision) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Story đã có thay đổi mới. Tải lại trước khi publish." });
-      const errors = validateForPublish(story);
+      const errors = validateForPublish(story, database);
       if (Object.keys(errors).length) throw new ApiError({ status: 422, code: "PUBLISH_VALIDATION_FAILED", message: "Story chưa đủ điều kiện publish.", fieldErrors: errors });
       story.status = "published";
       storyMutation(story, { expectedRevision: body?.revision, publishing: true });
@@ -1136,9 +1229,9 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       assertStoryRevision(story, body?.revision);
       const page = story.pages.find((candidate) => candidate.id === body?.pageId);
       if (!page) fieldError("Slot chưa đủ thông tin.", { pageId: "Chọn một page có trong story." });
-      const x = Number(body.x); const y = Number(body.y); const scale = Number(body.scale || 1);
-      if ([x, y, scale].some((value) => !Number.isFinite(value)) || x < 0 || x > 100 || y < 0 || y > 100 || scale <= 0) fieldError("Tọa độ slot chưa hợp lệ.", { coordinates: "X/Y trong khoảng 0–100, scale lớn hơn 0." });
-      role.slots.push({ id: `slot-${Date.now()}`, pageId: body.pageId, x, y, scale, flip: Boolean(body.flip), layer: Number(body.layer || 1) });
+      const x = Number(body.x); const y = Number(body.y); const scale = Number(body.scale || 1); const rotation = Number(body.rotation || 0);
+      if ([x, y, scale, rotation].some((value) => !Number.isFinite(value)) || x < 0 || x > 100 || y < 0 || y > 100 || scale <= 0 || scale > 5 || Math.abs(rotation) > 3600) fieldError("Tọa độ slot chưa hợp lệ.", { coordinates: "X/Y trong khoảng 0–100, scale từ 0,1–5, góc xoay trong ±3600°." });
+      role.slots.push({ id: `slot-${Date.now()}`, pageId: body.pageId, x, y, scale, rotation, flip: Boolean(body.flip), layer: Number(body.layer || 1) });
       storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story);
     }
     if (method === "PATCH" && slotMatch[3]) {
@@ -1146,10 +1239,10 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       const slotIndex = role.slots.findIndex((slot) => slot.id === slotMatch[3]);
       if (slotIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy slot." });
       const next = { ...role.slots[slotIndex], ...mutationPayload(body) };
-      const x = Number(next.x); const y = Number(next.y); const scale = Number(next.scale);
-      if ([x, y, scale].some((value) => !Number.isFinite(value)) || x < 0 || x > 100 || y < 0 || y > 100 || scale <= 0) fieldError("Tọa độ slot chưa hợp lệ.", { coordinates: "X/Y trong khoảng 0–100, scale lớn hơn 0." });
+      const x = Number(next.x); const y = Number(next.y); const scale = Number(next.scale); const rotation = Number(next.rotation || 0);
+      if ([x, y, scale, rotation].some((value) => !Number.isFinite(value)) || x < 0 || x > 100 || y < 0 || y > 100 || scale <= 0 || scale > 5 || Math.abs(rotation) > 3600) fieldError("Tọa độ slot chưa hợp lệ.", { coordinates: "X/Y trong khoảng 0–100, scale từ 0,1–5, góc xoay trong ±3600°." });
       if (!story.pages.some((page) => page.id === next.pageId)) fieldError("Slot chưa hợp lệ.", { pageId: "Chọn một page có trong story." });
-      role.slots[slotIndex] = { ...next, x, y, scale, flip: Boolean(next.flip), layer: Number(next.layer || 1) };
+      role.slots[slotIndex] = { ...next, x, y, scale, rotation, flip: Boolean(next.flip), layer: Number(next.layer || 1) };
       storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story);
     }
     if (method === "DELETE" && slotMatch[3]) {
@@ -1220,7 +1313,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     if (method === "POST") {
       assertStoryRevision(story, body?.revision);
       let item;
-      if (collection === "pages") { validatePage(body); item = { id: `page-${Date.now()}`, order: story.pages.length + 1, title: body.title.trim(), text: body.text.trim(), backgroundAssetId: body.backgroundAssetId || null, narration: body.narration?.trim() || "" }; }
+      if (collection === "pages") { validatePage(body); item = { ...mutationPayload(body), id: `page-${Date.now()}`, order: story.pages.length + 1, title: body.title.trim(), text: body.text?.trim() || "", backgroundAssetId: body.backgroundAssetId || null, narration: body.narration?.trim() || "", audioTracks: body.audioTracks || [], sequence: body.sequence || [] }; }
       if (collection === "roles") { validateRole(body); item = { id: `role-${Date.now()}`, name: body.name.trim(), custom: body.custom !== false, sensitive: Boolean(body.sensitive), defaultAssetId: body.defaultAssetId || null, slots: [] }; }
       if (collection === "vocabulary") { validateVocabulary(body); item = { id: `vocab-${Date.now()}`, pageId: body.pageId, word: body.word.trim(), meaning: body.meaning.trim(), audioUrl: body.audioUrl?.trim() || "" }; }
       if (collection === "quizzes") { validateQuiz(body); item = { id: `quiz-${Date.now()}`, pageId: body.pageId, question: body.question.trim(), options: body.options.map((option) => option.trim()), correctIndex: body.correctIndex, feedback: body.feedback?.trim() || "", audioUrl: body.audioUrl?.trim() || "" }; }
@@ -1526,6 +1619,40 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       writeDatabase(database);
       return clone(approval);
     }
+  }
+
+  if (pathname === "/parent/stories" && method === "GET") {
+    requireParent(user);
+    const items = database.stories.filter((story) => story.status === "published").map((story) => {
+      ensureStoryShape(story);
+      const published = story.versions.find((version) => version.id === story.publishedVersionId)?.snapshot;
+      if (!published) return null;
+      const assetUrl = (id) => database.assets.find((asset) => asset.id === id)?.url || null;
+      return { id: story.id, title: published.title, description: published.description, category: published.category,
+        imageUrl: assetUrl(published.coverAssetId),
+        pages: [...(published.pages || [])].sort((a, b) => a.order - b.order).map((page) => ({ id: page.id, title: page.title, text: page.text, imageUrl: assetUrl(page.backgroundAssetId || published.coverAssetId) })) };
+    }).filter(Boolean);
+    return { items: clone(items), total: items.length };
+  }
+
+  const recommendationMatch = pathname.match(/^\/children\/([^/]+)\/recommendations$/);
+  if (recommendationMatch && method === "POST") {
+    const childId = recommendationMatch[1];
+    ownedChild(database, user, childId);
+    const { story } = findStory(database, body?.storyId);
+    const published = story.versions.find((version) => version.id === story.publishedVersionId)?.snapshot;
+    if (story.status !== "published" || !published) throw new ApiError({ status: 409, code: "NOT_PUBLISHED", message: "Truyện chưa được xuất bản hoặc đã ngừng phát hành." });
+    const items = database.library[childId] ||= [];
+    let item = items.find((entry) => entry.type === "story" && entry.sourceId === story.id);
+    if (!item) {
+      item = { id: `recommendation-${childId}-${story.id}`, sourceId: story.id, type: "story", title: published.title, description: published.description, imageUrl: database.assets.find((asset) => asset.id === published.coverAssetId)?.url || null, favorite: false, hidden: false, status: "ready" };
+      items.push(item);
+    }
+    item.recommendedByParent = true;
+    item.hidden = false;
+    item.updatedAt = new Date().toISOString();
+    writeDatabase(database);
+    return clone(item);
   }
 
   const libraryMatch = pathname.match(/^\/children\/([^/]+)\/library(?:\/([^/]+))?$/);

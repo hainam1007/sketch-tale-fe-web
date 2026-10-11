@@ -43,7 +43,7 @@ export default function ChildProgressPage() {
         <div>
           <p className="workspace-eyebrow">TIẾN ĐỘ CỦA {child.displayName.toUpperCase()}</p>
           <h2>Những bước nhỏ đang thành câu chuyện</h2>
-          <p>Số liệu đọc, từ vựng và quiz được lấy theo khoảng thời gian từ progress API.</p>
+          <p>Số liệu đọc, từ vựng và câu hỏi sau truyện trong khoảng thời gian đã chọn.</p>
         </div>
         <label className="data-range-control">
           <span>Khoảng thời gian</span>
@@ -61,7 +61,7 @@ export default function ChildProgressPage() {
           </div>
           <section className="analytics-card progress-history-card">
             <div className="analytics-card-heading"><div><p className="workspace-eyebrow">LỊCH SỬ GẦN ĐÂY</p><h3>Nhịp đọc theo ngày</h3></div><span className="analytics-card-note">{data.label}</span></div>
-            <div className="analytics-table-wrap"><table className="analytics-table"><caption className="sr-only">Lịch sử đọc của {child.displayName}</caption><thead><tr><th>Ngày</th><th>Phút đọc</th><th>Truyện xong</th><th>Từ vựng</th><th>Quiz</th></tr></thead><tbody>{data.days.map((day) => <tr key={day.date}><th scope="row">{day.label}</th><td>{day.readingMinutes}</td><td>{day.storiesCompleted}</td><td>{day.vocabularyReviewed}</td><td>{day.quizAccuracy === null ? "Chưa có" : `${day.quizAccuracy}%`}</td></tr>)}</tbody></table></div>
+            <div className="analytics-table-wrap"><table className="analytics-table"><caption className="sr-only">Lịch sử đọc của {child.displayName}</caption><thead><tr><th>Ngày</th><th>Phút đọc</th><th>Truyện hoàn thành</th><th>Từ đã ôn</th><th>Trả lời đúng</th></tr></thead><tbody>{data.days.map((day) => <tr key={day.date}><th scope="row">{day.label}</th><td>{day.readingMinutes}</td><td>{day.storiesCompleted}</td><td>{day.vocabularyReviewed}</td><td>{day.quizAccuracy === null ? "Chưa có" : `${day.quizAccuracy}%`}</td></tr>)}</tbody></table></div>
           </section>
           {data.latestActivity && <p className="progress-latest"><CheckCircle size={17} aria-hidden="true" /> Gần nhất: <strong>{data.latestActivity.title}</strong> · {data.latestActivity.type}</p>}
         </>

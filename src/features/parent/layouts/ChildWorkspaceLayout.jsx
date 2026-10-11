@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { CaretDown } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { childrenService } from "../services/childrenService";
 import { useAuth } from "../../auth/AuthProvider";
 import { queryKeys } from "../../../lib/api/queryKeys";
@@ -21,6 +22,7 @@ export default function ChildWorkspaceLayout() {
   const { childId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const tabsRef = useRef(null);
   const childrenQuery = useQuery({
     queryKey: queryKeys.children(user.id),
     queryFn: ({ signal }) => childrenService.list({ signal }),
@@ -29,6 +31,14 @@ export default function ChildWorkspaceLayout() {
     queryKey: queryKeys.child(user.id, childId),
     queryFn: ({ signal }) => childrenService.get({ childId, signal }),
   });
+
+  useEffect(() => {
+    const tabsElement = tabsRef.current;
+    const activeTab = tabsElement?.querySelector("a.active");
+    if (!tabsElement || !activeTab) return;
+    const targetLeft = activeTab.offsetLeft - Math.max(0, (tabsElement.clientWidth - activeTab.offsetWidth) / 2);
+    tabsElement.scrollLeft = Math.max(0, Math.min(targetLeft, tabsElement.scrollWidth - tabsElement.clientWidth));
+  }, [location.pathname, childQuery.data?.id]);
 
   if (childrenQuery.isLoading || childQuery.isLoading) return <LoadingState label="Đang mở hồ sơ bé" />;
   if (childrenQuery.isError) return <ErrorState message={childrenQuery.error.message} onRetry={() => childrenQuery.refetch()} />;
@@ -57,7 +67,7 @@ export default function ChildWorkspaceLayout() {
           <CaretDown size={16} aria-hidden="true" />
         </label>
       </div>
-      <nav className="child-tabs" aria-label={`Khu vực của ${child.displayName}`}>
+      <nav ref={tabsRef} className="child-tabs" aria-label={`Khu vực của ${child.displayName}`}>
         {tabs.map((tab) => <NavLink key={tab.suffix} to={`${currentPath}${tab.suffix}`} end={!tab.suffix}>{tab.label}</NavLink>)}
       </nav>
       <Outlet context={{ child, children: childrenQuery.data.items }} />

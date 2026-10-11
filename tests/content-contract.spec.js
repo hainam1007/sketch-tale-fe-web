@@ -11,7 +11,7 @@ test("Content preview renders every role slot from the contract fixture", async 
   await expect(page.locator(".story-preview-stage")).toBeVisible();
   await expect(page.locator(".story-preview-slot")).toHaveCount(1);
 
-  await page.getByRole("button", { name: /Two friends arrive/ }).click();
+  await page.getByRole("button", { name: /Hai người bạn cùng đến/ }).click();
   await expect(page.locator(".story-preview-slot")).toHaveCount(2);
   await expect(page.locator('[data-role-id="role-contract-sprout"]')).toBeVisible();
   await expect(page.locator('[data-role-id="role-contract-moth"]')).toBeVisible();

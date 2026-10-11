@@ -3,7 +3,7 @@ const labels = {
   Pro: "Pro",
   Family: "Family",
   draft: "Bản nháp",
-  published: "Đã publish",
+  published: "Đã xuất bản",
   hidden: "Đã ẩn",
   active: "Đang hoạt động",
   disabled: "Đã tắt",

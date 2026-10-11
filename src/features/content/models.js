@@ -66,6 +66,9 @@ export function canContent(userOrRole, permission) {
  * @property {string} text
  * @property {string|null} backgroundAssetId
  * @property {string} narration
+ * @property {Array<{id: string, assetId: string, name?: string, type: "voiceover"|"music"|"effect", startMs?: number, trimStartMs?: number, durationMs?: number, volume?: number}>} [audioTracks] Timed page tracks; volume is normalized from 0 to 1. Backend shape is pending confirmation.
+ * @property {Array<{id: string, slotId: string, preset: "appear"|"move"|"jump"|"spin"|"walk", durationMs?: number}>} [sequence] Frontend preview motion presets; not a frame-animation contract.
+ * @property {Array<{id: string, targetId: string, kind: "preset"|"keyframes"|"path", preset?: string, startMs: number, durationMs: number, keyframes?: Array<{id: string, timeMs: number, x?: number, y?: number, scale?: number, rotation?: number, opacity?: number}>, points?: Array<{x: number, y: number}>}>} [animationClips] Draft editor animation. Legacy sequence remains readable and is migrated at the UI boundary.
  */
 
 /**
@@ -86,6 +89,7 @@ export function canContent(userOrRole, permission) {
  * @property {number} x
  * @property {number} y
  * @property {number} scale
+ * @property {number} rotation
  * @property {boolean} flip
  * @property {number} layer
  * @property {string|null} [anchor]
@@ -211,6 +215,7 @@ export function normalizeSlot(slot) {
     x: Number.isFinite(Number(slot.x)) ? Number(slot.x) : 0,
     y: Number.isFinite(Number(slot.y)) ? Number(slot.y) : 0,
     scale: Number.isFinite(Number(slot.scale)) && Number(slot.scale) > 0 ? Number(slot.scale) : 1,
+    rotation: Number.isFinite(Number(slot.rotation)) ? Number(slot.rotation) : 0,
     flip: Boolean(slot.flip),
     layer: Number.isFinite(Number(slot.layer)) ? Number(slot.layer) : 0,
     anchor: slot.anchor || null,

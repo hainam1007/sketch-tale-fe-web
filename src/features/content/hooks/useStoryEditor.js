@@ -5,9 +5,10 @@ import { contentService } from "../services/contentService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 
 export function useStoryEditorData() {
-  const { story, queryKey, setEditorDirty } = useOutletContext();
+  const context = useOutletContext();
+  const { story, queryKey, setEditorDirty } = context;
   const { storyId } = useParams();
-  return { story, storyId, queryKey, setEditorDirty };
+  return { ...context, story, storyId, queryKey, setEditorDirty };
 }
 
 export function useStoryEditorMutation(mutationFn) {
