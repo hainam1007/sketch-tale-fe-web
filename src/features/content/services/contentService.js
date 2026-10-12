@@ -1,7 +1,62 @@
-import { featureApiRequest } from "../../../lib/api/featureApi";
+import { featureApiModes, featureApiRequest } from "../../../lib/api/featureApi";
 import { deleteAsset, listAssets, uploadAsset } from "./assetService";
 
 const contentRequest = (options) => featureApiRequest("content", options);
+
+const backendStoryStatuses = ["draft", "published", "hidden"];
+
+function normalizeBackendStory(story) {
+  const rawStatus = story.status;
+  const stringStatus = String(rawStatus ?? "").toLowerCase();
+  const status = ["draft", "published", "hidden"].includes(stringStatus)
+    ? stringStatus
+    : stringStatus === "active"
+      ? "published"
+      : stringStatus === "inactive"
+        ? "hidden"
+        : backendStoryStatuses[Number(rawStatus)] || "draft";
+
+  return {
+    ...story,
+    id: story.id,
+    title: story.title || "",
+    description: story.description || "",
+    categoryId: story.educationThemeId || "",
+    category: story.educationThemeName || "",
+    coverAssetId: null,
+    coverImageUrl: story.coverImageUrl || "",
+    pagesCount: Number(story.totalPageNumbers) || 0,
+    updatedAt: story.updatedAt || story.createdAt,
+    status,
+  };
+}
+
+async function listBackendStories({ search, status, category, sort, page, pageSize, signal }) {
+  const response = await contentRequest({ path: "/story-template/getallstories", signal });
+  const rows = Array.isArray(response) ? response : response?.items || [];
+  const normalizedSearch = search.trim().toLowerCase();
+  const filtered = rows
+    .map(normalizeBackendStory)
+    .filter((story) => !normalizedSearch || `${story.title} ${story.description}`.toLowerCase().includes(normalizedSearch))
+    .filter((story) => status === "all" || story.status === status)
+    .filter((story) => category === "all" || story.categoryId === category)
+    .sort((left, right) => {
+      if (sort === "title_asc") return left.title.localeCompare(right.title);
+      if (sort === "title_desc") return right.title.localeCompare(left.title);
+      if (sort === "status_asc") return left.status.localeCompare(right.status);
+      return new Date(right.updatedAt || 0).getTime() - new Date(left.updatedAt || 0).getTime();
+    });
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  return {
+    items: filtered.slice((page - 1) * pageSize, page * pageSize),
+    total,
+    page,
+    pageSize,
+    totalPages,
+  };
+}
 
 function revisionBody(payload, revision) {
   return revision === undefined ? payload : { ...payload, revision };
@@ -9,10 +64,18 @@ function revisionBody(payload, revision) {
 
 export const contentService = {
   listStories: ({ search = "", status = "all", category = "all", sort = "updated_desc", page = 1, pageSize = 10, signal } = {}) => {
+    if (featureApiModes.content === "real") {
+      return listBackendStories({ search, status, category, sort, page, pageSize, signal });
+    }
     const params = new URLSearchParams({ search, status, category, sort, page: String(page), pageSize: String(pageSize) });
     return contentRequest({ path: `/content/stories?${params}`, signal });
   },
-  listCategories: ({ signal } = {}) => contentRequest({ path: "/content/catalog/categories", signal }),
+  listCategories: async ({ signal } = {}) => {
+    if (featureApiModes.content !== "real") return contentRequest({ path: "/content/catalog/categories", signal });
+    const response = await contentRequest({ path: "/education-themes", signal });
+    const rows = Array.isArray(response) ? response : response?.items || [];
+    return { items: rows.map((theme) => ({ id: theme.id, label: theme.name || "Chưa đặt tên" })) };
+  },
   getStory: ({ storyId, signal }) => contentRequest({ path: `/content/stories/${storyId}`, signal }),
   createStory: (payload) => contentRequest({ path: "/content/stories", method: "POST", body: payload }),
   updateStory: ({ storyId, revision, ...payload }) => contentRequest({ path: `/content/stories/${storyId}`, method: "PATCH", body: revisionBody(payload, revision) }),
