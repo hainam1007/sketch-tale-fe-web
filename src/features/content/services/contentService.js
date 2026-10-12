@@ -58,6 +58,20 @@ async function listBackendStories({ search, status, category, sort, page, pageSi
   };
 }
 
+async function getBackendStatistics(signal) {
+  const response = await contentRequest({ path: "/story-template/getallstories", signal });
+  const rows = (Array.isArray(response) ? response : response?.items || []).map(normalizeBackendStory);
+  return {
+    summary: {
+      publishedStories: rows.filter((story) => story.status === "published").length,
+      draftStories: rows.filter((story) => story.status === "draft").length,
+    },
+    trend: [],
+    topStories: [],
+    errors: [{ section: "analytics", message: "Backend hiện chưa cung cấp API lượt đọc, người đọc hoạt động hoặc xu hướng theo ngày; các số liệu đó chưa thể hiển thị." }],
+  };
+}
+
 function revisionBody(payload, revision) {
   return revision === undefined ? payload : { ...payload, revision };
 }
@@ -105,7 +119,9 @@ export const contentService = {
   publishStory: ({ storyId, revision }) => contentRequest({ path: `/content/stories/${storyId}/publish`, method: "POST", body: { revision } }),
   hideStory: ({ storyId, revision }) => contentRequest({ path: `/content/stories/${storyId}/hide`, method: "POST", body: { revision } }),
   listAssets,
-  getStatistics: ({ range = "7d", signal } = {}) => contentRequest({ path: `/content/statistics?range=${range}`, signal }),
+  getStatistics: ({ range = "7d", signal } = {}) => featureApiModes.content === "real"
+    ? getBackendStatistics(signal)
+    : contentRequest({ path: `/content/statistics?range=${range}`, signal }),
   uploadAsset,
   deleteAsset,
 };
