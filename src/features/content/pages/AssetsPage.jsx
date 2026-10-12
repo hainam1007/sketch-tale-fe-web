@@ -2,6 +2,7 @@ import { CheckCircle, ImageSquare, MagnifyingGlass, SpeakerHigh, Trash, UploadSi
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../auth/AuthProvider";
+import { featureApiModes } from "../../../lib/api/featureApi";
 import { contentService } from "../services/contentService";
 import { validateAssetFile } from "../services/assetService";
 import { queryKeys } from "../../../lib/api/queryKeys";
@@ -104,9 +105,9 @@ export default function AssetsPage() {
         <section className="asset-upload-card" aria-labelledby="asset-upload-title">
           <div className="content-form-section">
             <span className="content-form-icon"><UploadSimple size={20} aria-hidden="true" /></span>
-            <div><h2 id="asset-upload-title">Thêm tư liệu</h2><p>Ảnh tối đa 5MB; âm thanh MP3, WAV, OGG, WEBM hoặc AAC tối đa 25MB.</p></div>
+            <div><h2 id="asset-upload-title">{featureApiModes.content === "real" ? "Tư liệu từ truyện" : "Thêm tư liệu"}</h2><p>{featureApiModes.content === "real" ? "Đang hiển thị ảnh bìa, ảnh nền và lời kể đã lưu trong backend. Backend chưa có API quản lý thư viện, upload asset chung hoặc xóa tư liệu." : "Ảnh tối đa 5MB; âm thanh MP3, WAV, OGG, WEBM hoặc AAC tối đa 25MB."}</p></div>
           </div>
-          <form onSubmit={submit}>
+          {featureApiModes.content !== "real" && <form onSubmit={submit}>
             <label className="asset-file-label" htmlFor="asset-file">
               <ImageSquare size={23} aria-hidden="true" />
               <span>{file ? file.name : "Chọn ảnh hoặc file âm thanh"}</span>
@@ -121,7 +122,7 @@ export default function AssetsPage() {
             {uploadMutation.error && uploadMutation.error.name !== "AbortError" && !error && <p className="asset-message asset-message-error" role="alert"><WarningCircle size={16} aria-hidden="true" /> {uploadMutation.error.message}</p>}
             {success && <p className="asset-message asset-message-success" role="status"><CheckCircle size={16} aria-hidden="true" /> {success}</p>}
             {uploadMutation.isPending && <div className="asset-upload-progress" aria-live="polite"><span>Đang tải file lên...</span><i aria-hidden="true" /></div>}
-          </form>
+          </form>}
         </section>
 
         <section className="asset-library-grid" aria-labelledby="asset-library-title">
@@ -154,7 +155,7 @@ export default function AssetsPage() {
           <footer className="asset-preview-footer">
             <div><strong>{previewAsset.mimeType || previewAsset.kind}</strong><span>{formatSize(previewAsset.size)} · ID: {previewAsset.id}</span></div>
             {deleteMutation.isError && <p className="asset-message asset-message-error" role="alert">{deleteMutation.error.message}</p>}
-            <button className="workspace-button workspace-button-danger" type="button" disabled={deleteMutation.isPending} onClick={() => { if (window.confirm(`Xóa ${previewAsset.name} khỏi thư viện? Tư liệu đang được truyện sử dụng sẽ không thể xóa.`)) { previewDialogRef.current?.close(); deleteMutation.mutate(previewAsset.id); } }}><Trash size={15} aria-hidden="true" /> {deleteMutation.isPending ? "Đang xóa…" : "Xóa tư liệu"}</button>
+            {previewAsset.readOnly ? <span className="asset-preview-readonly">Tư liệu đang được truyện sử dụng; backend hiện chỉ cho phép xem.</span> : <button className="workspace-button workspace-button-danger" type="button" disabled={deleteMutation.isPending} onClick={() => { if (window.confirm(`Xóa ${previewAsset.name} khỏi thư viện? Tư liệu đang được truyện sử dụng sẽ không thể xóa.`)) { previewDialogRef.current?.close(); deleteMutation.mutate(previewAsset.id); } }}><Trash size={15} aria-hidden="true" /> {deleteMutation.isPending ? "Đang xóa…" : "Xóa tư liệu"}</button>}
           </footer>
         </>}
       </dialog>

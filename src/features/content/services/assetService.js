@@ -1,4 +1,4 @@
-import { featureApiRequest, isFeatureMockMode } from "../../../lib/api/featureApi";
+import { featureApiModes, featureApiRequest, isFeatureMockMode } from "../../../lib/api/featureApi";
 import { getLocalAssetNamespace, localAssetUrl, putLocalAsset, removeLocalAsset } from "./localAssetStore";
 
 const contentRequest = (options) => featureApiRequest("content", options);
@@ -7,6 +7,67 @@ export const MAX_ASSET_SIZE = 5 * 1024 * 1024;
 export const MAX_AUDIO_SIZE = 25 * 1024 * 1024;
 export const IMAGE_MIME_TYPES = Object.freeze(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 export const AUDIO_MIME_TYPES = Object.freeze(["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/ogg", "audio/webm", "audio/mp4", "audio/aac"]);
+
+function responseRows(response) {
+  if (Array.isArray(response)) return response;
+  return response?.items || [];
+}
+
+async function listBackendAssets(signal) {
+  const stories = responseRows(await contentRequest({ path: "/story-template/getallstories", signal }));
+  const assets = [];
+
+  for (const story of stories) {
+    if (story.coverImageUrl) {
+      assets.push({
+        id: `story-cover:${story.id}`,
+        name: `${story.title || "Truyện"} · Ảnh bìa`,
+        kind: "image",
+        mimeType: "image/*",
+        size: 0,
+        url: story.coverImageUrl,
+        readOnly: true,
+      });
+    }
+  }
+
+  const pageGroups = await Promise.all(stories.map(async (story) => {
+    const pages = responseRows(await contentRequest({ path: `/storypage-template/pages/${story.id}`, signal }));
+    return pages.flatMap((page) => {
+      const items = [];
+      if (page.backgroundUrl) {
+        items.push({
+          id: `page-background:${page.id}`,
+          name: `${story.title || "Truyện"} · Trang ${page.pageNumber} · Ảnh nền`,
+          kind: "image",
+          mimeType: "image/*",
+          size: 0,
+          url: page.backgroundUrl,
+          readOnly: true,
+        });
+      }
+      if (page.audioNarrationUrl) {
+        items.push({
+          id: `page-audio:${page.id}`,
+          name: `${story.title || "Truyện"} · Trang ${page.pageNumber} · Lời kể`,
+          kind: "audio",
+          mimeType: "audio/*",
+          size: 0,
+          url: page.audioNarrationUrl,
+          readOnly: true,
+        });
+      }
+      return items;
+    });
+  }));
+
+  const uniqueAssets = new Map();
+  for (const asset of [...assets, ...pageGroups.flat()]) {
+    if (!uniqueAssets.has(asset.url)) uniqueAssets.set(asset.url, asset);
+  }
+  const items = [...uniqueAssets.values()];
+  return { items, total: items.length, page: 1, pageSize: items.length || 1, totalPages: 1 };
+}
 
 export function validateAssetFile(file, kind = file?.type?.startsWith("audio/") ? "audio" : "image") {
   const errors = {};
@@ -33,6 +94,9 @@ export function uploadAsset({ file, signal }) {
     error.fieldErrors = validationErrors;
     return Promise.reject(error);
   }
+  if (featureApiModes.content === "real") {
+    return Promise.reject(new Error("Backend chưa có API thư viện asset dùng chung; hiện chưa thể upload từ màn này."));
+  }
   const body = new FormData();
   body.append("file", file);
   body.append("name", file.name);
@@ -53,6 +117,7 @@ export function uploadAsset({ file, signal }) {
 }
 
 export async function listAssets({ signal } = {}) {
+  if (featureApiModes.content === "real") return listBackendAssets(signal);
   const response = await contentRequest({ path: "/content/assets", signal });
   if (!isFeatureMockMode("content")) return response;
   const items = await Promise.all((response.items || []).map(async (asset) => {
@@ -66,6 +131,9 @@ export async function listAssets({ signal } = {}) {
 }
 
 export async function deleteAsset({ assetId }) {
+  if (featureApiModes.content === "real") {
+    throw new Error("Backend hiện chưa có API xóa hoặc quản lý thư viện tư liệu.");
+  }
   await contentRequest({ path: `/content/assets/${assetId}`, method: "DELETE" });
   if (isFeatureMockMode("content")) await removeLocalAsset(assetId);
 }
