@@ -17,13 +17,13 @@ const featureLabels = {
 };
 
 export function isFeatureMockMode(feature) {
-  return featureApiModes[feature] === "mock";
+  return isDevelopment && featureApiModes[feature] === "mock";
 }
 
 export function featureApiRequest(feature, options) {
   const mode = featureApiModes[feature];
   if (mode === "real") return apiRequest(options);
-  if (mode === "mock") return mockRequest(options);
+  if (mode === "mock" && isDevelopment) return mockRequest(options);
 
   throw new ApiError({
     status: 503,

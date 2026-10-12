@@ -837,7 +837,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       throw new ApiError({
         status: 401,
         code: "INVALID_CREDENTIALS",
-        message: "Email hoặc mật khẩu chưa đúng. Bạn có thể dùng tài khoản demo bên dưới.",
+        message: "Email hoặc mật khẩu chưa đúng.",
       });
     }
     if (user.status === "locked") {
