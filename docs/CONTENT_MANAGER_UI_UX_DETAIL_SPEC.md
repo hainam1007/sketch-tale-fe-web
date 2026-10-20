@@ -1,6 +1,6 @@
 # Content Manager: đặc tả UI/UX đến cấp component
 
-Ngày cập nhật: 05/10/2026. Trạng thái: kế hoạch thiết kế đã đối chiếu lại working tree; chưa nghiệm thu thị giác trên trình duyệt. Lần cập nhật này chỉ sửa tài liệu, không triển khai giao diện.
+Ngày cập nhật: 19/10/2026. Trạng thái: đặc tả chi tiết còn backlog và chưa nghiệm thu thị giác trên trình duyệt. Story/page/role/vocabulary/quiz/publish và slot cơ bản có adapter API trong source; xem [báo cáo tích hợp](api-integration/luna-extramax/implementation-report-2026-10-19.md). Tài liệu thiết kế không xác nhận runtime hoặc persistence thật.
 
 Tài liệu này cụ thể hóa [kế hoạch tổng thể](CONTENT_MANAGER_UI_UX_PLAN.md). Khi hai tài liệu khác nhau về thông số trình bày, dùng đặc tả này. Quy tắc nghiệp vụ vẫn theo [contract Content Manager](CONTENT_MANAGER_CONTRACT.md); thông số thiết kế không tự mở rộng API hoặc quyền.
 

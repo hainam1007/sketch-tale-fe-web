@@ -1,10 +1,14 @@
 # Admin API contract (frontend baseline)
 
+> **Hướng triển khai đã chốt 17/10:** API đã có thì nối, API chưa có thì dùng mock để hoàn thiện giao diện trước. Baseline mock và API thật phải phân biệt rõ; thiếu contract chỉ chặn thao tác real chưa đủ thông tin, không chặn form/workflow demo. Quy tắc theo module tại mục 1.1 của [kế hoạch mới](ADMIN_UI_UX_PLAN_2026-10-17.md).
+
+> **Cập nhật 19/10/2026:** API thật đã được nối trong source cho catalog gói/credit/chủ đề, audit logs và restricted keywords. Users, permissions, reports, limits, monitoring, statistics và topic rules vẫn dùng mock. Tài liệu này chỉ là contract nền cho Admin core; xem [tổng quan tích hợp](PROJECT_SUMMARY.md) và [runbook API](LUNA_EXTRAMAX_API_RUNBOOK_2026-10-19.md) để biết trạng thái hiện tại. Chưa có nghiệm thu runtime trên Backend.
+
 Ngày cập nhật: 23/09/2026
 
 Tài liệu này mô tả shape mà frontend Admin đang dùng. Đây là baseline để đối chiếu với Backend; mock server phải mô phỏng cùng shape nhưng không thay thế việc Backend kiểm tra quyền.
 
-> Ghi chú đối chiếu 30/09/2026: đặc tả UI/UX đủ 11 trang nằm tại mục 8–14 của [ADMIN_IMPLEMENTATION_PLAN.md](ADMIN_IMPLEMENTATION_PLAN.md). Các gate C-ADM-01–07 tại mục 11.2 liệt kê phần contract còn thiếu; đây là đề xuất, chưa phải xác nhận Backend. Tài liệu hiện tại mới đặc tả chi tiết Users/Permissions, không đại diện cho contract hoàn chỉnh của Reports, Limits, Restrictions, Monitoring, Statistics, Overview và Audit.
+> Ghi chú lịch sử 30/09/2026: các gate C-ADM-01–07 khi đó là đề xuất, chưa phải xác nhận Backend. Tài liệu hiện tại chủ yếu đặc tả Users/Permissions; các phần Reports, Limits, Restrictions, Monitoring, Statistics, Overview và Audit vẫn cần đối chiếu riêng theo API hiện hành.
 
 ## Quy ước chung
 

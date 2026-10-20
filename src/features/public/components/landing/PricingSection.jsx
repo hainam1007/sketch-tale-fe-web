@@ -1,5 +1,5 @@
 import { ArrowRight, Check, Sparkle } from "@phosphor-icons/react";
-import { plans } from "../../data/plans";
+import { Link } from "react-router-dom";
 import Reveal from "./Reveal";
 
 const labels = {
@@ -31,7 +31,10 @@ const highlights = {
   ],
 };
 
-export default function PricingSection() {
+export default function PricingSection({ availability, loading, error, onRetry }) {
+  const plans = availability?.plans || [];
+  const ready = !loading && !error && availability?.published && plans.length > 0;
+
   return (
     <section
       className="landing-section landing-pricing-section"
@@ -49,15 +52,14 @@ export default function PricingSection() {
             <em>cho gia đình.</em>
           </Reveal>
           <Reveal as="p" delay={200} direction="left">
-            Bắt đầu với trải nghiệm phù hợp. Thanh toán chưa được kết nối trong
-            bản thử nghiệm này.
+            Bắt đầu với trải nghiệm phù hợp. Thanh toán chưa được kết nối trong bản thử nghiệm này.
           </Reveal>
         </div>
-        <div className="landing-price-grid">
+        {loading ? <div className="landing-pricing-state" role="status">Đang tải các gói hiện có…</div> : error ? <div className="landing-pricing-state" role="alert"><p>Chưa thể tải thông tin gói. Thử lại sau giây lát.</p><button type="button" className="landing-price-link" onClick={onRetry}>Tải lại <ArrowRight size={17} aria-hidden="true" /></button></div> : !ready ? <div className="landing-pricing-state" role="status">Hiện chưa có gói nào được công bố.</div> : <div className="landing-price-grid">
           {plans.map((plan, index) => (
             <Reveal
               key={plan.id}
-              className={`landing-price-card landing-price-${plan.id} ${plan.id === "pro" ? "is-popular" : ""}`}
+              className={`landing-price-card landing-price-${plan.styleKey || plan.id} ${plan.id === "pro" ? "is-popular" : ""}`}
               delay={index * 120}
               direction="up"
             >
@@ -67,29 +69,30 @@ export default function PricingSection() {
                   biến
                 </span>
               )}
-              <span className="landing-price-label">{labels[plan.id]}</span>
+              <span className="landing-price-label">{labels[plan.id] || "Gói SketchTale"}</span>
               <h3>{plan.name}</h3>
-              <p>{plan.audience}</p>
+              <p>{plan.audience || "Quyền lợi theo cấu hình hiện tại của gói."}</p>
               <strong className="landing-price">
                 {plan.price === 0
                   ? "Miễn phí"
-                  : `${new Intl.NumberFormat("vi-VN").format(plan.price)}đ`}
-                <small>{plan.price > 0 ? "/ tháng" : ""}</small>
+                  : plan.price === null || plan.price === undefined
+                    ? "Chưa có giá"
+                    : `${plan.currency === "VND" ? `${new Intl.NumberFormat("vi-VN").format(plan.price)} ₫` : new Intl.NumberFormat("vi-VN").format(plan.price)}`}
+                <small>{plan.price > 0 ? [!plan.currency ? "Đơn vị giá chưa xác định" : "", plan.durationDays ? `${plan.durationDays} ngày` : plan.cycle === "month" ? "/ tháng" : ""].filter(Boolean).join(" · ") : ""}</small>
               </strong>
               <ul>
-                {highlights[plan.id].map((highlight) => (
+                {(plan.highlights?.length ? plan.highlights : highlights[plan.id] || plan.limits || []).map((highlight) => (
                   <li key={highlight}>
                     <Check size={17} aria-hidden="true" />
                     {highlight}
                   </li>
                 ))}
               </ul>
-              <a href="#pricing" className="landing-price-link">
-                Xem chi tiết gói <ArrowRight size={17} aria-hidden="true" />
-              </a>
+              <Link to="/auth/register" className="landing-price-link">Tạo tài khoản <ArrowRight size={17} aria-hidden="true" /></Link>
             </Reveal>
           ))}
-        </div>
+        </div>}
+        {availability?.message && ready && <p className="landing-pricing-note" role="note">{availability.message}</p>}
       </div>
     </section>
   );

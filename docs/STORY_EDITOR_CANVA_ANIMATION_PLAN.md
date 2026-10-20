@@ -1,6 +1,6 @@
 # Story editor: giao diện tham khảo Canva, ưu tiên animation
 
-Ngày: 12/10/2026. Trạng thái: đã cập nhật theo phản hồi về animation nâng cao và đọc tương tác; chưa triển khai.
+Ngày cập nhật: 19/10/2026. Trạng thái: một số thao tác scene, preset animation và audio đã có trong source; animation nâng cao/timeline vẫn chưa hoàn thiện và không được backend persist. Chưa nghiệm thu giao diện chạy thật. Xem [báo cáo tích hợp](api-integration/luna-extramax/implementation-report-2026-10-19.md) để biết các field editor nào đang mô phỏng.
 
 Đặc tả chi tiết: [STORY_EDITOR_UI_UX_DETAIL_SPEC.md](STORY_EDITOR_UI_UX_DETAIL_SPEC.md), gồm layout, state, quy tắc thao tác, responsive và cổng nghiệm thu lỗi UI. Khi khác nhau về chi tiết tương tác, dùng đặc tả này. Resize/rotate, zoom/fit phục vụ keyframe được đưa vào phạm vi chính theo đặc tả.
 

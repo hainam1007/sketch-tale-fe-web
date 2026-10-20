@@ -8,7 +8,7 @@
 
 export const CONTENT_ROLE = "content_manager";
 
-export const STORY_STATUSES = Object.freeze(["draft", "published", "hidden"]);
+export const STORY_STATUSES = Object.freeze(["draft", "pending", "published", "hidden", "archived"]);
 export const ASSET_KINDS = Object.freeze(["image", "audio"]);
 
 /**
@@ -110,7 +110,7 @@ export function canContent(userOrRole, permission) {
  * @property {string} pageId
  * @property {string} question
  * @property {string[]} options
- * @property {number} correctIndex
+ * @property {number|null} correctIndex
  * @property {string} feedback
  * @property {string} audioUrl
  */
@@ -230,7 +230,7 @@ export function normalizeVocabulary(entry) {
 /** @param {Partial<QuizDraft>} quiz @returns {QuizDraft} */
 export function normalizeQuiz(quiz) {
   const options = Array.isArray(quiz.options) ? quiz.options : [];
-  return { ...quiz, id: quiz.id || "", pageId: quiz.pageId || "", question: quiz.question || "", options, correctIndex: Number.isInteger(quiz.correctIndex) ? quiz.correctIndex : 0, feedback: quiz.feedback || "", audioUrl: quiz.audioUrl || "" };
+  return { ...quiz, id: quiz.id || "", pageId: quiz.pageId || "", question: quiz.question || "", options, correctIndex: Number.isInteger(quiz.correctIndex) ? quiz.correctIndex : null, feedback: quiz.feedback || "", audioUrl: quiz.audioUrl || "" };
 }
 
 /**

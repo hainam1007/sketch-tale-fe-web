@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, List, X } from "@phosphor-icons/react";
+import { ArrowRight, List, X } from "@phosphor-icons/react";
 import BrandLogo from "../../../components/branding/BrandLogo";
 
 const navigation = [
@@ -60,7 +60,7 @@ export default function PublicLayout() {
             <BrandLogo />
           </Link>
           <Link className="login-link" to="/auth/login">
-            Đăng nhập <ArrowUpRight size={17} aria-hidden="true" />
+            Đăng nhập
           </Link>
           <button
             className="menu-button"

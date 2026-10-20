@@ -1,6 +1,6 @@
 # Story editor — Đặc tả UI/UX và tiêu chí nghiệm thu
 
-Ngày: 12/10/2026. Trạng thái: đặc tả đề xuất triển khai; chưa có nghiệm thu giao diện chạy thật.
+Ngày cập nhật: 19/10/2026. Trạng thái: đặc tả đề xuất còn backlog; một phần editor đã được triển khai nhưng chưa nghiệm thu giao diện chạy thật. API slot chỉ lưu field được backend hỗ trợ; timeline, animation và field mở rộng tiếp tục dùng mock/overlay. Xem [báo cáo tích hợp](api-integration/luna-extramax/implementation-report-2026-10-19.md).
 
 Tài liệu chi tiết cho [kế hoạch Canva + animation](STORY_EDITOR_CANVA_ANIMATION_PLAN.md). Khi khác nhau về tương tác editor, dùng tài liệu này; yêu cầu nghiệp vụ/quyền/API vẫn theo contract hiện có. Các chức năng và thông số dưới đây là mục tiêu, không phải mô tả những gì code đã hỗ trợ.
 

@@ -11,6 +11,7 @@ import "../components/landing/landing.css";
 
 export default function HomePage() {
   const stories = usePublicData("getSampleStories");
+  const planAvailability = usePublicData("getPlanAvailability");
   return (
     <div className="landing-page">
       <LandingHero />
@@ -23,7 +24,7 @@ export default function HomePage() {
       <CharacterSection />
       <ReadingSection />
       <ParentSection />
-      <PricingSection />
+      <PricingSection availability={planAvailability.data} loading={planAvailability.loading} error={planAvailability.error} onRetry={planAvailability.retry} />
       <FinalSection />
     </div>
   );

@@ -16,8 +16,19 @@ export function EditorPanel({ eyebrow, title, description, action, children }) {
   );
 }
 
-export function EditorMutationMessage({ mutation }) {
+export function EditorMutationMessage({ mutation, showSuccess = true }) {
   if (mutation.isError) {
+    if (mutation.error?.mutationAccepted || mutation.error?.mutationOutcomeUnknown) {
+      return (
+        <div className="editor-mutation-message editor-mutation-error" role="alert">
+          <WarningCircle size={17} aria-hidden="true" />
+          <div>
+            <strong>{mutation.error.message}</strong>
+            <button className="workspace-text-link" type="button" onClick={() => window.location.reload()}>Tải lại nội dung để kiểm tra</button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="editor-mutation-message editor-mutation-error" role="alert">
         <WarningCircle size={17} aria-hidden="true" />
@@ -34,10 +45,10 @@ export function EditorMutationMessage({ mutation }) {
       </div>
     );
   }
-  if (mutation.isSuccess) {
+  if (mutation.isSuccess && showSuccess) {
     return (
       <p className="editor-mutation-message editor-mutation-success" role="status">
-        <CheckCircle size={17} aria-hidden="true" /> Đã lưu thay đổi vào draft.
+          <CheckCircle size={17} aria-hidden="true" /> Thay đổi đã được lưu.
       </p>
     );
   }

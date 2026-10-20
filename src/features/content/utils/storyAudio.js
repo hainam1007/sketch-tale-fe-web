@@ -21,6 +21,19 @@ export function normalizeStoryAudioTracks(tracks = []) {
   });
 }
 
+export function compactAudioFilename(value, maxLength = 20) {
+  const filename = String(value || "");
+  if (filename.length <= maxLength) return filename;
+
+  const extensionIndex = filename.lastIndexOf(".");
+  const hasExtension = extensionIndex > 0 && filename.length - extensionIndex <= 8;
+  const stem = hasExtension ? filename.slice(0, extensionIndex) : filename;
+  const extension = hasExtension ? filename.slice(extensionIndex) : "";
+  const suffix = hasExtension ? `${stem.slice(-2)}${extension}` : filename.slice(-5);
+  const prefixLength = Math.max(5, maxLength - suffix.length - 3);
+  return `${filename.slice(0, prefixLength)}...${suffix}`;
+}
+
 export function syncStoryAudio(players, tracks = [], assets = [], timeMs = 0, isPlaying = false, onError, onDuration, muted = false) {
   const assetById = new Map(assets.map((asset) => [asset.id, asset]));
   const liveIds = new Set(tracks.map((track) => track.id));

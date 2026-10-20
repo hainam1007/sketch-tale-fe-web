@@ -7,18 +7,18 @@ import { adminService } from "../services/adminService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import StatusBadge from "../../../components/ui/StatusBadge";
-import { adminRoleLabels, ADMIN_PAGE_SIZE, adminUserStatusLabels, normalizeAdminListResponse, normalizePage, normalizePageSize } from "../models";
+import { adminRoleLabels, ADMIN_PAGE_SIZE, adminUserStatusLabels, normalizeAdminListResponse, normalizePage } from "../models";
 
 export default function AdminUsersPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = useMemo(() => ({
     search: searchParams.get("search") || "",
-    role: searchParams.get("role") || "all",
-    status: searchParams.get("status") || "all",
+    role: ["parent", "child", "content_manager", "admin"].includes(searchParams.get("role")) ? searchParams.get("role") : "all",
+    status: ["active", "locked"].includes(searchParams.get("status")) ? searchParams.get("status") : "all",
     page: normalizePage(searchParams.get("page")),
-    pageSize: normalizePageSize(searchParams.get("pageSize")),
-    sort: searchParams.get("sort") || "name_asc",
+    pageSize: [10, 25, 50].includes(Number(searchParams.get("pageSize"))) ? Number(searchParams.get("pageSize")) : ADMIN_PAGE_SIZE,
+    sort: ["name_asc", "email_asc"].includes(searchParams.get("sort")) ? searchParams.get("sort") : "name_asc",
   }), [searchParams]);
   const usersQuery = useQuery({
     queryKey: queryKeys.adminUsers(user.id, filters),
@@ -98,12 +98,13 @@ export default function AdminUsersPage() {
           )}
         </div>
       </section>
-      {usersQuery.isLoading ? <LoadingState label="Đang tải danh sách tài khoản" /> : usersQuery.isError ? <ErrorState message={usersQuery.error.message} onRetry={() => usersQuery.refetch()} /> : <UserTable data={data} onPageChange={(page) => updateFilter("page", String(page))} />}
+      {usersQuery.isFetching && usersQuery.data && <p className="admin-refresh-note" role="status">Đang đồng bộ danh sách…</p>}
+      {usersQuery.isLoading ? <LoadingState label="Đang tải danh sách tài khoản" /> : usersQuery.isError && !usersQuery.data ? <ErrorState message={usersQuery.error.message} onRetry={() => usersQuery.refetch()} /> : <><UserTable data={data} returnTo={`/admin/users?${searchParams.toString()}`} onPageChange={(page) => updateFilter("page", String(page))} />{usersQuery.isError && <p className="admin-refresh-note" role="status">Lần làm mới chưa thành công; đang hiển thị dữ liệu gần nhất.</p>}</>}
     </div>
   );
 }
 
-function UserTable({ data, onPageChange }) {
+function UserTable({ data, returnTo, onPageChange }) {
   if (!data.items.length) return <div className="workspace-state workspace-state-empty"><UserCircle size={29} aria-hidden="true" /><strong>Không có tài khoản phù hợp</strong><p>Thử đổi từ khóa hoặc bộ lọc trạng thái.</p></div>;
   return (
     <div className="admin-users-table-wrap">
@@ -113,8 +114,8 @@ function UserTable({ data, onPageChange }) {
         <tbody>{data.items.map((item) => <tr key={item.id}>
           <td><div className="admin-user-cell"><span className="admin-user-initial">{item.name?.slice(0, 1) || "?"}</span><span><strong>{item.name || "Không có tên"}</strong><small>{item.email || "Không có email"}</small></span></div></td>
           <td>{adminRoleLabels[item.role] || item.role}</td>
-          <td><StatusBadge value={item.status} label={adminUserStatusLabels[item.status]} tone={item.status === "locked" ? "danger" : "success"} /></td>
-          <td><Link className="admin-view-link" to={`/admin/users/${item.id}`}>Xem chi tiết <span className="sr-only">{item.name}</span></Link></td>
+          <td><StatusBadge value={item.status || "unknown"} label={adminUserStatusLabels[item.status] || item.status || "Chưa xác định"} tone={item.status === "locked" ? "danger" : item.status === "active" ? "success" : "neutral"} /></td>
+          <td><Link className="admin-view-link" to={`/admin/users/${item.id}?returnTo=${encodeURIComponent(returnTo)}`}>Xem chi tiết <span className="sr-only">{item.name}</span></Link></td>
         </tr>)}</tbody>
       </table>
       <div className="admin-table-footer">

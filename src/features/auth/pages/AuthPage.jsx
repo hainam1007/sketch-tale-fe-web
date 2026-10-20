@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,6 +10,7 @@ import {
   LockKey,
   Sparkle,
   Star,
+  UserCircle,
 } from "@phosphor-icons/react";
 import "./auth.css";
 import { useAuth } from "../AuthProvider";
@@ -25,7 +26,7 @@ const content = {
   register: {
     title: "Cùng mở một hành trình mới.",
     description: "Tài khoản dành cho phụ huynh đồng hành cùng bé.",
-    button: "Kiểm tra đăng ký",
+    button: "Đăng ký",
   },
   "forgot-password": {
     title: "Tìm lại đường về kệ sách.",
@@ -37,8 +38,9 @@ const content = {
 export default function AuthPage({ mode }) {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => mode === "login" && searchParams.get("passwordChanged") === "1" ? "Mật khẩu đã được cập nhật. Đăng nhập lại bằng mật khẩu mới." : "");
   const [messageType, setMessageType] = useState("success");
   const [submitting, setSubmitting] = useState(false);
   const [visiblePasswords, setVisiblePasswords] = useState({});
@@ -51,10 +53,14 @@ export default function AuthPage({ mode }) {
     const next = {};
     if (isRealApi && mode === "register" && !values.username?.trim())
       next.username = "Vui lòng nhập tên tài khoản.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email))
+    if (mode === "login") {
+      if (!values.identifier?.trim()) next.identifier = "Nhập email hoặc tên tài khoản.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
       next.email = "Vui lòng nhập email đúng định dạng.";
-    if (!forgot && values.password.length < (isRealApi && mode === "register" ? 6 : 8))
-      next.password = "Nhập mật khẩu đủ độ dài yêu cầu.";
+    }
+    const minimumPasswordLength = mode === "register" ? (isRealApi ? 6 : 8) : 0;
+    if (!forgot && (!values.password || values.password.length < minimumPasswordLength))
+      next.password = mode === "login" ? "Nhập mật khẩu." : `Mật khẩu cần có ít nhất ${minimumPasswordLength} ký tự.`;
     if (isRealApi && mode === "register" && values.password && !/(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/.test(values.password))
       next.password = "Mật khẩu cần có chữ hoa, chữ số và ký tự đặc biệt.";
     if (mode === "register" && values.confirm !== values.password)
@@ -67,7 +73,11 @@ export default function AuthPage({ mode }) {
     else if (mode === "login") {
       setSubmitting(true);
       try {
-        const user = await login({ email: values.email, password: values.password });
+        const user = await login({
+          email: values.identifier.trim(),
+          password: values.password,
+          rememberSession: values.rememberSession === "on",
+        });
         navigate(roleHome(user.role), { replace: true });
       } catch (error) {
         setMessageType("error");
@@ -192,31 +202,45 @@ export default function AuthPage({ mode }) {
         >
           {[
             ...(mode === "register" ? [["username", "Tên tài khoản", "text"]] : []),
-            ["email", "Email", "email"],
+            ...(mode === "login"
+              ? [["identifier", "Email hoặc tên tài khoản", "text"]]
+              : [["email", "Email", "email"]]),
             ...(!forgot ? [["password", "Mật khẩu", "password"]] : []),
             ...(mode === "register"
               ? [["confirm", "Nhập lại mật khẩu", "password"]]
               : []),
           ].map(([name, label, type]) => (
             <div className="field" key={name}>
-              <label htmlFor={`auth-${name}`}>{label}</label>
+              <label htmlFor={`auth-${name === "identifier" ? "email" : name}`}>{label}</label>
               <div className="auth-input-wrap">
-                {name === "email" ? (
+                {name === "username" ? (
+                  <UserCircle size={20} aria-hidden="true" />
+                ) : name === "email" || name === "identifier" ? (
                   <EnvelopeSimple size={20} aria-hidden="true" />
                 ) : (
                   <LockKey size={20} aria-hidden="true" />
                 )}
                 <input
-                  id={`auth-${name}`}
+                  id={`auth-${name === "identifier" ? "email" : name}`}
                   name={name}
                   type={visiblePasswords[name] ? "text" : type}
                   placeholder={
-                    name === "email" ? "bome@example.com" : "Ít nhất 8 ký tự"
+                    name === "email"
+                      ? "bome@example.com"
+                      : name === "identifier"
+                        ? "Email hoặc tên tài khoản"
+                        : mode === "register" && isRealApi
+                          ? "Ít nhất 6 ký tự"
+                          : mode === "register"
+                            ? "Ít nhất 8 ký tự"
+                            : "Nhập mật khẩu"
                   }
                   autoComplete={
                     name === "email"
                       ? "email"
-                      : mode === "login"
+                      : name === "identifier" || name === "username"
+                        ? "username"
+                        : mode === "login"
                         ? "current-password"
                         : "new-password"
                   }
@@ -252,9 +276,15 @@ export default function AuthPage({ mode }) {
             </div>
           ))}
           {mode === "login" && (
-            <Link className="text-link forgot-link" to="/auth/forgot-password">
-              Quên mật khẩu?
-            </Link>
+            <div className="auth-login-options">
+              <label className="auth-remember" htmlFor="auth-remember-session">
+                <input id="auth-remember-session" name="rememberSession" type="checkbox" defaultChecked />
+                Ghi nhớ đăng nhập
+              </label>
+              <Link className="text-link forgot-link" to="/auth/forgot-password">
+                Quên mật khẩu?
+              </Link>
+            </div>
           )}
           <button className="button auth-submit" type="submit" disabled={submitting}>
             {copy.button}

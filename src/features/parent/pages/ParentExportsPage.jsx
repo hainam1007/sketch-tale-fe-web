@@ -95,6 +95,10 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
       setFormMessage({ type: "error", text: "Chọn hồ sơ bé và truyện trước khi tạo export." });
       return;
     }
+    if (form.format === "video" && (!quota || (quota.limit !== null && quota.remaining <= 0))) {
+      setFormMessage({ type: "error", text: quota ? "Bạn đã dùng hết lượt xuất video trong chu kỳ này." : "Đang tải hạn mức. Hãy thử lại sau." });
+      return;
+    }
     idempotencyKeyRef.current ||= `${form.childId}:${form.storyId}:${form.format}:${crypto.randomUUID?.() || Date.now()}`;
     createMutation.mutate({ ...form, childId: selectedChildId, idempotencyKey: idempotencyKeyRef.current });
   }
@@ -110,7 +114,8 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
   const jobs = exportsQuery.data?.items || [];
   const quota = exportsQuery.data?.quota;
   const report = reportQuery.data;
-  const canSubmitExport = Boolean(selectedChildId && form.storyId) && !createMutation.isPending && !childrenQuery.isLoading && !libraryQuery.isLoading && !libraryQuery.isError;
+  const videoQuotaExhausted = form.format === "video" && (!quota || (quota.limit !== null && quota.remaining <= 0));
+  const canSubmitExport = Boolean(selectedChildId && form.storyId) && !videoQuotaExhausted && !createMutation.isPending && !childrenQuery.isLoading && !libraryQuery.isLoading && !libraryQuery.isError;
 
   return (
     <div className={`parent-page export-page ${fixedChildId ? "export-page-child" : "export-page-family"}`}>
@@ -127,10 +132,10 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
         <div className="export-quota-icon"><Lightning size={21} weight="fill" aria-hidden="true" /></div>
         <div>
           <span className="export-kicker">HẠN MỨC CỦA GIA ĐÌNH</span>
-          <strong>{quota ? quota.limit === null ? `${quota.used} lượt đã tạo · không giới hạn` : `${quota.used} / ${quota.limit} lượt trong chu kỳ` : "Đang tải hạn mức…"}</strong>
-          <p>{quota?.plan === "Free" ? "Gói Free vẫn có thể xuất PDF; xuất video cần gói Pro hoặc Family." : "Mỗi yêu cầu được tính một lần theo hạn mức của tài khoản."}</p>
+          <strong>{quota ? quota.limit === null ? `${quota.used} lượt video đã tạo · không giới hạn` : quota.limit === 0 ? "Gói hiện tại không bao gồm xuất video" : `${quota.used} / ${quota.limit} lượt video trong chu kỳ` : "Đang tải hạn mức…"}</strong>
+          <p>{quota?.plan === "Free" ? "Gói Free vẫn có thể xuất PDF; video cần gói Pro hoặc Family." : "Hạn mức này chỉ áp dụng cho video. PDF không trừ lượt video."}</p>
         </div>
-        {quota?.remaining !== null && quota?.remaining !== undefined && <span className={quota.remaining === 0 ? "export-quota-warning" : "export-quota-remaining"}>Còn {quota.remaining}</span>}
+        {quota?.limit > 0 && quota?.remaining !== null && quota?.remaining !== undefined && <span className={quota.remaining === 0 ? "export-quota-warning" : "export-quota-remaining"}>Còn {quota.remaining}</span>}
       </section>
 
       <div className="export-layout">
@@ -144,7 +149,7 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
             <div className="export-form-grid">
               {!fixedChildId && <label className="export-field" htmlFor="export-child"><span>Hồ sơ bé</span><select id="export-child" name="childId" value={form.childId} onChange={updateForm} disabled={childrenQuery.isLoading}><option value="">Chọn hồ sơ bé</option>{children.map((child) => <option key={child.id} value={child.id}>{child.displayName}</option>)}</select></label>}
               <label className="export-field" htmlFor="export-story"><span>Truyện trong thư viện{fixedChildId ? ` của ${children.find((child) => child.id === fixedChildId)?.displayName || "bé"}` : ""}</span><select id="export-story" name="storyId" value={form.storyId} onChange={updateForm} disabled={!selectedChildId || libraryQuery.isLoading || libraryQuery.isError}><option value="">{libraryQuery.isLoading ? "Đang tải thư viện…" : "Chọn truyện"}</option>{stories.map((story) => <option key={story.id} value={story.sourceId || story.id}>{story.title}</option>)}</select>{libraryQuery.isError ? <small className="export-field-help export-field-error">Không thể tải truyện. Hãy thử lại sau.</small> : selectedChildId && !libraryQuery.isLoading && !stories.length ? <small className="export-field-help">Bé chưa có truyện khả dụng để tạo bản xuất.</small> : null}</label>
-              <label className="export-field" htmlFor="export-format"><span>Định dạng</span><select id="export-format" name="format" value={form.format} onChange={updateForm}><option value="pdf">{formatLabels.pdf}</option><option value="video" disabled={quota?.plan === "Free"}>{formatLabels.video}{quota?.plan === "Free" ? " (không có trong gói hiện tại)" : ""}</option></select></label>
+              <label className="export-field" htmlFor="export-format"><span>Định dạng</span><select id="export-format" name="format" value={form.format} onChange={updateForm}><option value="pdf">{formatLabels.pdf}</option><option value="video" disabled={quota?.plan === "Free" || (quota?.limit !== null && quota?.remaining <= 0)}>{formatLabels.video}{quota?.plan === "Free" ? " (không có trong gói hiện tại)" : quota?.limit !== null && quota?.remaining <= 0 ? " (đã hết lượt)" : ""}</option></select></label>
             </div>
             <p className="export-field-note"><Info size={15} aria-hidden="true" /> Video có thể mất thời gian xử lý; thanh tiến độ chỉ hiển thị khi có dữ liệu.</p>
             {formMessage && <div className={formMessage.type === "error" ? "export-alert" : "export-success"} role={formMessage.type === "error" ? "alert" : "status"}>{formMessage.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />}<span>{formMessage.text}</span></div>}
@@ -161,15 +166,15 @@ export default function ParentExportsPage({ fixedChildId = "" }) {
           {reportQuery.isError && <ErrorState title="Không thể tải trạng thái báo cáo" message={reportQuery.error.message} onRetry={() => reportQuery.refetch()} />}
           {report && !report.available && <div className="report-unavailable"><StatusBadge value="unavailable" tone="neutral" /><p>{report.reason}</p><small>Chức năng sẽ hiển thị khi gói và dịch vụ báo cáo hỗ trợ.</small></div>}
           {report?.available && <>
-            <div className="report-ready-line"><StatusBadge value={report.status} tone="success" /><span>Trạng thái do service báo cáo trả về.</span></div>
-            <p className="export-muted-copy">Cài đặt chu kỳ chỉ điều khiển cấu hình. Backend chịu trách nhiệm tạo báo cáo và gửi email, nên UI không giả lập trạng thái đã gửi.</p>
+            <div className="report-ready-line"><StatusBadge value={report.status} tone="success" /><span>Tình trạng mới nhất của báo cáo.</span></div>
+            <p className="export-muted-copy">Chọn tần suất nhận báo cáo; lần gửi gần nhất sẽ được hiển thị bên dưới.</p>
             <form className="report-settings-form" onSubmit={saveReport}>
               <label className="report-toggle"><input type="checkbox" checked={reportDraft.enabled} onChange={(event) => setReportDraftState((current) => ({ ...(current || reportDraft), enabled: event.target.checked }))} /> <span>Bật báo cáo định kỳ</span></label>
               <label className="export-field" htmlFor="report-schedule"><span>Chu kỳ</span><select id="report-schedule" value={reportDraft.schedule} onChange={(event) => setReportDraftState((current) => ({ ...(current || reportDraft), schedule: event.target.value }))}><option value="monthly">Hàng tháng</option><option value="quarterly">Mỗi quý</option></select></label>
               {reportMessage && <div className={reportMessage.type === "error" ? "export-alert" : "export-success"} role={reportMessage.type === "error" ? "alert" : "status"}>{reportMessage.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />}<span>{reportMessage.text}</span></div>}
               <button className="workspace-button workspace-button-quiet" type="submit" disabled={reportMutation.isPending}>{reportMutation.isPending ? "Đang lưu…" : "Lưu cài đặt"}</button>
             </form>
-            {report.lastReport && <div className="report-last"><span><CheckCircle size={17} aria-hidden="true" /><strong>Bản gần nhất: {report.lastReport.period}</strong></span><small>{report.lastReport.fileName} · tạo bởi dịch vụ</small></div>}
+            {report.lastReport && <div className="report-last"><span><CheckCircle size={17} aria-hidden="true" /><strong>Bản gần nhất: {report.lastReport.period}</strong></span><small>{report.lastReport.fileName}</small></div>}
           </>}
         </section>}
         {fixedChildId && <ExportHistorySection fixedChildId={fixedChildId} childItems={children} jobs={jobs} exportsQuery={exportsQuery} downloadLinks={downloadLinks} downloadErrorId={downloadErrorId} downloadMutation={downloadMutation} retryMutation={retryMutation} onDownload={(exportId) => downloadMutation.mutate({ exportId })} onRetry={(exportId, revision) => retryMutation.mutate({ exportId, revision })} />}

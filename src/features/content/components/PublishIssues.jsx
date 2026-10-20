@@ -35,6 +35,7 @@ export default function PublishIssues({ error }) {
     <WarningCircle size={17} aria-hidden="true" />
     <div>
       <strong>{error.message}</strong>
+      {(error.mutationAccepted || error.mutationOutcomeUnknown) && <button className="workspace-text-link" type="button" onClick={() => window.location.reload()}>Tải lại truyện để kiểm tra trạng thái</button>}
       {fieldErrors.length > 0 && <ul className="publish-issues-list">{fieldErrors.map(([field, message]) => {
         const issue = issueTarget(field);
         const target = `/content/stories/${storyId}${issue.tab ? `/${issue.tab}` : ""}`;

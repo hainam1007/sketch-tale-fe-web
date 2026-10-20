@@ -33,7 +33,7 @@ export default function LandingHero() {
               className="landing-button landing-button-primary"
               href="#character"
             >
-              Bắt đầu ngay <ArrowRight size={19} aria-hidden="true" />
+              Bắt đầu ngay
             </a>
             <a className="landing-button landing-button-quiet" href="#stories">
               Khám phá truyện <ArrowRight size={19} aria-hidden="true" />

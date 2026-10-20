@@ -1,7 +1,7 @@
 # Content Manager contract v0.1
 
 > Updated 2026-09-23: the frontend-first tool plan below is provisional. It does not declare new fields implemented or the backend/mobile contract approved.
-> Reviewed 2026-09-30 against the current working tree: local Blob storage and PATCH services for slots/vocabulary/quizzes now exist. These are code observations, not runtime or backend acceptance. Per-page UI/UX requirements and the current completion backlog are in [implementation plan, sections 11–15](CONTENT_MANAGER_IMPLEMENTATION_PLAN.md#11-audit-cập-nhật-và-phạm-vi-hoàn-thiện-từng-trang--30092026).
+> Reviewed 2026-10-19: this remains a provisional frontend/editor contract, not backend acceptance. Current per-page backlog is in [Content Manager UI/UX plan](CONTENT_MANAGER_UI_UX_PLAN.md) and [detail spec](CONTENT_MANAGER_UI_UX_DETAIL_SPEC.md); current API and mock boundaries are in the [integration report](api-integration/luna-extramax/implementation-report-2026-10-19.md).
 
 This is the frontend-owned contract used by the editor, mock adapter and preview spike. The backend adapter may translate endpoint names or response envelopes, but IDs and relationships remain stable.
 
@@ -39,7 +39,7 @@ Only `content_manager` is granted authoring permissions in the frontend matrix. 
 
 ## Frontend-first authoring tools: proposed boundary
 
-Implementation order and acceptance criteria: [Content Manager plan, section 10](CONTENT_MANAGER_IMPLEMENTATION_PLAN.md#10-đợt-ưu-tiên-bộ-công-cụ-dựng-truyện-trên-frontend-23092026). UI depends on service/domain shapes; mock persistence and real transport remain behind the service boundary. Existing routes remain unchanged.
+Implementation order and acceptance criteria: see the current [Content Manager UI/UX plan](CONTENT_MANAGER_UI_UX_PLAN.md) and [API runbook](LUNA_EXTRAMAX_API_RUNBOOK_2026-10-19.md). UI depends on service/domain shapes; mock persistence and real transport remain behind the service boundary. Existing routes remain unchanged.
 
 ### Story composer audio and motion fields — frontend proposal, updated 2026-10-12
 

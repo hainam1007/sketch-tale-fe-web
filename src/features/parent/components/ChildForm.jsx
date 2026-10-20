@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, CalendarBlank, FloppyDisk, UserCircle } from "@phosphor-icons/react";
+import { useConfirmToast } from "../../../components/feedback/useConfirmToast";
 import { ApiError } from "../../../lib/api/errors";
 
 function validateChildValues(values) {
@@ -25,7 +26,10 @@ export default function ChildForm({
   serverError,
   onSubmit,
   onCancel,
+  onDirtyChange,
 }) {
+  const navigate = useNavigate();
+  const confirmToast = useConfirmToast();
   const emptyValues = { displayName: "", birthDate: "", avatar: "seed" };
   const initialKey = JSON.stringify(initialValues || emptyValues);
   const [values, setValues] = useState(initialValues || emptyValues);
@@ -44,6 +48,12 @@ export default function ChildForm({
   const serverFieldErrors = serverApiError?.fieldErrors || {};
   const errors = { ...clientErrors, ...serverFieldErrors };
   const dirty = JSON.stringify(values) !== initialKey;
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+    return () => onDirtyChange?.(false);
+  }, [dirty, onDirtyChange]);
+
   function updateValue(name, value) {
     setValues((current) => ({ ...current, [name]: value }));
     setTouched((current) => ({ ...current, [name]: true }));
@@ -129,7 +139,7 @@ export default function ChildForm({
         </aside>
       </div>
       <div className="parent-form-actions">
-        <Link className="workspace-button workspace-button-quiet" to={onCancel || "/parent/children"} onClick={(event) => { if (dirty && !window.confirm("Bạn có thay đổi chưa lưu. Rời trang?")) event.preventDefault(); }}>
+        <Link className="workspace-button workspace-button-quiet" to={onCancel || "/parent/children"} onClick={async (event) => { if (!dirty) return; event.preventDefault(); if (await confirmToast({ title: "Rời trang này?", message: "Bạn có thay đổi chưa lưu. Nếu rời trang, các thay đổi này sẽ bị bỏ.", confirmLabel: "Rời trang", tone: "danger" })) navigate(onCancel || "/parent/children"); }}>
           <ArrowLeft size={17} aria-hidden="true" /> Hủy
         </Link>
         <button className="workspace-button" type="submit" disabled={isSaving}>
