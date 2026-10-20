@@ -178,6 +178,10 @@
 .plan-option-action .workspace-button { width: 100%; }
 .plan-option-disabled { display: inline-flex; align-items: center; gap: 7px; color: #6d8d73; font-size: 12px; font-weight: 900; }
 .plan-option-footnote { color: #898d91; font-size: 11px; font-weight: 800; }
+.plan-current-card-unavailable { border-color: #e5e1d4; background: #faf8f2; }
+.plan-current-card-unavailable h2 { margin: 8px 0; font-size: 24px; }
+.plan-current-card-unavailable p { max-width: 66ch; color: #626b76; line-height: 1.6; }
+.plan-catalog-empty { padding: 24px; border: 1px dashed #d7d2c4; border-radius: 14px; color: #626b76; text-align: center; }
 
 .plan-benefits-card { display: grid; grid-template-columns: minmax(220px, .75fr) minmax(0, 1.25fr); gap: 28px; padding: 25px; border: 1px solid #e8dfc4; border-radius: 18px; background: #fffaf0; }
 .plan-benefits-card h2 { margin: 4px 0 7px; color: #303946; font-size: 21px; letter-spacing: -.5px; }

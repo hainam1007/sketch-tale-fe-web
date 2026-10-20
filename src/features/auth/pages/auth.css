@@ -239,11 +239,30 @@
   color: #001050;
 }
 .auth-card .forgot-link {
-  display: block;
   width: fit-content;
-  margin: -2px 0 8px auto;
   font-size: 12px;
   text-underline-offset: 4px;
+}
+.auth-login-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 2px 0 20px;
+}
+.auth-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #606479;
+  font-size: 12px;
+  cursor: pointer;
+}
+.auth-remember input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #f5b82e;
 }
 .auth-card .auth-submit {
   display: flex;
@@ -287,6 +306,16 @@
   font-size: 13px;
   margin-bottom: 0;
 }
+.auth-reset-form .field { margin-bottom: 17px; }
+.auth-reset-hint { display: block; margin-top: 7px; color: #606479; font-size: 12px; line-height: 1.5; }
+.auth-reset-form .auth-verify-email { margin-bottom: 20px; }
+.auth-reset-form .auth-submit { width: 100%; margin-top: 8px; }
+.auth-reset-unavailable > p,
+.auth-reset-success > p { color: #4e5664; font-size: 14px; line-height: 1.65; }
+.auth-reset-unavailable .auth-submit,
+.auth-reset-success .auth-submit { width: 100%; text-decoration: none; }
+.auth-reset-form [role="alert"]:not(:empty),
+.auth-reset-form [role="status"]:not(:empty) { margin: 0 0 12px; }
 .auth-verify-email {
   display: flex;
   align-items: center;
@@ -394,6 +423,13 @@
   }
   .auth-intro h1 {
     font-size: 33px;
+  }
+}
+@media (max-width: 390px) {
+  .auth-login-options {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

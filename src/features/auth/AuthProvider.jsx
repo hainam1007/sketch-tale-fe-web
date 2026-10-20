@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authService, isRealApi } from "./authService";
-import { hasAccessToken } from "../../lib/api/httpClient";
+import { ACCESS_TOKEN_KEY, hasAccessToken } from "../../lib/api/httpClient";
 import { normalizeApiError } from "../../lib/api/errors";
+import { SESSION_KEY } from "../../mocks/mockServer";
 
 const AuthContext = createContext(null);
 
@@ -16,23 +17,43 @@ export default function AuthProvider({ children }) {
 
   useEffect(() => {
     let active = true;
-    if (isRealApi && !hasAccessToken()) {
-      return () => {
-        active = false;
-      };
+    let restoreRevision = 0;
+
+    async function restoreSession(clearCache = false) {
+      const revision = ++restoreRevision;
+      if (clearCache) queryClient.clear();
+      if (isRealApi && !hasAccessToken()) {
+        setSession({ status: "anonymous", user: null });
+        return;
+      }
+
+      setSession({ status: "loading", user: null });
+      try {
+        const user = await authService.restore();
+        if (active && revision === restoreRevision && (!isRealApi || hasAccessToken())) {
+          setSession({ status: "authenticated", user });
+        }
+      } catch {
+        if (active && revision === restoreRevision) {
+          setSession({ status: "anonymous", user: null });
+        }
+      }
     }
-    authService
-      .restore()
-      .then((user) => {
-        if (active) setSession({ status: "authenticated", user });
-      })
-      .catch(() => {
-        if (active) setSession({ status: "anonymous", user: null });
-      });
+
+    function handleStorage(event) {
+      const sessionKey = isRealApi ? ACCESS_TOKEN_KEY : SESSION_KEY;
+      if (event.key !== sessionKey && event.key !== null) return;
+      void restoreSession(true);
+    }
+
+    if (!isRealApi || hasAccessToken()) void restoreSession();
+    window.addEventListener("storage", handleStorage);
     return () => {
       active = false;
+      restoreRevision += 1;
+      window.removeEventListener("storage", handleStorage);
     };
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     function handleInvalidSession() {
@@ -54,9 +75,16 @@ export default function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await authService.logout();
-    queryClient.clear();
-    setSession({ status: "anonymous", user: null });
+    let serverLogoutSucceeded = true;
+    try {
+      await authService.logout();
+    } catch {
+      serverLogoutSucceeded = false;
+    } finally {
+      queryClient.clear();
+      setSession({ status: "anonymous", user: null });
+    }
+    return serverLogoutSucceeded;
   }, [queryClient]);
 
   const value = useMemo(

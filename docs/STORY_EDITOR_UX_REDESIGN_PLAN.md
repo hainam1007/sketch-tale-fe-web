@@ -1,6 +1,6 @@
 # Kế hoạch tối ưu Story Editor cho Content Manager
 
-Ngày: 11/10/2026. Trạng thái: P0 frontend đã bắt đầu; composer, audio và preset playback có trong code. Kế hoạch chưa hoàn thành toàn bộ.
+Ngày cập nhật: 19/10/2026. Trạng thái: editor frontend và các luồng trang/slot/audio/preset đã có một phần; API thật chỉ bao phủ các field được backend hỗ trợ. Timeline/animation/audio track và asset library độc lập vẫn còn mô phỏng; chưa nghiệm thu runtime. Xem [báo cáo API](api-integration/luna-extramax/implementation-report-2026-10-19.md) để phân biệt dữ liệu thật và mock. Kế hoạch chưa hoàn tất.
 
 Kế hoạch UX toàn hành trình Content Manager: [CONTENT_MANAGER_UI_UX_PLAN.md — bổ sung 11/10/2026](CONTENT_MANAGER_UI_UX_PLAN.md). Bao gồm tổng quan, tìm/tiếp tục truyện, thư viện, học liệu, xuất bản, giảm thao tác, onboarding, phím tắt và usability test; áp dụng cùng kế hoạch editor này.
 

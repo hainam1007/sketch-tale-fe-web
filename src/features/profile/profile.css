@@ -42,6 +42,22 @@
 .profile-shortcut small { color: #626b76; font-size: 12px; line-height: 1.5; }
 .profile-shortcut-arrow { flex-shrink: 0; margin-left: auto; color: #806016; transition: transform 180ms ease; }
 .profile-shortcut:hover .profile-shortcut-arrow { transform: translateX(3px); }
+.profile-password-panel { margin-top: 24px; padding: 28px; border: 1px solid #e4e3dd; border-radius: 18px; background: #fff; }
+.profile-password-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 16px; margin-top: 22px; }
+.profile-password-field { display: grid; gap: 7px; min-width: 0; }
+.profile-password-field label { color: #4f5965; font-size: 13px; font-weight: 750; }
+.profile-password-input { position: relative; }
+.profile-password-input input { width: 100%; min-height: 46px; padding: 10px 48px 10px 13px; border: 1px solid #d9d9d2; border-radius: 10px; color: #263343; background: #fff; font: inherit; }
+.profile-password-input input:focus { outline: 3px solid #e8c766; outline-offset: 2px; border-color: #8b6817; }
+.profile-password-input input:disabled { background: #f5f4f0; }
+.profile-password-toggle { position: absolute; top: 2px; right: 2px; display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 8px; color: #626b76; background: transparent; cursor: pointer; }
+.profile-password-toggle:hover { color: #47340a; background: #fff2c9; }
+.profile-password-toggle:focus-visible { outline: 3px solid #947018; outline-offset: 1px; }
+.profile-password-form > .workspace-button { justify-self: start; min-height: 44px; }
+.profile-password-form > small { grid-column: 1 / -1; margin-top: -8px; color: #626b76; font-size: 12px; }
+.profile-password-feedback { grid-column: 1 / -1; min-height: 0; }
+.profile-password-feedback p { margin: 0; color: #a62f43; font-size: 13px; line-height: 1.5; }
+.profile-password-unavailable { margin: 20px 0 0; color: #626b76; font-size: 14px; line-height: 1.6; }
 .profile-home-link:active { transform: translateY(1px); }
 .profile-shortcut:focus-visible, .profile-home-link:focus-visible { outline: 3px solid #947018; outline-offset: 4px; border-radius: 8px; }
 .workspace-sidebar-bottom a.active { color: #6f4f00; background: #fff2c9; }
@@ -49,6 +65,8 @@
   .profile-hero { align-items: flex-start; flex-direction: column; }
   .profile-content-grid { gap: 18px; }
   .profile-panel, .profile-workspace-panel { padding: 22px; }
+  .profile-password-panel { padding: 22px; }
+  .profile-password-form { grid-template-columns: minmax(0, 1fr); }
   .profile-details-list > div { grid-template-columns: 1fr; gap: 6px; }
   .profile-details-list dd { text-align: left; }
 }

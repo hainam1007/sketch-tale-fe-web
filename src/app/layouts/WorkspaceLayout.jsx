@@ -3,6 +3,8 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import {
   BookOpen,
   ChartLineUp,
+  Coins,
+  GraduationCap,
   Gauge,
   House,
   List,
@@ -16,11 +18,14 @@ import {
 } from "@phosphor-icons/react";
 import { useAuth } from "../../features/auth/AuthProvider";
 import BrandLogo from "../../components/branding/BrandLogo";
+import { useConfirmToast } from "../../components/feedback/useConfirmToast";
 import { ROLES, roleHome, roleLabels } from "../../lib/permissions/roles";
-import { confirmContentEditorNavigation } from "../../features/content/hooks/useEditorSaveState";
+import { isFeatureMockMode } from "../../lib/api/featureApi";
+import { approveNextContentEditorNavigation, isContentEditorDirty, shouldConfirmContentEditorNavigation } from "../../features/content/hooks/useEditorSaveState";
 import "./workspace.css";
 import "../../features/content/content.css";
 import "../../features/parent/parent.css";
+import "../../features/admin/admin.css";
 
 const roleNavigation = {
   [ROLES.PARENT]: [
@@ -45,6 +50,9 @@ const roleNavigation = {
     { to: "/admin/monitoring", label: "Giám sát", icon: ChartLineUp },
     { to: "/admin/statistics", label: "Số liệu", icon: ChartLineUp },
     { to: "/admin/audit", label: "Audit", icon: ShieldCheck },
+    { to: "/admin/subscription-plans", label: "Gói sử dụng", icon: Package },
+    { to: "/admin/credit-costs", label: "Chi phí credit", icon: Coins },
+    { to: "/admin/education-themes", label: "Chủ đề giáo dục", icon: GraduationCap },
   ],
 };
 
@@ -52,11 +60,14 @@ export default function WorkspaceLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const confirmToast = useConfirmToast();
   const isStoryStudio = user.role === ROLES.CONTENT && /\/content\/stories\/[^/]+\/pages\/?$/.test(location.pathname);
+  const isStoryEditorRoute = /^\/content\/stories\/(?!new(?:\/|$))[^/]+/.test(location.pathname);
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuButtonRef = useRef(null);
   const sidebarRef = useRef(null);
   const navigation = roleNavigation[user.role] || roleNavigation[ROLES.PARENT];
+  const isAdminCatalogPage = user.role === ROLES.ADMIN && /^\/admin\/(subscription-plans|credit-costs|education-themes)$/.test(location.pathname);
 
   function closeMobile() {
     setMobileOpen(false);
@@ -91,14 +102,27 @@ export default function WorkspaceLayout() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [mobileOpen]);
 
+  async function handleWorkspaceNavigation(event, to) {
+    if (!shouldConfirmContentEditorNavigation(event)) { closeMobile(); return; }
+    if (isStoryEditorRoute) { closeMobile(); return; }
+    event.preventDefault();
+    if (await confirmToast({ title: "Rời trang này?", message: "Bạn có thay đổi chưa lưu. Nếu rời trang, các thay đổi này sẽ bị bỏ.", confirmLabel: "Rời trang", cancelLabel: "Ở lại", tone: "danger" })) {
+      navigate(to);
+      closeMobile();
+    }
+  }
+
   async function handleLogout() {
-    if (!confirmContentEditorNavigation({ defaultPrevented: false, button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false })) return;
+    const dirty = isContentEditorDirty();
+    if (dirty && !await confirmToast({ title: "Đăng xuất?", message: "Bạn có thay đổi chưa lưu. Nếu rời trang, các thay đổi này sẽ bị bỏ.", confirmLabel: "Đăng xuất", cancelLabel: "Ở lại", tone: "danger" })) return;
+    if (dirty && isStoryEditorRoute) approveNextContentEditorNavigation();
     navigate("/", { replace: true });
+    if (dirty && isStoryEditorRoute) await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
     await logout();
   }
 
   return (
-    <div className={`workspace-app ${user.role === ROLES.PARENT ? "workspace-app-parent" : ""} ${user.role === ROLES.CONTENT ? "workspace-app-content" : ""}${isStoryStudio ? " workspace-app-studio" : ""}`}>
+    <div className={`workspace-app ${user.role === ROLES.PARENT ? "workspace-app-parent" : ""} ${user.role === ROLES.CONTENT ? "workspace-app-content" : ""} ${user.role === ROLES.ADMIN ? "workspace-app-admin" : ""}${isStoryStudio ? " workspace-app-studio" : ""}`}>
       <aside ref={sidebarRef} className={`workspace-sidebar ${mobileOpen ? "workspace-sidebar-open" : ""}`}>
         <div className="workspace-sidebar-top">
           <Link to={roleHome(user.role)} className="workspace-brand" onClick={closeMobile}>
@@ -111,13 +135,13 @@ export default function WorkspaceLayout() {
         <div className="workspace-role-label">{roleLabels[user.role]}</div>
         <nav id="workspace-navigation" className="workspace-nav" aria-label="Điều hướng khu vực làm việc">
           {navigation.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} onClick={(event) => { if (!confirmContentEditorNavigation(event)) event.preventDefault(); else closeMobile(); }}>
+            <NavLink key={to} to={to} end={end} onClick={(event) => { void handleWorkspaceNavigation(event, to); }}>
               <Icon size={20} aria-hidden="true" /> {label}
             </NavLink>
           ))}
         </nav>
         <div className="workspace-sidebar-bottom">
-          <NavLink to="/profile" onClick={(event) => { if (!confirmContentEditorNavigation(event)) event.preventDefault(); else closeMobile(); }}>
+          <NavLink to="/profile" onClick={(event) => { void handleWorkspaceNavigation(event, "/profile"); }}>
             <UserCircle size={20} aria-hidden="true" /> Hồ sơ tài khoản
           </NavLink>
           <button className="workspace-logout" type="button" onClick={handleLogout}>
@@ -131,6 +155,7 @@ export default function WorkspaceLayout() {
           <List size={23} aria-hidden="true" />
         </button>
         <main id="main" className="workspace-main" tabIndex={-1}>
+          {user.role === ROLES.ADMIN && !isAdminCatalogPage && isFeatureMockMode("admin") && <div className="admin-demo-banner" role="status"><span aria-hidden="true" /> Một số tính năng quản trị dùng Dữ liệu mô phỏng; từng khu vực hiển thị nhãn nguồn dữ liệu.</div>}
           <Outlet />
         </main>
       </div>

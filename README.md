@@ -1,56 +1,43 @@
-# SketchTale public website
+# SketchTale Web
 
-React 19 + Vite 8, JavaScript/JSX, React Router và CSS thuần. Giao diện tiếng Việt cho phụ huynh có trẻ 3–6 tuổi, theo [Public Website.md](docs/Public%20Website.md).
+SketchTale là hệ thống kể chuyện tương tác từ tranh vẽ của trẻ. Repository này chứa web frontend dùng cho khách truy cập, Parent, Content Manager và Admin; ứng dụng Child thuộc mobile app riêng. Sản phẩm hiện hướng tới trẻ 6–10 tuổi.
 
-## Chạy dự án
+## Chạy local
 
 ```sh
 npm install
 npm run dev
 ```
 
+Các lệnh kiểm tra có trong `package.json`:
+
 ```sh
 npm run lint
 npm run build
-npm run preview
 npm test
 ```
 
-Playwright dùng Chrome đã cài trên máy (`channel: chrome`); máy CI cần cài Chrome hoặc đổi sang Chromium trong `playwright.config.js`. Bộ test tự khởi động Vite ở `127.0.0.1:5173`. Ảnh giao diện và báo cáo nằm trong `artifacts/`.
+Bản preview sau build chạy bằng `npm run preview`. Kiểm tra trạng thái và giới hạn mới nhất trước khi dùng kết quả test để nghiệm thu API; các thay đổi tích hợp ngày 19/10/2026 chưa được lint/build/E2E hoặc kiểm tra trên Render.
 
-## Đã triển khai
+## Khu vực ứng dụng
 
-- Trang chủ đủ tám phần, menu mobile/Escape/focus, anchor, footer và 404.
-- Kệ truyện minh họa ba truyện ngay trên landing; không còn route public riêng cho thư viện hoặc reader.
-- Demo phụ huynh trên landing với hồ sơ Mây/Nắng, chọn danh mục và thời gian riêng; tab dùng được bằng phím mũi tên, Home/End.
-- Các trang giới thiệu, FAQ, liên hệ, chính sách dự thảo và form đăng nhập/đăng ký/quên mật khẩu minh họa.
-- Shared workspace đã có session mock, guard theo role và shell cho Parent, Content Manager, Admin; tài khoản demo login vào đúng khu vực.
-- Parent M1 đã có danh sách/tạo/sửa hồ sơ bé, selector theo URL, quota trả về từ mock API và các trạng thái empty/error/validation.
-- G2 đã có Admin quản lý tài khoản với search/filter/detail/lock-unlock và Content Manager tạo/sửa story draft, chọn cover asset, lọc story và mock upload asset.
-- G3 đã có Story Editor theo tab Metadata/Pages/Roles–Slots/Vocabulary/Quiz/Preview; draft lưu revision, validate/publish tạo version snapshot, hide và phát hiện draft lệch version publish.
-- G4 đã có Parent Settings/Approval/Library theo từng child và Admin Content Reports với workflow open → under review → resolved/rejected, có revision conflict mock và E2E.
-- G5 đã có Parent Plan/Usage theo entitlement server; Admin Permissions, System Limits, Restrictions, Monitoring; và Asset Library với validate loại/dung lượng, preview, progress, filter cùng trạng thái upload.
-- G6 đã có Parent Progress/Dashboard theo aggregate API với date range và partial error; Content Statistics; Admin Statistics và Audit Viewer read-only có filter actor/action/time.
-- G7 đã có Parent Export workspace theo mock contract: create/list/detail, queued/processing/failed/completed/expired, retry, download link, idempotency key và quota Free/Pro/Family; Family Learning Report có trạng thái/cấu hình rõ ràng nhưng việc tạo và gửi email vẫn pending backend thật.
-- So sánh Free, Pro **35.000đ/tháng** và Family **89.000đ/tháng**, cập nhật theo người dùng ngày 17/09/2026.
-- Responsive, focus/skip link, giảm chuyển động, Nunito tự host, WebP và noindex cho prototype.
+- **Public/Auth:** landing, truyện mẫu, thông tin gói và các luồng tài khoản.
+- **Parent:** chọn hồ sơ bé để quản lý cài đặt, duyệt nội dung, thư viện, tiến độ, gói và xuất truyện.
+- **Content Manager:** tạo và xuất bản truyện, trang, vai/slot, từ vựng, quiz và media.
+- **Admin:** catalog gói/credit/chủ đề, người dùng, quyền, báo cáo, giới hạn, an toàn nội dung và giám sát.
 
-## Cấu trúc
+Frontend dùng React 19, Vite 8, JavaScript/JSX, React Router, TanStack Query, CSS và Playwright. Source chính nằm trong `src/app`, `src/features`, `src/lib/api` và `src/mocks`.
 
-`src/app/App.jsx` chứa routing; `src/styles` chứa tokens, font và CSS; `src/features/public` chứa layout, component, trang, fixture và service; `src/features/auth` chứa form auth minh họa.
+## API và mock
 
-`publicService` hiện trỏ tới `mockPublicService`. Khi có backend, thay adapter giữ nguyên shape frontend. Kệ truyện, nội dung dành cho phụ huynh và bảng giá hiện được trình bày trực tiếp trên landing bằng các anchor `#stories`, `#parents` và `#pricing`.
+API có sẵn và contract đủ rõ dùng API thật theo từng operation. Chức năng chưa có API tiếp tục dùng mock ở cả local và production, có nhãn **“Dữ liệu mô phỏng”**. Lỗi từ API thật không được tự chuyển sang mock.
 
-## Ranh giới prototype
+Một số API đã có adapter trong source, nhưng chưa được kiểm tra đầy đủ trên Backend thật. Parent profile/child profile vẫn mock do backend thiếu kiểm tra ownership; Admin core và các field editor chưa có API cũng tiếp tục mock. Xem [tổng quan dự án](docs/PROJECT_SUMMARY.md) và [runbook nối API](docs/LUNA_EXTRAMAX_API_RUNBOOK_2026-10-19.md) để biết trạng thái cụ thể.
 
-Chưa có backend thật, thanh toán, cấp quyền gói, tạo nhân vật AI, xuất video, audio, tài khoản thật hoặc gửi email/liên hệ. Login Parent/Content/Admin dùng mock API; chỉ `userId` của phiên được lưu để refresh demo, không lưu mật khẩu. Đăng ký và quên mật khẩu vẫn chỉ kiểm tra biểu mẫu. Dữ liệu hồ sơ demo dùng session storage theo tài khoản để mô phỏng ownership và refresh.
+Không chép token hoặc secret vào tài liệu. Cấu hình môi trường chỉ chọn nguồn dữ liệu; không dùng cờ frontend thay cho kiểm tra quyền của Backend.
 
-Family có **100 lượt tạo nhân vật AI/tháng** và 1 lần regenerate mỗi tranh. Danh sách 5 truyện Free, cơ chế chia sẻ/reset hạn mức, regenerate, nâng/hạ gói và gia hạn/hủy/hoàn tiền cần backend/nghiệp vụ xác nhận. Ba truyện công khai không đại diện danh sách năm truyện của gói Free.
+## Tài liệu
 
-Ảnh và logo hiện là bản prototype từ ImageGen dựa trên tham chiếu; cần asset thương hiệu xuất từ nguồn thiết kế và tranh riêng từng trang trước phát hành. Xem [design/ASSETS.md](design/ASSETS.md).
+Mở [docs/README.md](docs/README.md) để xem danh sách tài liệu còn backlog, contract cần chốt và điều kiện nghiệm thu. [design/ASSETS.md](design/ASSETS.md) ghi tình trạng tài nguyên hình ảnh/thương hiệu.
 
-## Trước khi phát hành
-
-Hosting cần rewrite mọi URL không phải asset về `/index.html` để refresh route trực tiếp. Chốt domain, prerender/metadata chia sẻ, OG image và chính sách chính thức; chỉ bỏ `noindex` cùng `robots.txt` chặn index khi bản phát hành được duyệt. Không dùng cờ frontend để quyết định quyền truy cập trả phí.
-
-Đo Lighthouse trên production preview ở port 4173 bằng `node scripts/lighthouse.mjs` (đường dẫn Chrome trong script dành cho Windows). Kết quả chỉ phản ánh lần đo cục bộ, không thay thế đo trên môi trường triển khai thật.
+Các minh họa hiện tại là prototype. Trước phát hành cần dùng asset thương hiệu và tranh truyện được duyệt, xác nhận nội dung/chính sách public, chạy kiểm tra trên môi trường triển khai và chỉ gỡ `noindex` khi bản public được duyệt.

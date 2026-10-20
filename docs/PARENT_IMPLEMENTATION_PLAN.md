@@ -1,10 +1,10 @@
 # Kế hoạch triển khai Parent Portal
 
-> Kế hoạch tổng thể cho cả ba role nằm tại [WEB_IMPLEMENTATION_PLAN.md](WEB_IMPLEMENTATION_PLAN.md). Dùng tài liệu tổng thể để quyết định kiến trúc, thứ tự triển khai và tiến độ; tài liệu này là phân rã tham khảo riêng cho Parent.
+> Trạng thái 19/10/2026: Parent/Child profile, settings, approvals, library, progress và exports vẫn cần API an toàn; profile endpoints hiện bị chặn bởi lỗi ownership backend. Tài khoản Child có thể được tạo qua `/auth/register/child`, nhưng response chưa trả child ID. API chưa có tiếp tục dùng mock cả local và bản deploy, có nhãn “Dữ liệu mô phỏng”. Xem [tổng quan dự án](PROJECT_SUMMARY.md) và [runbook API](LUNA_EXTRAMAX_API_RUNBOOK_2026-10-19.md) để biết trạng thái hiện hành. Tài liệu này giữ yêu cầu Parent và các backlog chưa đóng.
 
-Ngày lập: 18/09/2026. Cập nhật scope auth/độ tuổi: **29/09/2026**. Thiết kế lại theo từng hồ sơ trẻ: **01/10/2026**. Phạm vi: kế hoạch và triển khai Web Frontend role Parent; vertical slice đã có mock/API boundary, chưa xác nhận API thật.
+Ngày lập: 18/09/2026. Các mốc scope 29/09 và thiết kế Parent 01/10 là lịch sử. Trạng thái API hiện hành được cập nhật ngày 19/10/2026 ở đầu tài liệu và trong [tổng quan dự án](PROJECT_SUMMARY.md); các phần thiết kế bên dưới giữ yêu cầu/backlog, không phải báo cáo code hiện tại.
 
-**Cách đọc:** mục 1–8 giữ nền tảng nghiệp vụ và milestone tích hợp; **mục 9–15 là đặc tả thiết kế từng trang, migration và backlog hoàn thiện UI/UX**. Vertical slice dashboard theo hồ sơ, route, mock API, approval tách quyền vai nhạy cảm và kiểm thử isolation đã được triển khai; các module còn lại vẫn cần tích hợp API thật và nghiệm thu staging.
+**Cách đọc:** mục 1–8 giữ nền tảng nghiệp vụ và milestone; **mục 9–15 là đặc tả thiết kế từng trang và backlog UI/UX**. Nhiều màn Parent đã có trong source. Profile API chưa được bật do lỗi ownership backend; tích hợp thật và nghiệm thu staging còn mở.
 
 Nguồn: `docs/PROJECT_SUMMARY.md`, router, auth và dependencies hiện có trong repository. Đây là kế hoạch đề xuất; endpoint, payload và các quyết định còn mở cần thống nhất với Backend trước khi tích hợp thật.
 
@@ -12,7 +12,7 @@ Nguồn: `docs/PROJECT_SUMMARY.md`, router, auth và dependencies hiện có tro
 
 **Quyết định sản phẩm:** Parent quản lý thông qua hồ sơ của từng trẻ. Mỗi Child đã liên kết có dashboard riêng, từ đó truy cập cài đặt, phê duyệt, thư viện và tiến độ của chính Child đó. Dashboard là màn phụ huynh xem về trẻ, không phải màn trẻ đăng nhập sử dụng. Không cộng dữ liệu nhiều trẻ thành dashboard gia đình.
 
-Luồng chính: Parent đăng nhập → chọn hồ sơ Child đã liên kết → dashboard của bé → xem hoặc thực hiện tác vụ cho bé → đổi hồ sơ khi cần. Song song, shared auth vẫn phải hỗ trợ Child 6–10 tuổi tự đăng ký → xác minh → đăng nhập vào Mobile App. Hồ sơ quản lý không thay thế tài khoản đăng nhập độc lập của Child.
+Luồng chính: Parent đăng nhập → chọn hồ sơ Child đã liên kết → dashboard của bé → xem hoặc thực hiện tác vụ cho bé → đổi hồ sơ khi cần. Parent tạo username/password cho tài khoản bé; Child dùng thông tin đó để đăng nhập Mobile App. Hồ sơ Parent quản lý và thông tin đăng nhập Child là hai khái niệm riêng.
 
 **Thứ tự ưu tiên:** danh sách/điều hướng hồ sơ và khung dashboard riêng → settings → duyệt nhân vật và quyền vai nhạy cảm → thư viện → tiến độ và số liệu dashboard đầy đủ. Khung dashboard là P0; analytics là P1. Đọc capability/entitlement tối thiểu trước khi mời hoặc quản lý Child; trang gói đầy đủ làm sau. Tích hợp API theo module khi sẵn sàng.
 
@@ -34,7 +34,7 @@ Các điểm tối ưu so với kế hoạch ban đầu:
 - Mock bằng MSW tại biên HTTP theo kế hoạch tổng thể; không duy trì thêm một bộ mock service nghiệp vụ song song.
 - Mỗi milestone có task, API đầu vào và điều kiện nghiệm thu; phần export/email chưa có contract được theo dõi riêng.
 
-Rà soát mã nguồn ngày 26/09/2026: đã có React/Vite, JavaScript/JSX, React Router, TanStack Query, CSS tokens, Nunito, Phosphor icons và Playwright/axe. Đã có `AuthProvider`, guards, `WorkspaceLayout`, `ChildWorkspaceLayout`, các trang Parent, services và mock. Scope mới ngày 29/09 yêu cầu bổ sung Child account, registration/login và liên kết Parent–Child; các phần này chưa được coi là đã triển khai chỉ vì auth mock hiện có. Việc có code/mock không chứng minh API thật hoặc nghiệp vụ đã được nghiệm thu; đợt cập nhật tài liệu này chưa chạy ứng dụng để kiểm chứng giao diện.
+Rà soát mã nguồn ngày 26/09/2026 là baseline lịch sử về stack và màn Parent. Sau đó đã nối `POST /auth/register/child` từ Parent để tạo tài khoản bé theo username/password; bé dùng tài khoản đó trên mobile. Response chưa có child ID. Login/hydration thật và API profile có trạng thái riêng trong [báo cáo tích hợp](api-integration/luna-extramax/implementation-report-2026-10-19.md). Việc có code/mock không chứng minh API thật hoặc nghiệp vụ đã được nghiệm thu.
 
 Kế hoạch giữ một SPA và convention JavaScript/JSX hiện tại. Không triển khai luồng vẽ, tạo nhân vật AI, đọc truyện tương tác hay làm quiz của trẻ trên Parent Portal; các luồng đó thuộc Mobile App.
 
@@ -62,14 +62,14 @@ Thanh toán thật, bulk action và biểu đồ nâng cao chưa nằm trong đ�
 | Route | Màn hình |
 | --- | --- |
 | `/auth/login` | Đăng nhập dùng chung |
-| `/auth/register` | Đăng ký Parent hoặc Child theo auth flow/role được Backend cho phép |
+| `/auth/register` | Đăng ký Parent; Parent Portal có luồng riêng tạo tài khoản Child |
 | `/auth/verify` | Xác minh tài khoản; đề xuất, chưa có route hiện hành |
 | `/auth/forgot-password` | Yêu cầu đặt lại mật khẩu |
 | `/auth/reset-password` | Đặt lại mật khẩu; đề xuất, chưa có route hiện hành |
 | `/profile` | Hồ sơ người dùng đã đăng nhập |
 | `/parent` | Entry: chờ session/danh sách, một bé thì vào dashboard bé đó; nhiều hoặc chưa có bé thì về danh sách |
 | `/parent/children` | Danh sách Child đã liên kết |
-| `/parent/children/new` | Mời/liên kết Child; chỉ tạo profile/account nếu contract cho phép |
+| `/parent/children/new` | Parent tạo tài khoản bé bằng username/password qua `/auth/register/child`; response thiếu child ID nên chưa thể mở detail. Link tài khoản có sẵn vẫn chờ API riêng. |
 | `/parent/children/:childId` | Chi tiết/sửa hồ sơ Child đã liên kết |
 | `/parent/children/:childId/dashboard` | Dashboard riêng của bé; điểm vào mặc định khi chọn hồ sơ |
 | `/parent/children/:childId/settings` | Thời gian và nội dung được phép |
@@ -81,13 +81,13 @@ Thanh toán thật, bulk action và biểu đồ nâng cao chưa nằm trong đ�
 | `/parent/reports` | Cấu hình/trạng thái email Family cấp tài khoản nếu contract hỗ trợ, P2 |
 | `/parent/exports` | Route cũ: điều hướng tương thích theo mục 15; không tiếp tục là danh sách job của mọi bé |
 
-Parent shell có sidebar, header tài khoản và bộ chọn Child tại những màn hình theo Child. URL là nguồn xác định `childId`; đổi Child giữ module hiện tại nếu phù hợp, đồng thời tải lại đúng dữ liệu. Khi chưa có Child được liên kết, hiển thị hướng dẫn kết nối tài khoản Child; không mặc định rằng Parent được tạo account thay Child.
+Parent shell có sidebar, header tài khoản và bộ chọn Child tại những màn hình theo Child. URL là nguồn xác định `childId`; đổi Child giữ module hiện tại nếu phù hợp, đồng thời tải lại đúng dữ liệu. Khi chưa có Child trong danh sách, cho Parent tạo tài khoản bé; link tài khoản Child đã có sẵn vẫn chờ API. Không dùng ID giả hoặc profile API chưa an toàn.
 
 Điều hướng cấp tài khoản gồm **Hồ sơ các bé**, **Gói và hạn mức**, **Báo cáo Family** khi sẵn sàng. Trong workspace của một bé dùng nav **Tổng quan → Cài đặt → Phê duyệt → Thư viện → Tiến độ → Hồ sơ**, bổ sung **Bản xuất** ở P2. “Tổng quan” luôn trỏ đến dashboard của bé hiện tại, không có hai mục Tổng quan cạnh tranh ở hai cấp. Giữ route chi tiết hồ sơ hiện tại để không đổi ý nghĩa các deep link cũ.
 
 Quy tắc điều hướng:
 
-- Chưa có Child liên kết: hiện CTA mời/liên kết; không tự chọn `childId` giả hoặc gọi API nghiệp vụ thiếu ID.
+- Chưa có Child liên kết: hiện CTA “Tạo tài khoản bé”; không tự chọn `childId` giả hoặc gọi API profile thiếu ownership. Link tài khoản Child có sẵn vẫn chờ API.
 - Có một Child: `/parent` chuyển bằng replace đến dashboard của bé sau khi kiểm tra quyền; `/parent/children` luôn mở danh sách khi truy cập trực tiếp.
 - Nhiều Child: `/parent` mở danh sách để chủ động chọn; chưa lưu bé truy cập gần nhất trong MVP. Sau liên kết được xác nhận có thể mở dashboard bé vừa liên kết; trạng thái chờ xác nhận chưa được mở workspace.
 - Nhiều Child: hiện tên/avatar rõ ở tiêu đề và selector. Đổi Child giữ tab, reset pagination/filter không tương thích và đóng detail của Child cũ.
@@ -131,7 +131,7 @@ src/
 
 - Tiếp tục dùng CSS tokens hiện có; đề xuất CSS Modules cho màn hình mới để giảm xung đột CSS với public website.
 - TanStack Query đã có cho server state. React Hook Form + Zod và Vitest + Testing Library là đề xuất chưa có trong dependencies; chỉ bổ sung khi công việc cụ thể cần, không bắt buộc đổi form hiện có để làm UI.
-- Component gọi hook → service → HTTP client chung. MSW intercept HTTP trong dev/test; chỉ bật mock ở môi trường được chỉ định, không fallback mock khi API production lỗi. Không cần refactor public service chỉ để bắt đầu Parent.
+- Component gọi hook → service → HTTP client chung. Chức năng chưa có API dùng mock cả local và bản deploy, có nhãn “Dữ liệu mô phỏng”; API thật lỗi không fallback mock. Đây là chỉ đạo hiện hành thay cho đề xuất MSW/giới hạn mock theo môi trường trong baseline cũ.
 - Dùng JSDoc cho payload, response và enum quan trọng. Model tối thiểu: session/user, child profile, child settings, character/version/approval, library item, progress, entitlements và export job.
 - Query key chứa account và child khi phù hợp, ví dụ `['children', userId]`, `['approvals', userId, childId, filters]`. Xóa cache riêng tư khi logout/đổi tài khoản; hủy request cũ và tránh hiển thị dữ liệu bé trước khi đổi bé.
 - Sau mutation, cập nhật hoặc invalidate các query liên quan. Duyệt/xóa chỉ hiển thị thành công sau phản hồi server; khóa nút trong khi gửi để tránh gửi trùng.
@@ -184,11 +184,11 @@ M1–M5: **14–19 ngày công riêng Parent**, tăng một ngày so với 13–
 - Tạo cấu hình menu Parent trên shell chung; ChildWorkspaceLayout kiểm tra quan hệ liên kết và cung cấp selector/tabs.
 - Đưa dashboard cơ bản vào child workspace ngay M1: tên bé, lối vào module đã sẵn sàng, trạng thái chưa có hoạt động. Module chưa triển khai không có nút dẫn vào placeholder; không tạo số liệu mẫu để lấp khung. Entry xử lý rõ 0/1/nhiều bé.
 - `ChildForm` dùng chung view/edit: tên hiển thị, ngày sinh date-only, avatar có sẵn là đề xuất tối thiểu. Chưa làm upload avatar riêng trước khi có nhu cầu/contract.
-- List/detail/update Child đã liên kết. Flow create/link/invite là một nhánh riêng, chỉ bật sau khi chốt relationship contract; không tự tạo tài khoản Child từ Parent UI.
+- List/detail/update Child đã liên kết. Tạo tài khoản bé mới đã nối `POST /auth/register/child` từ Parent UI; do response chưa có child ID, không chuyển sang detail bằng ID đoán. Link tài khoản Child đã tồn tại, invite hoặc unlink vẫn chờ relationship contract/API riêng.
 - Entitlement/quyền quản lý lấy từ server, không suy ra chỉ từ tên gói. Nếu chưa tải được entitlement hoặc link capability, hiện lỗi/retry thay vì mặc định cho phép thao tác.
 - Nếu gói vẫn giới hạn số Child do Parent quản lý, Free 1, Pro 3, Family 5 chỉ là fixture theo cấu hình nguồn; server vẫn là nguồn quyết định.
 
-**Đạt khi:** Parent xem và sửa được Child đã liên kết; deep link không thuộc quan hệ trả 403/404; dữ liệu hai Parent/tài khoản Child không lẫn nhau; link conflict và mất quyền được xử lý rõ. Flow Child tự đăng ký/đăng nhập được nghiệm thu ở shared auth, không đánh dấu hoàn thành chỉ bằng mock Parent profile.
+**Đạt khi:** Parent xem và sửa được Child đã liên kết; deep link không thuộc quan hệ trả 403/404; dữ liệu hai Parent/tài khoản Child không lẫn nhau; link conflict và mất quyền được xử lý rõ. Parent tạo được tài khoản bé với username/password và Child đăng nhập được trên mobile; không đánh dấu hoàn thành API profile chỉ bằng mock.
 
 ### M2 — Settings và phê duyệt đầy đủ
 
@@ -255,12 +255,12 @@ Mỗi ticket khoảng 0,5–2 ngày; tổng thời gian nằm trong milestone, k
 
 ## 6. API cần phối hợp với Backend
 
-Endpoint trong mục 15 của `PROJECT_SUMMARY.md` là đề xuất, chưa phải API đã triển khai.
+Các route mock bên dưới mô tả nhu cầu nghiệp vụ, không phải contract Backend. API có sẵn và trạng thái tích hợp hiện hành được liệt kê ở [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) và [API runbook](LUNA_EXTRAMAX_API_RUNBOOK_2026-10-19.md).
 
 | Miền | Contract tối thiểu |
 | --- | --- |
 | Auth | Login/logout/refresh, `/me`, register/verify/forgot/reset; role enum, session expiry, error envelope |
-| Children | List/link/detail/update; invite/consent và trạng thái liên kết; create hộ chỉ nếu được phép; field/ngày sinh/validation/quota |
+| Children | `POST /auth/register/child` đã tạo tài khoản bé và liên kết theo Parent JWT nhưng thiếu ID trong response; list/detail/update bị chặn bởi ownership backend. Link tài khoản có sẵn/invite/consent/unlink vẫn cần API riêng. |
 | Settings | Read/update settings; category catalog; ý nghĩa danh sách category rỗng, giới hạn min/max, timezone |
 | Approvals | List/detail nhân vật và tranh gốc; approve/reject theo version, conflict response |
 | Sensitive roles | Read/update quyền theo nhân vật; xác định quyền này được kế thừa thế nào khi có version mới |
@@ -271,7 +271,7 @@ Endpoint trong mục 15 của `PROJECT_SUMMARY.md` là đề xuất, chưa phả
 | Exports | Create/list/detail job, status enum, file URL và thời hạn, retry/idempotency |
 | Family report | Nội dung/lịch tháng, trạng thái gửi, cấu hình nếu có, quyền truy cập và xử lý lỗi |
 
-Khoảng trống so với danh sách API hiện có trong tài liệu: category catalog, đọc settings nếu không nằm trong child detail, entitlement/usage, detail nhân vật, thao tác thư viện nhân vật, dữ liệu dashboard và danh sách export. Cần bổ sung hoặc thống nhất tái sử dụng endpoint, không tự giả định đã có.
+Khoảng trống: ownership an toàn cho profile list/detail/update; link/unlink tài khoản Child đã tồn tại; entitlement/usage, settings không có trong profile DTO, approvals, library, dữ liệu dashboard và danh sách export. Đăng ký tài khoản Child đã có endpoint nhưng response cần ID hoặc một đường refetch được scope an toàn. Cần bổ sung hoặc thống nhất tái sử dụng endpoint, không tự giả định đã có.
 
 Fixtures nên gồm: Parent chưa có bé, nhiều bé, đạt quota; approval pending/approved/rejected và version mới; thư viện trống/ẩn; chưa có tiến độ; session hết hạn, 403, 404, conflict và lỗi mạng. Dùng dữ liệu mẫu cố định, có thể reset để test lặp lại.
 
@@ -316,7 +316,7 @@ Không viết lại test shared auth cho từng màn Parent; dùng session fixtu
 
 | Mốc | Happy path | Trường hợp bắt buộc bổ sung |
 | --- | --- | --- |
-| M1 | Parent login → chọn/link Child → dashboard riêng → refresh → đổi bé → logout; Child register/login | Entry 0/1/nhiều bé, link capability, URL Child chưa liên kết, request cũ về sau khi đổi Child |
+| M1 | Parent login → tạo tài khoản bé → Child đăng nhập Mobile; sau khi có ID an toàn, chọn Child → dashboard → refresh/đổi bé/logout | Entry 0/1/nhiều bé, create response thiếu ID, ownership, request cũ về sau khi đổi Child |
 | M2 | Lưu settings → approve version → duyệt quyền vai | Save lỗi giữ form, conflict bản mới, nhấn gửi hai lần, đổi bé khi dirty |
 | M3 | Favorite → hide/unhide → delete | Hai bé độc lập, mutation lỗi, xóa item cuối trang |
 | M4 | Xem entitlement và usage | Hết quota, unlimited, lỗi tải, reset date/timezone |
@@ -450,18 +450,18 @@ Range chỉ điều khiển học tập và hoạt động trong kỳ. Chờ duy
 
 **Nghiệm thu:** chọn đúng Child bằng bàn phím; avatar lỗi có fallback; một và nhiều Child liên kết đều cân đối; tải lại sau link/sửa phản ánh đúng quyền và tên.
 
-### 11.3. Mời/liên kết trẻ — `/parent/children/new`
+### 11.3. Tạo tài khoản bé — `/parent/children/new`
 
-**Mục tiêu:** đưa Child account vào danh sách Parent được phép quản lý theo relationship contract.
+**Mục tiêu:** để Parent tạo username/password cho tài khoản Child mới. Backend liên kết tài khoản với Parent từ JWT. Việc liên kết một tài khoản Child đã tồn tại là luồng khác và hiện chưa có API.
 
-- Title “Mời hoặc liên kết bé”; giải thích trẻ có thể đã đăng ký tài khoản độc lập.
-- Form gọn, chỉ có trường phương thức Backend hỗ trợ, ví dụ mã ghép nối hoặc lời mời. Chưa chọn cứng một cơ chế; tên/ngày sinh/avatar không phải bằng chứng xác nhận quan hệ.
-- Hiện trạng thái gửi, chờ xác nhận, hết hạn, đã liên kết, xung đột, thiếu quyền/hết hạn mức theo response. Không hiển thị dữ liệu tài khoản chưa được phép xem.
-- Sau xác nhận thành công: tải lại linked children/capability rồi mở dashboard của bé vừa liên kết. Chờ xác nhận thì chưa mở workspace.
-- Chỉ thêm nhánh tạo hộ tài khoản nếu contract cho phép; field tên/ngày sinh date-only/avatar dùng chung với profile/auth. Tạo account không đồng nghĩa đã có consent/link.
-- Footer “Hủy”/“Gửi lời mời” hoặc “Liên kết” đúng hành động được hỗ trợ. Lỗi giữ giá trị nhập; timeout kiểm tra trạng thái trước khi gửi lại.
+- Title “Tạo tài khoản cho bé”; giải thích Parent đặt username và password để bé đăng nhập ứng dụng mobile.
+- Form gửi `username`, `password`, `nickName` qua `POST /auth/register/child`. Không yêu cầu ngày sinh/avatar vì endpoint không lưu hai field này.
+- Hiện pending, lỗi và thành công theo response. Backend success hiện chỉ trả message, không có child ID; không mở detail và không truy vấn danh sách không scope để tìm bé mới.
+- Sau success giữ người dùng ở màn tạo và giải thích rằng tài khoản đã được tạo nhưng chưa thể hiện trong danh sách cho đến khi có ID/đường đọc an toàn.
+- Link tài khoản Child đã có sẵn, invite/consent và unlink chỉ xuất hiện sau khi có API và contract riêng.
+- CTA “Tạo tài khoản bé”. Lỗi giữ giá trị hợp lệ; không retry POST tự động nếu kết quả trước chưa xác định.
 
-**Nghiệm thu:** không mở dashboard trước khi liên kết có hiệu lực; quota/capability từ server; dirty guard, Enter submit một lần, lỗi field có label rõ; dùng được ở 360px và zoom 200%.
+**Nghiệm thu:** tạo gửi đúng username/password/nickName và không gửi DOB/avatar; success không đi tới child detail bằng ID giả; timeout không tự gửi lần hai; dirty guard, Enter submit một lần, lỗi field có label rõ; dùng được ở 360px và zoom 200%.
 
 ### 11.4. Hồ sơ và chỉnh sửa — `/parent/children/:childId`
 
@@ -612,8 +612,8 @@ Không xây lại auth/profile riêng cho Parent. Bảng dưới là yêu cầu 
 
 | Luồng | Các bước mong đợi | Điểm cần giữ ngữ cảnh |
 | --- | --- | --- |
-| Parent mới | Login → danh sách trống → mời/liên kết Child → xác nhận → dashboard bé → cài đặt → lưu | Không bắt xem tour dài; không tự tạo account hoặc setting thay Child khi chưa có contract |
-| Child mới | Child register → verify/link nếu cần → login Mobile → tạo nhân vật/đọc truyện | Không hiển thị Child như account đã được link khi Backend chưa xác nhận |
+| Parent mới | Login → danh sách trống → tạo tài khoản bé bằng username/password → bé đăng nhập Mobile | Không dùng ID đoán để mở detail; link tài khoản có sẵn chờ API |
+| Child mới | Parent tạo account → Child đăng nhập Mobile → tạo nhân vật/đọc truyện | Không cung cấp self-registration Child trên website; profile list vẫn chờ ownership fix an toàn |
 | Duyệt nội dung | Dashboard → yêu cầu của đúng bé → xem ảnh → quyết định → kết quả/tiếp theo | Child, approval và version giữ nguyên đến khi server xác nhận |
 | Duyệt quyền vai | Yêu cầu vai nhạy cảm → đọc phạm vi quyền → xác nhận → kết quả riêng | Không gộp với approve hình; không kế thừa quyền phiên bản theo suy đoán |
 | Quản lý thư viện | Chọn Child → lọc → preview → ẩn → tìm trong Đã ẩn → hiện lại | Filter/scroll giữ khi Back; mutation không chạy nhầm item |
@@ -674,7 +674,7 @@ Các ticket dưới đây **bổ sung chi tiết UI/UX cho M1–M6**, không c�
 
 ### Kiểm chứng với người dùng
 
-Đề xuất một vòng 3–5 phụ huynh và một nhóm trẻ 6–10 tuổi đại diện trước khi chốt giao diện, dùng tài khoản và dữ liệu giả. Giao nhiệm vụ cho Parent: liên kết Child, đặt thời gian, duyệt phiên bản, tìm lại truyện đã ẩn, xem tiến độ đúng Child. Giao nhiệm vụ cho Child: đăng ký, đăng nhập, tạo nhân vật và mở truyện. Quan sát khả năng hoàn thành không cần hướng dẫn, thao tác nhầm account/Child, điểm không hiểu nhãn và cách phục hồi lỗi. Mục tiêu nội bộ: không có quyết định duyệt/xóa nhầm, phần lớn nhiệm vụ hoàn thành độc lập; đây là tiêu chí để cải tiến, chưa phải kết quả đo được.
+Đề xuất một vòng 3–5 phụ huynh và một nhóm trẻ 6–10 tuổi đại diện trước khi chốt giao diện, dùng tài khoản và dữ liệu giả. Giao nhiệm vụ cho Parent: tạo tài khoản bé, đặt thời gian, duyệt phiên bản, tìm lại truyện đã ẩn, xem tiến độ đúng Child. Giao nhiệm vụ cho Child: đăng nhập, tạo nhân vật và mở truyện. Quan sát khả năng hoàn thành không cần hướng dẫn, thao tác nhầm account/Child, điểm không hiểu nhãn và cách phục hồi lỗi. Mục tiêu nội bộ: không có quyết định duyệt/xóa nhầm, phần lớn nhiệm vụ hoàn thành độc lập; đây là tiêu chí để cải tiến, chưa phải kết quả đo được.
 
 Khi code xong từng milestone mới chạy lint/build và test liên quan theo mục 8. Đợt chỉnh sửa tài liệu này chỉ kiểm tra nội dung, liên kết và tính nhất quán, không cần chạy regression ứng dụng.
 

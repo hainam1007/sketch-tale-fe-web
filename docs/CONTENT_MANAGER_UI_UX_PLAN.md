@@ -4,7 +4,7 @@
 
 Phạm vi bổ sung: kế hoạch frontend cho toàn bộ hành trình Content Manager, liên kết với [kế hoạch Story Editor mới](STORY_EDITOR_UX_REDESIGN_PLAN.md). P0 đang được triển khai từng phần trong source frontend và mock; chưa hoàn tất toàn bộ backlog. Các quy tắc dưới đây được ưu tiên khi khác với baseline ngày 05/10 bên dưới, đặc biệt về điều hướng editor, lưu draft chung, upload audio và CRUD tài nguyên.
 
-Trạng thái triển khai 11/10: đã có workspace dựng trang gộp, draft giữ khi chuyển trang, kéo đặt nhân vật, thêm slot từ nhân vật có sẵn, sequence chuyển động preset, CRUD audio theo trang và phát tuần tự, upload audio ngay trong trình tự và kho tư liệu, upload ảnh ngay trong picker, picker gọn hơn, lưu trang trống để tiếp tục sau, mở lại trang gần nhất và tự phát qua các trang trong Preview. Mock hỗ trợ persist hai field page mới. Autosave liên tục, Undo/Redo, timeline theo thời gian tuyệt đối, sửa/xóa nhân vật và asset phụ thuộc toàn hệ thống, xử lý backend/mobile thật và usability test vẫn là việc tiếp theo.
+Trạng thái cập nhật 19/10: workspace editor và các thao tác trang/nhân vật/audio/preset đã có trong source. Story/page/role/vocabulary/quiz/publish và slot cơ bản đã có adapter API thật; field editor nâng cao, audio tracks/timeline, asset library độc lập và một số metadata tiếp tục mô phỏng, có nhãn “Dữ liệu mô phỏng” ở local và bản deploy. Chưa nghiệm thu runtime trên Backend hoặc usability test. Chi tiết nguồn dữ liệu hiện tại ở [báo cáo tích hợp](api-integration/luna-extramax/implementation-report-2026-10-19.md); autosave liên tục, Undo/Redo và timeline tuyệt đối vẫn là backlog.
 
 ### A. Mục tiêu và luồng chính
 
@@ -107,7 +107,7 @@ Ngày cập nhật: 05/10/2026. Trạng thái: kế hoạch đã đối chiếu 
 
 Kế hoạch dựa trên việc đọc route, component, CSS, service và contract trong working tree hiện tại. Chưa chạy audit giao diện trên trình duyệt hoặc kiểm chứng API production; các nhận xét thị giác cần được đối chiếu bằng ảnh chụp trước khi triển khai.
 
-Nguồn: `src/features/content/`, `src/app/App.jsx`, `src/app/layouts/workspace.css`, [DESIGN.md](DESIGN.md), [CONTENT_MANAGER_CONTRACT.md](CONTENT_MANAGER_CONTRACT.md), [CONTENT_MANAGER_IMPLEMENTATION_PLAN.md](CONTENT_MANAGER_IMPLEMENTATION_PLAN.md).
+Nguồn: `src/features/content/`, `src/app/App.jsx`, `src/app/layouts/workspace.css`, [DESIGN.md](DESIGN.md), [CONTENT_MANAGER_CONTRACT.md](CONTENT_MANAGER_CONTRACT.md), [CONTENT_MANAGER_UI_UX_DETAIL_SPEC.md](CONTENT_MANAGER_UI_UX_DETAIL_SPEC.md) và [API runbook](LUNA_EXTRAMAX_API_RUNBOOK_2026-10-19.md).
 
 Bao phủ 11 trang nghiệp vụ: tổng quan, kho truyện, tạo truyện, thông tin truyện, trang truyện, vai nhân vật, từ vựng, câu hỏi, xem trước, kho tư liệu và thống kê. Hồ sơ tài khoản là trang dùng chung, có hạng mục phụ ở cuối. Giữ React, React Router, React Query, CSS hiện có, Nunito và Phosphor.
 

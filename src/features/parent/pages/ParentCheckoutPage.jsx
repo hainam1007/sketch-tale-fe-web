@@ -13,9 +13,9 @@ export default function ParentCheckoutPage() {
     <div className="checkout-layout">
       <section className="checkout-placeholder-card" aria-labelledby="checkout-placeholder-title">
         <div className="checkout-placeholder-icon"><Package size={24} aria-hidden="true" /></div>
-        <p className="workspace-eyebrow">TRANG THANH TOÁN ĐANG ĐƯỢC CHUẨN BỊ</p>
+        <p className="workspace-eyebrow">THANH TOÁN</p>
         <h2 id="checkout-placeholder-title">Đăng ký gói {plan.name}</h2>
-        <p>Giao diện này đã giữ lựa chọn của bạn. Phương thức thanh toán, tạo đơn và xác nhận cấp quyền sẽ được nối vào khi contract billing được chốt.</p>
+        <p>Thanh toán trực tuyến hiện chưa sẵn sàng. Bạn có thể quay lại sau để tiếp tục đăng ký.</p>
         <div className="checkout-placeholder-note" role="status"><Info size={17} aria-hidden="true" /><span>Chưa có giao dịch nào được tạo và tài khoản chưa bị tính phí.</span></div>
         <Link className="workspace-button workspace-button-quiet" to="/parent/plan">Chọn gói khác</Link>
       </section>
@@ -24,7 +24,7 @@ export default function ParentCheckoutPage() {
         <h2 id="checkout-order-title">Gói {plan.name}</h2>
         <p className="checkout-order-price">{plan.price ? formatVnd(plan.price) : "Miễn phí"}<small>{plan.price ? " / tháng" : ""}</small></p>
         <ul>{plan.limits.slice(0, 4).map((item) => <li key={item}><CheckCircle size={16} aria-hidden="true" /> {item}</li>)}</ul>
-        <button className="workspace-button checkout-disabled-button" type="button" disabled>Thanh toán sẽ mở sau khi tích hợp</button>
+        <button className="workspace-button checkout-disabled-button" type="button" disabled>Thanh toán chưa khả dụng</button>
       </aside>
     </div>
   </div>;

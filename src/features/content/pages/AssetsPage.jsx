@@ -1,8 +1,7 @@
-import { CheckCircle, ImageSquare, MagnifyingGlass, SpeakerHigh, Trash, UploadSimple, WarningCircle, X } from "@phosphor-icons/react";
+import { CheckCircle, ImageSquare, MagnifyingGlass, SpeakerHigh, UploadSimple, WarningCircle, X } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../auth/AuthProvider";
-import { featureApiModes } from "../../../lib/api/featureApi";
 import { contentService } from "../services/contentService";
 import { validateAssetFile } from "../services/assetService";
 import { queryKeys } from "../../../lib/api/queryKeys";
@@ -39,14 +38,7 @@ export default function AssetsPage() {
       if (mutationError?.name !== "AbortError") setError(mutationError.message);
     },
   });
-  const deleteMutation = useMutation({
-    mutationFn: (assetId) => contentService.deleteAsset({ assetId }),
-    onSuccess: async () => {
-      setSelectedAssetId("");
-      setSuccess("Đã xóa tư liệu khỏi thư viện.");
-      await queryClient.invalidateQueries({ queryKey: queryKeys.assets(user.id) });
-    },
-  });
+
 
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
@@ -100,29 +92,35 @@ export default function AssetsPage() {
       <div className="workspace-page-heading">
         <div><p className="workspace-eyebrow">CONTENT / KHO TƯ LIỆU</p><h1>Kho tư liệu</h1><p>Quản lý ảnh nền, nhân vật và âm thanh dùng trong truyện.</p></div>
       </div>
-
       <div className="assets-layout">
         <section className="asset-upload-card" aria-labelledby="asset-upload-title">
           <div className="content-form-section">
             <span className="content-form-icon"><UploadSimple size={20} aria-hidden="true" /></span>
-            <div><h2 id="asset-upload-title">{featureApiModes.content === "real" ? "Tư liệu từ truyện" : "Thêm tư liệu"}</h2><p>{featureApiModes.content === "real" ? "Đang hiển thị ảnh bìa, ảnh nền và lời kể đã lưu trong backend. Backend chưa có API quản lý thư viện, upload asset chung hoặc xóa tư liệu." : "Ảnh tối đa 5MB; âm thanh MP3, WAV, OGG, WEBM hoặc AAC tối đa 25MB."}</p></div>
+            <div><h2 id="asset-upload-title">Thêm tư liệu</h2><p>Ảnh tối đa 5 MB; âm thanh MP3, WAV, OGG, WEBM hoặc AAC tối đa 25 MB.</p></div>
           </div>
-          {featureApiModes.content !== "real" && <form onSubmit={submit}>
-            <label className="asset-file-label" htmlFor="asset-file">
-              <ImageSquare size={23} aria-hidden="true" />
-              <span>{file ? file.name : "Chọn ảnh hoặc file âm thanh"}</span>
-              <small>{file ? `${Math.round(file.size / 1024)} KB · ${file.type}` : "Ảnh và audio dùng chung cho truyện"}</small>
-            </label>
-            <input ref={inputRef} id="asset-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/ogg,audio/webm,audio/mp4,audio/aac" onChange={selectFile} />
-            <button className="workspace-button" type={uploadMutation.isPending ? "button" : "submit"} onClick={uploadMutation.isPending ? cancelUpload : undefined} disabled={!file && !uploadMutation.isPending}>
-              {uploadMutation.isPending ? "Hủy upload" : uploadMutation.isError ? "Thử lại upload" : "Thêm vào thư viện"}
-            </button>
-            {preview && (file?.type.startsWith("audio/") ? <audio className="asset-upload-preview-audio" controls src={preview} aria-label="Nghe file âm thanh đang chọn" /> : <img className="asset-upload-preview" src={preview} alt="Xem trước ảnh đang chọn" />)}
+          <form onSubmit={submit}>
+            <div className={`asset-upload-dropzone${file ? " has-file" : ""}`}>
+              <input ref={inputRef} id="asset-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/ogg,audio/webm,audio/mp4,audio/aac" onChange={selectFile} />
+              <label className="asset-file-label" htmlFor="asset-file">
+                {preview ? <>
+                  {file?.type.startsWith("audio/") ? <SpeakerHigh size={28} aria-hidden="true" /> : <img className="asset-upload-preview" src={preview} alt="Xem trước ảnh đang chọn" />}
+                  <span className="asset-upload-file-tag">{file.name} · {formatSize(file.size)}</span>
+                </> : <>
+                  <ImageSquare size={23} aria-hidden="true" />
+                  <span>Chọn ảnh hoặc file âm thanh</span>
+                  <small>Ảnh và audio dùng chung cho truyện</small>
+                </>}
+              </label>
+              <button className="workspace-button" type={uploadMutation.isPending ? "button" : "submit"} onClick={uploadMutation.isPending ? cancelUpload : undefined} disabled={!file && !uploadMutation.isPending}>
+                {uploadMutation.isPending ? "Hủy upload" : uploadMutation.isError ? "Thử lại upload" : "Thêm vào thư viện"}
+              </button>
+            </div>
+            {preview && file?.type.startsWith("audio/") && <audio className="asset-upload-preview-audio" controls src={preview} aria-label="Nghe file âm thanh đang chọn" />}
             {error && <p className="asset-message asset-message-error" role="alert"><WarningCircle size={16} aria-hidden="true" /> {error}</p>}
             {uploadMutation.error && uploadMutation.error.name !== "AbortError" && !error && <p className="asset-message asset-message-error" role="alert"><WarningCircle size={16} aria-hidden="true" /> {uploadMutation.error.message}</p>}
             {success && <p className="asset-message asset-message-success" role="status"><CheckCircle size={16} aria-hidden="true" /> {success}</p>}
             {uploadMutation.isPending && <div className="asset-upload-progress" aria-live="polite"><span>Đang tải file lên...</span><i aria-hidden="true" /></div>}
-          </form>}
+          </form>
         </section>
 
         <section className="asset-library-grid" aria-labelledby="asset-library-title">
@@ -153,9 +151,8 @@ export default function AssetsPage() {
             {previewAsset.kind === "audio" ? <audio controls preload="none" src={previewAsset.url} aria-label={`Nghe ${previewAsset.name}`} /> : previewAsset.url ? <img src={previewAsset.url} alt={previewAsset.name} /> : <span>File local không còn tồn tại</span>}
           </div>
           <footer className="asset-preview-footer">
-            <div><strong>{previewAsset.mimeType || previewAsset.kind}</strong><span>{formatSize(previewAsset.size)} · ID: {previewAsset.id}</span></div>
-            {deleteMutation.isError && <p className="asset-message asset-message-error" role="alert">{deleteMutation.error.message}</p>}
-            {previewAsset.readOnly ? <span className="asset-preview-readonly">Tư liệu đang được truyện sử dụng; backend hiện chỉ cho phép xem.</span> : <button className="workspace-button workspace-button-danger" type="button" disabled={deleteMutation.isPending} onClick={() => { if (window.confirm(`Xóa ${previewAsset.name} khỏi thư viện? Tư liệu đang được truyện sử dụng sẽ không thể xóa.`)) { previewDialogRef.current?.close(); deleteMutation.mutate(previewAsset.id); } }}><Trash size={15} aria-hidden="true" /> {deleteMutation.isPending ? "Đang xóa…" : "Xóa tư liệu"}</button>}
+            <div><strong>{previewAsset.mimeType || previewAsset.kind}</strong><span>{formatSize(previewAsset.size)}</span></div>
+            {previewAsset.readOnly && <span className="asset-preview-readonly">Tư liệu đang được truyện sử dụng; hiện chỉ có thể xem.</span>}
           </footer>
         </>}
       </dialog>

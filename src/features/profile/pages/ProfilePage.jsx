@@ -1,8 +1,11 @@
+import { useState } from "react";
 import {
   ArrowRight,
   BookOpen,
   ChartLineUp,
   CheckCircle,
+  Eye,
+  EyeSlash,
   LockKey,
   EnvelopeSimple,
   House,
@@ -11,8 +14,9 @@ import {
   UserCircle,
   UsersThree,
 } from "@phosphor-icons/react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
+import { authService, isRealApi } from "../../auth/authService";
 import { roleHome, roleLabels, ROLES } from "../../../lib/permissions/roles";
 import "../profile.css";
 
@@ -56,12 +60,60 @@ const workspaceDetails = {
 };
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" });
+  const [visiblePasswords, setVisiblePasswords] = useState({});
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [passwordMessageType, setPasswordMessageType] = useState("status");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const details = workspaceDetails[user.role];
   const home = roleHome(user.role);
   const roleLabel = roleLabels[user.role] || "Tài khoản SketchTale";
   const displayName = user.name?.trim() || "Tài khoản SketchTale";
   const initials = displayName.split(/\s+/).filter(Boolean).slice(-2).map((part) => Array.from(part)[0]).join("").toLocaleUpperCase("vi");
+
+  async function changePassword(event) {
+    event.preventDefault();
+    setPasswordMessage("");
+    if (!passwords.current || !passwords.next) {
+      setPasswordMessageType("alert");
+      setPasswordMessage("Nhập mật khẩu hiện tại và mật khẩu mới.");
+      return;
+    }
+    if (passwords.next !== passwords.confirm) {
+      setPasswordMessageType("alert");
+      setPasswordMessage("Hai mật khẩu mới chưa trùng nhau.");
+      document.getElementById("profile-confirm-password")?.focus();
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      await authService.changePassword({ currentPassword: passwords.current, newPassword: passwords.next });
+      setPasswords({ current: "", next: "", confirm: "" });
+      await logout();
+      navigate("/auth/login?passwordChanged=1", { replace: true });
+    } catch (error) {
+      setPasswordMessageType("alert");
+      setPasswordMessage(error.message || "Chưa thể cập nhật mật khẩu. Hãy thử lại.");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  }
+
+  function passwordField(name, label, autoComplete) {
+    const fieldId = `profile-${name}-password`;
+    const isVisible = Boolean(visiblePasswords[name]);
+    return <div className="profile-password-field" key={name}>
+      <label htmlFor={fieldId}>{label}</label>
+      <div className="profile-password-input">
+        <input id={fieldId} type={isVisible ? "text" : "password"} autoComplete={autoComplete} value={passwords[name]} onChange={(event) => setPasswords((current) => ({ ...current, [name]: event.target.value }))} disabled={isChangingPassword} />
+        <button type="button" className="profile-password-toggle" aria-label={isVisible ? `Ẩn ${label.toLowerCase()}` : `Hiện ${label.toLowerCase()}`} aria-pressed={isVisible} onClick={() => setVisiblePasswords((current) => ({ ...current, [name]: !current[name] }))}>
+          {isVisible ? <EyeSlash size={19} aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
+        </button>
+      </div>
+    </div>;
+  }
 
   return (
     <div className="workspace-profile-page">
@@ -121,6 +173,21 @@ export default function ProfilePage() {
           </nav>
         </section>}
       </div>
+
+      <section className="profile-password-panel" aria-labelledby="profile-password-title">
+        <div className="profile-panel-heading">
+          <span className="profile-panel-icon"><LockKey size={24} aria-hidden="true" /></span>
+          <div><h2 id="profile-password-title">Đổi mật khẩu</h2><p>Mật khẩu hiện tại sẽ được xác minh trước khi cập nhật.</p></div>
+        </div>
+        {isRealApi ? <form className="profile-password-form" onSubmit={changePassword}>
+          {passwordField("current", "Mật khẩu hiện tại", "current-password")}
+          {passwordField("next", "Mật khẩu mới", "new-password")}
+          {passwordField("confirm", "Nhập lại mật khẩu mới", "new-password")}
+          <div className="profile-password-feedback" role={passwordMessageType} aria-live="polite">{passwordMessage && <p>{passwordMessage}</p>}</div>
+          <button className="workspace-button" type="submit" disabled={isChangingPassword}>{isChangingPassword ? "Đang cập nhật..." : "Cập nhật mật khẩu"}</button>
+          <small>Yêu cầu về độ mạnh của mật khẩu sẽ được hệ thống kiểm tra.</small>
+        </form> : <p className="profile-password-unavailable" role="status">Đổi mật khẩu sẽ khả dụng khi kết nối API thật. Bản demo không lưu thông tin mật khẩu.</p>}
+      </section>
     </div>
   );
 }

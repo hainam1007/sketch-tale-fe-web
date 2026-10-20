@@ -1,4 +1,5 @@
 import { featureApiRequest } from "../../../lib/api/featureApi";
+import { apiRequest } from "../../../lib/api/httpClient";
 
 function queryPath(path, params) {
   const searchParams = new URLSearchParams();
@@ -38,6 +39,23 @@ export const adminService = {
   monitorAction: ({ jobId, signal, ...payload }) =>
     featureApiRequest("admin", { path: `/admin/monitoring/${jobId}`, method: "PATCH", body: mutationBody(payload), signal }),
   getStatistics: ({ range = "7d", signal } = {}) => featureApiRequest("admin", { path: queryPath("/admin/statistics", { range }), signal }),
-  listAudit: ({ actor = "all", action = "all", range = "30d", search = "", page = 1, pageSize = 10, signal } = {}) =>
-    featureApiRequest("admin", { path: queryPath("/admin/audit", { actor, action, range, search, page, pageSize }), signal }),
+  // These read-only operations exist in Swagger. Keep the remaining Admin
+  // service calls on the mock adapter until their endpoints are implemented.
+  listAudit: async ({ signal } = {}) => {
+    const response = await apiRequest({ path: "/audit-logs", signal, forceReal: true });
+    if (Array.isArray(response)) return response;
+    if (Array.isArray(response?.items)) return response.items;
+    throw new Error("Backend trả nhật ký thao tác không đúng định dạng.");
+  },
+  getAudit: ({ auditId, signal }) => apiRequest({ path: `/audit-logs/${encodeURIComponent(auditId)}`, signal, forceReal: true }),
+  listRestrictedKeywords: async ({ signal } = {}) => {
+    const response = await apiRequest({ path: "/restricted-keywords", signal, forceReal: true });
+    if (Array.isArray(response)) return response;
+    if (Array.isArray(response?.items)) return response.items;
+    throw new Error("Backend trả danh sách từ khóa hạn chế không đúng định dạng.");
+  },
+  getRestrictedKeyword: ({ keywordId, signal }) => apiRequest({ path: `/restricted-keywords/${encodeURIComponent(keywordId)}`, signal, forceReal: true }),
+  createRestrictedKeyword: ({ payload, signal }) => apiRequest({ path: "/restricted-keywords", method: "POST", body: payload, signal, forceReal: true }),
+  updateRestrictedKeyword: ({ keywordId, payload, signal }) => apiRequest({ path: `/restricted-keywords/${encodeURIComponent(keywordId)}`, method: "PATCH", body: payload, signal, forceReal: true }),
+  deleteRestrictedKeyword: ({ keywordId, signal }) => apiRequest({ path: `/restricted-keywords/${encodeURIComponent(keywordId)}`, method: "DELETE", signal, forceReal: true }),
 };

@@ -8,7 +8,7 @@ import { evaluateSlotAnimation, pageAnimationClips } from "../utils/storyAnimati
  * Missing assets stay visible as an error state; a fallback image would hide
  * a contract problem that must be fixed before publish.
  */
-export default function StoryPageRenderer({ story, page, assets, onSlotSelect, onSlotPositionStart, onSlotPositionEnd, onSlotPositionChange, onSlotTransformChange, selectedSlotId, isPlaying = false, playToken = 0, playheadMs, isDrawingPath = false, pathStartPoint, onPathCommit, onPathCancel, onPathPointChange, onPathPointStart, onPathPointEnd, onPathPointSelect, selectedPathPointIndex, selectedAnimationClipId }) {
+export default function StoryPageRenderer({ story, page, assets, onSlotSelect, onSlotPositionStart, onSlotPositionEnd, onSlotPositionChange, onSlotTransformChange, selectedSlotId, isPlaying = false, playToken = 0, playheadMs, isDrawingPath = false, pathStartPoint, onPathCommit, onPathCancel, onPathPointChange, onPathPointStart, onPathPointEnd, onPathPointSelect, selectedPathPointIndex, selectedAnimationClipId, showPageText = true }) {
   const stageRef = useRef(null);
   const [drawPoints, setDrawPoints] = useState([]);
   const drawingPointerRef = useRef(null);
@@ -17,7 +17,9 @@ export default function StoryPageRenderer({ story, page, assets, onSlotSelect, o
   if (!page) return null;
 
   const assetById = new Map((assets || []).map((asset) => [asset.id, asset]));
-  const background = assetById.get(page.backgroundAssetId || story.coverAssetId);
+  const background = assetById.get(page.backgroundAssetId || story.coverAssetId)
+    || (page.backgroundUrl ? { url: page.backgroundUrl } : null)
+    || (story.coverImageUrl ? { url: story.coverImageUrl } : null);
   const placements = (story.roles || [])
     .flatMap((role) => (role.slots || [])
       .filter((slot) => slot.pageId === page.id)
@@ -33,13 +35,17 @@ export default function StoryPageRenderer({ story, page, assets, onSlotSelect, o
     <div ref={stageRef} className={`story-preview-stage${isPlaying ? " story-preview-stage-playing" : ""}${onSlotSelect || onSlotPositionChange || onSlotTransformChange ? " story-preview-stage-editable" : ""}`} style={stageStyle}>
       {!background && <div className="story-preview-missing-asset" role="alert">Chưa chọn ảnh nền</div>}
       <div className="story-preview-stage-copy">
-        <span>SKETCHTALE · {story.category || story.categoryId}</span>
+        <span>SKETCHTALE{story.category ? ` · ${story.category}` : ""}</span>
         <h3>{page.title}</h3>
-        <p>{page.text}</p>
+        {showPageText && <p>{page.text}</p>}
         {page.narration && <small><SpeakerHigh size={14} aria-hidden="true" /> {page.narration}</small>}
       </div>
       {placements.map(({ role, slot }) => {
-        const roleAsset = assetById.get(slot.assetId || role.defaultAssetId);
+        const roleAsset = assetById.get(slot.assetId || role.defaultAssetId)
+          || (role.defaultAssetUrl ? { url: role.defaultAssetUrl } : null);
+        const roleName = (role.name || "").trim().toLocaleLowerCase();
+        const localRoleFallback = roleName && (assets || []).find((asset) => asset.source === "mock" && asset.kind === "image" && asset.url && asset.name.toLocaleLowerCase().includes(roleName));
+        const fallbackUrl = roleAsset?.fallbackUrl || localRoleFallback?.url;
         const motions = (page.sequence || []).map((item, index) => ({ item, index })).filter(({ item }) => item.slotId === slot.id);
         const motionNames = { appear: "story-appear", move: "story-move", jump: "story-jump", spin: "story-spin", walk: "story-walk" };
         const motionDelay = (index) => (page.sequence || []).slice(0, index).reduce((total, item) => total + Number(item.durationMs || 900), 0);
@@ -183,7 +189,7 @@ export default function StoryPageRenderer({ story, page, assets, onSlotSelect, o
             onLostPointerCapture={canTransform ? (event) => { if (canvasGestureRef.current?.pointerId === event.pointerId) { canvasGestureRef.current = null; onSlotPositionEnd?.(slot.id); } } : undefined}
             onKeyDown={onSlotSelect ? (event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); onSlotSelect(slot.id); } } : undefined}
           >
-            <span className="story-preview-slot-visual" style={{ transform: visualTransform }}>{roleAsset?.url ? <AssetImage src={roleAsset.url} alt={role.name} missingLabel={role.name} /> : <span>{role.name}<small>Thiếu ảnh</small></span>}</span>
+            <span className="story-preview-slot-visual" style={{ transform: visualTransform }}>{roleAsset?.url ? <AssetImage src={roleAsset.url} fallbackSrc={fallbackUrl} alt={role.name} missingLabel={role.name} /> : <span>{role.name}<small>Thiếu ảnh</small></span>}</span>
             {canTransform && selectedSlotId === slot.id && <>
               <button className="story-canvas-transform-handle story-canvas-rotate-handle" type="button" aria-label={`Xoay ${role.name}`} title="Kéo để xoay; dùng ← hoặc → để chỉnh chính xác" onKeyDown={(event) => handleKeyboardTransform(event, "rotate")} onPointerDown={(event) => beginGesture(event, "rotate")} />
               <button className="story-canvas-transform-handle story-canvas-scale-handle is-top-left" data-corner="top-left" type="button" aria-label={`Phóng to hoặc thu nhỏ ${role.name} từ góc trên trái`} title="Kéo góc hoặc dùng phím mũi tên để đổi kích thước" onKeyDown={(event) => handleKeyboardTransform(event, "scale")} onPointerDown={(event) => beginGesture(event, "scale")} />
@@ -243,8 +249,10 @@ function PathPointsRef({ points }) {
   return points.length > 0 ? <div className="story-path-helper" aria-live="polite">{points.length < 2 ? "Kéo chuột để vẽ đường đi" : `Đường đi · ${points.length} điểm`}</div> : null;
 }
 
-function AssetImage({ src, alt, missingLabel }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return <span>{missingLabel}<small>Không tải được ảnh nhân vật</small></span>;
-  return <img src={src} alt={alt} onError={() => setFailed(true)} />;
+function AssetImage({ src, fallbackSrc, alt, missingLabel }) {
+  const [errorCount, setErrorCount] = useState(0);
+  useEffect(() => setErrorCount(0), [src, fallbackSrc]);
+  const imageSrc = errorCount === 0 ? src : errorCount === 1 ? fallbackSrc : "";
+  if (!imageSrc) return <span>{missingLabel}<small>Không tải được ảnh nhân vật</small></span>;
+  return <img src={imageSrc} alt={alt} onError={() => setErrorCount((count) => Math.min(count + 1, 2))} />;
 }

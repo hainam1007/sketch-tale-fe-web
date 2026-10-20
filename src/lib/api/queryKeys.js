@@ -13,6 +13,7 @@ export const queryKeys = {
   exportJob: (userId, exportId) => ["parent-export", userId, exportId],
   familyReport: (userId) => ["family-report", userId],
   profile: (userId) => ["profile", userId],
+  publicPlanAvailability: () => ["public-plan-availability"],
   adminUsers: (userId, filters = {}) => ["admin-users", userId, filters],
   adminOverview: (userId) => ["admin-overview", userId],
   adminUser: (userId, targetId) => ["admin-user", userId, targetId],

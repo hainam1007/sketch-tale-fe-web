@@ -17,6 +17,7 @@ export default function AdminPermissionsPage() {
   const permissionsQuery = useQuery({ queryKey: permissionsKey, queryFn: ({ signal }) => adminService.getPermissions({ signal }) });
   const [drafts, setDrafts] = useState({});
   const [reasons, setReasons] = useState({});
+  const [confirmRoleChange, setConfirmRoleChange] = useState(null);
   const mutation = useMutation({
     mutationFn: ({ userId, role, revision, reason }) => adminService.updatePermission({ userId, role, revision, reason }),
     onSuccess: (updated) => {
@@ -24,8 +25,10 @@ export default function AdminPermissionsPage() {
       queryClient.setQueryData(queryKeys.adminUser(user.id, updated.id), updated);
       queryClient.invalidateQueries({ queryKey: ["admin-users", user.id] });
       queryClient.invalidateQueries({ queryKey: ["admin-audit", user.id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminOverview(user.id) });
       setDrafts((current) => { const next = { ...current }; delete next[updated.id]; return next; });
       setReasons((current) => { const next = { ...current }; delete next[updated.id]; return next; });
+      setConfirmRoleChange(null);
     },
   });
 
@@ -49,11 +52,13 @@ export default function AdminPermissionsPage() {
         const nextRole = drafts[item.id] || item.role;
         const dirty = nextRole !== item.role;
         const isSelf = item.id === user.id;
-        const canChange = !isSelf && Array.isArray(item.allowedActions) && item.allowedActions.includes("change_role") && roleOptions.length > 0;
-        return <tr key={item.id}><td><strong>{item.name}</strong><small>{item.email || "Không có email"}</small></td><td>{adminRoleLabels[item.role] || item.role}</td><td><select aria-label={`Role mới của ${item.name}`} value={nextRole} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: event.target.value }))} disabled={!canChange || mutation.isPending}>{roleOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></td><td><StatusBadge value={item.status} tone={item.status === "locked" ? "danger" : "success"} /></td><td><label className="admin-inline-reason"><span className="sr-only">Lý do đổi role của {item.name}</span><input value={reasons[item.id] || ""} onChange={(event) => setReasons((current) => ({ ...current, [item.id]: event.target.value }))} placeholder="Lý do" disabled={!canChange || mutation.isPending} /></label><button className="workspace-button workspace-button-quiet" type="button" disabled={!dirty || !canChange || mutation.isPending} onClick={() => mutation.mutate({ userId: item.id, role: nextRole, revision: item.revision, reason: reasons[item.id] || "" })}><FloppyDisk size={15} aria-hidden="true" /> Lưu</button></td></tr>;
+        const canChange = !isSelf && item.role !== "child" && Array.isArray(item.allowedActions) && item.allowedActions.includes("change_role") && roleOptions.length > 0;
+        const rowRoles = roleOptions.some((option) => option.value === item.role) ? roleOptions : [{ value: item.role, label: adminRoleLabels[item.role] || item.role || "Role chưa xác định" }, ...roleOptions];
+        return <tr key={item.id}><td><strong>{item.name || "Không có tên"}</strong><small>{item.email || "Không có email"}</small></td><td>{adminRoleLabels[item.role] || item.role || "Chưa xác định"}</td><td><select aria-label={`Role mới của ${item.name || item.id}`} value={nextRole} onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: event.target.value }))} disabled={!canChange || mutation.isPending}>{rowRoles.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></td><td><StatusBadge value={item.status || "unknown"} label={item.status || "Chưa xác định"} tone={item.status === "locked" ? "danger" : item.status === "active" ? "success" : "neutral"} /></td><td><label className="admin-inline-reason"><span className="sr-only">Lý do đổi role của {item.name || item.id}</span><input value={reasons[item.id] || ""} onChange={(event) => setReasons((current) => ({ ...current, [item.id]: event.target.value }))} placeholder="Lý do" disabled={!canChange || mutation.isPending} /></label><button className="workspace-button workspace-button-quiet" type="button" disabled={!dirty || !canChange || mutation.isPending} onClick={() => { mutation.reset(); setConfirmRoleChange({ userId: item.id, name: item.name || item.id, from: item.role, to: nextRole, revision: item.revision, reason: reasons[item.id] || "" }); }}><FloppyDisk size={15} aria-hidden="true" /> Lưu</button></td></tr>;
       })}</tbody></table></div>
       {mutation.isError && <p className="admin-mutation-error" role="alert"><WarningCircle size={16} aria-hidden="true" /> {mutation.error.message}</p>}
       {mutation.isSuccess && <p className="workspace-inline-success" role="status">Server đã cập nhật role và permission.</p>}
+      {confirmRoleChange && <div className="admin-overlay" role="presentation"><section className="admin-editor-panel admin-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="permission-confirm-title"><p className="workspace-eyebrow">XÁC NHẬN PHÂN QUYỀN</p><h2 id="permission-confirm-title">Đổi vai trò tài khoản?</h2><p><strong>{confirmRoleChange.name}</strong></p><p>{adminRoleLabels[confirmRoleChange.from] || confirmRoleChange.from || "Chưa xác định"} → {adminRoleLabels[confirmRoleChange.to] || confirmRoleChange.to}</p><p>Lý do: {confirmRoleChange.reason.trim() || "Chưa cung cấp"}</p>{mutation.isError && <p className="admin-mutation-error" role="alert">{mutation.error.message}</p>}<div className="admin-dialog-actions"><button className="workspace-button workspace-button-quiet" type="button" disabled={mutation.isPending} onClick={() => setConfirmRoleChange(null)}>Quay lại</button><button className="workspace-button workspace-button-danger" type="button" disabled={mutation.isPending} onClick={() => mutation.mutate({ userId: confirmRoleChange.userId, role: confirmRoleChange.to, revision: confirmRoleChange.revision, reason: confirmRoleChange.reason })}>{mutation.isPending ? "Đang lưu…" : "Xác nhận đổi vai trò"}</button></div></section></div>}
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
-import { CaretDown } from "@phosphor-icons/react";
+import { BookOpen, CaretDown, Clock } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useConfirmToast } from "../../../components/feedback/useConfirmToast";
 import { childrenService } from "../services/childrenService";
 import { useAuth } from "../../auth/AuthProvider";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState, ForbiddenState, LoadingState } from "../../../components/feedback/States";
+import { getFamilyProfilePreview } from "../components/FamilyProfilesPreview";
 
 const tabs = [
   { suffix: "/dashboard", label: "Tổng quan" },
@@ -18,11 +20,48 @@ const tabs = [
 ];
 
 export default function ChildWorkspaceLayout() {
+  const { childId } = useParams();
+  const previewChild = getFamilyProfilePreview(childId);
+
+  if (previewChild) return <FamilyPreviewWorkspace child={previewChild} />;
+  return <LinkedChildWorkspaceLayout />;
+}
+
+function FamilyPreviewWorkspace({ child }) {
+  return (
+    <section className="child-workspace">
+      <div className="child-workspace-topline"><Link to="/parent/children">← Quay lại hồ sơ bé</Link></div>
+      <div className="child-heading">
+        <div className="child-heading-person">
+          <img src={child.avatar} alt="" width="64" height="64" />
+          <div><p className="workspace-eyebrow">HỒ SƠ BÉ</p><h1>{child.name}</h1><span>{child.age}</span></div>
+        </div>
+      </div>
+      <section className="parent-preview-detail" aria-labelledby="parent-preview-detail-title">
+        <div className="parent-preview-detail-card">
+          <div className="parent-preview-detail-heading">
+            <p className="workspace-eyebrow">HÀNH TRÌNH ĐỌC</p>
+            <h2 id="parent-preview-detail-title">Hoạt động trong tuần này</h2>
+            <p>{child.name} gần đây đã đọc <strong>{child.recentStory}</strong>.</p>
+          </div>
+          <div className="parent-preview-detail-stats">
+            <article><span>Thời gian đọc</span><strong><Clock size={18} aria-hidden="true" />{child.readingMinutes} phút</strong></article>
+            <article><span>Truyện đã đọc</span><strong><BookOpen size={18} aria-hidden="true" />{child.storiesCompleted} truyện</strong></article>
+          </div>
+        </div>
+      </section>
+    </section>
+  );
+}
+
+function LinkedChildWorkspaceLayout() {
   const { user } = useAuth();
   const { childId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const confirmToast = useConfirmToast();
   const tabsRef = useRef(null);
+  const [childFormDirty, setChildFormDirty] = useState(false);
   const childrenQuery = useQuery({
     queryKey: queryKeys.children(user.id),
     queryFn: ({ signal }) => childrenService.list({ signal }),
@@ -61,7 +100,15 @@ export default function ChildWorkspaceLayout() {
         </div>
         <label className="child-selector">
           <span className="sr-only">Chọn hồ sơ bé</span>
-          <select aria-label="Đang xem hồ sơ bé" value={child.id} onChange={(event) => { navigate(`${currentPath.replace(childId, event.target.value)}${getTabSuffix(location.pathname, currentPath)}`); }}>
+          <select aria-label="Đang xem hồ sơ bé" value={child.id} onChange={async (event) => {
+            const nextChildId = event.target.value;
+            if (childFormDirty) {
+              event.target.value = child.id;
+              if (!await confirmToast({ title: "Đổi hồ sơ bé?", message: "Hồ sơ hiện tại có thay đổi chưa lưu. Nếu tiếp tục, các thay đổi này sẽ bị bỏ.", confirmLabel: "Đổi hồ sơ", tone: "danger" })) return;
+            }
+            setChildFormDirty(false);
+            navigate(`/parent/children/${nextChildId}${getTabSuffix(location.pathname, currentPath)}`);
+          }}>
             {linkedChildren.map((item) => <option value={item.id} key={item.id}>{item.displayName}</option>)}
           </select>
           <CaretDown size={16} aria-hidden="true" />
@@ -70,7 +117,7 @@ export default function ChildWorkspaceLayout() {
       <nav ref={tabsRef} className="child-tabs" aria-label={`Khu vực của ${child.displayName}`}>
         {tabs.map((tab) => <NavLink key={tab.suffix} to={`${currentPath}${tab.suffix}`} end={!tab.suffix}>{tab.label}</NavLink>)}
       </nav>
-      <Outlet context={{ child, children: childrenQuery.data.items }} />
+      <Outlet context={{ child, children: childrenQuery.data.items, setChildFormDirty }} />
     </section>
   );
 }

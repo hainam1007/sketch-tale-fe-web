@@ -324,6 +324,24 @@ const seedDatabase = {
     { id: "job-ai-02", type: "Asset processing", status: "failed", progress: null, target: "asset-upload-previous", usage: "—", error: "Provider timeout", updatedAt: "2026-09-18T08:15:00.000Z" },
     { id: "job-ai-03", type: "AI generation", status: "completed", progress: 100, target: "story-first-spark / page-1", usage: "2.4s", error: null, updatedAt: "2026-09-17T08:20:00.000Z" },
   ],
+  adminCatalogs: {
+    plans: [
+      { id: "plan-free", code: "FREE", name: "Free", price: 0, childProfileLimit: 1, monthlyCreditLimit: 5, accessFullStories: false, canExportStory: false, durationDays: null, freeTrialDays: 0, isActive: true },
+      { id: "plan-pro", code: "PRO", name: "Pro", price: 35000, childProfileLimit: 3, monthlyCreditLimit: 30, accessFullStories: true, canExportStory: true, durationDays: 30, freeTrialDays: 7, isActive: true },
+      { id: "plan-family", code: "FAMILY", name: "Family", price: 89000, childProfileLimit: 5, monthlyCreditLimit: 100, accessFullStories: true, canExportStory: true, durationDays: 30, freeTrialDays: 0, isActive: true },
+    ],
+    credits: [
+      { id: "credit-story-generation", featureKey: "story_generation", cost: 1, featureNameVi: "Tạo truyện", featureNameEn: "Story generation", isActive: true },
+      { id: "credit-image-generation", featureKey: "image_generation", cost: 2, featureNameVi: "Tạo hình minh họa", featureNameEn: "Image generation", isActive: true },
+      { id: "credit-story-export", featureKey: "story_export", cost: 3, featureNameVi: "Xuất truyện", featureNameEn: "Story export", isActive: true },
+    ],
+    themes: [
+      { id: "theme-nature", name: "Thiên nhiên", description: "Cây cối, động vật và môi trường xung quanh.", status: "Active" },
+      { id: "theme-family", name: "Gia đình", description: "Tình thân và những hoạt động cùng nhau.", status: "Active" },
+      { id: "theme-discovery", name: "Khám phá", description: "Tò mò, học hỏi và trải nghiệm điều mới.", status: "Active" },
+      { id: "theme-emotions", name: "Cảm xúc", description: "Nhận biết và chia sẻ cảm xúc.", status: "Active" },
+    ],
+  },
   assets: [
     {
       id: "asset-cover-meo",
@@ -421,7 +439,7 @@ function writeDatabase(database) {
 
 function currentUser(database) {
   try {
-    const stored = localStorage.getItem(SESSION_KEY);
+    const stored = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
     if (!stored) return null;
     const session = JSON.parse(stored);
     return database.users.find((user) => user.id === session.userId) ||
@@ -460,6 +478,23 @@ function requireParent(user) {
   }
 }
 
+function ensureParentEntitlement(database, user) {
+  database.entitlements ||= {};
+  const current = database.entitlements[user.id] || {};
+  const plan = current.plan || user.plan || "Free";
+  const defaultChildProfileLimit = { Free: 1, Pro: 3, Family: 5 }[plan] ?? 1;
+  const entitlement = {
+    ...current,
+    plan,
+    childProfileLimit: current.childProfileLimit === undefined ? defaultChildProfileLimit : current.childProfileLimit,
+    usedChildProfiles: (database.children?.[user.id] || []).length,
+    resetAt: current.resetAt ?? null,
+    timezone: current.timezone || "Asia/Ho_Chi_Minh",
+  };
+  database.entitlements[user.id] = entitlement;
+  return entitlement;
+}
+
 function requireRole(user, role, message) {
   if (user.role !== role) {
     throw new ApiError({ status: 403, code: "FORBIDDEN", message });
@@ -475,7 +510,7 @@ function publicUser(user, actor) {
   return { id, email, name, role, plan, status, updatedAt, revision: user.revision || 1, allowedActions };
 }
 
-function appendAuditEvent(database, { actor, action, targetType, target, status = "success" }) {
+function appendAuditEvent(database, { actor, action, targetType, target, status = "success", reason }) {
   database.auditEvents.unshift({
     id: `audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     actor: actor.email,
@@ -484,6 +519,7 @@ function appendAuditEvent(database, { actor, action, targetType, target, status 
     targetType,
     target,
     status,
+    ...(reason ? { reason } : {}),
     createdAt: new Date().toISOString(),
   });
 }
@@ -511,6 +547,7 @@ function ensureContentCollections(database) {
   database.systemLimits ||= clone(seedDatabase.systemLimits);
   database.restrictions ||= clone(seedDatabase.restrictions);
   database.monitoring ||= clone(seedDatabase.monitoring);
+  database.adminCatalogs ||= clone(seedDatabase.adminCatalogs);
   if (!database.stories.some((story) => story.id === multiRoleStoryFixture.id)) {
     database.stories.push(clone(multiRoleStoryFixture));
   }
@@ -608,7 +645,10 @@ function mutationPayload(body = {}) {
 }
 
 function assertStoryRevision(story, expectedRevision) {
-  if (expectedRevision !== undefined && expectedRevision !== null && Number(expectedRevision) !== Number(story.revision)) {
+  if (expectedRevision === undefined || expectedRevision === null || expectedRevision === "") {
+    fieldError("Thiếu phiên bản truyện.", { revision: "Tải lại truyện trước khi lưu thay đổi." });
+  }
+  if (Number(expectedRevision) !== Number(story.revision)) {
     throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Story đã có thay đổi mới. Tải lại bản mới nhất trước khi lưu." });
   }
 }
@@ -632,6 +672,14 @@ function storySnapshot(story) {
     vocabulary: story.vocabulary,
     quizzes: story.quizzes,
     revision: story.revision,
+  });
+}
+
+function removeSlotReferences(story, slotIds) {
+  const removed = new Set(slotIds);
+  story.pages.forEach((page) => {
+    page.sequence = (page.sequence || []).filter((action) => !removed.has(action.slotId));
+    page.animationClips = (page.animationClips || []).filter((clip) => !removed.has(clip.targetId));
   });
 }
 
@@ -672,20 +720,22 @@ function validateRole(body) {
   if (!body?.name?.trim()) fieldError("Vai chưa đủ thông tin.", { name: "Nhập tên vai." });
 }
 
-function validateVocabulary(body) {
+function validateVocabulary(body, story) {
   const errors = {};
   if (!body?.word?.trim()) errors.word = "Nhập từ vựng.";
   if (!body?.meaning?.trim()) errors.meaning = "Nhập nghĩa của từ.";
   if (!body?.pageId) errors.pageId = "Chọn trang chứa từ vựng.";
+  else if (story && !story.pages.some((page) => page.id === body.pageId)) errors.pageId = "Trang đã chọn không còn trong truyện. Hãy chọn lại trang.";
   if (Object.keys(errors).length) fieldError("Từ vựng chưa đủ thông tin.", errors);
 }
 
-function validateQuiz(body) {
+function validateQuiz(body, story) {
   const errors = {};
   if (!body?.question?.trim()) errors.question = "Nhập câu hỏi.";
   if (!Array.isArray(body?.options) || body.options.length < 2 || body.options.some((option) => !option?.trim())) errors.options = "Cần ít nhất hai đáp án không rỗng.";
-  if (!Number.isInteger(body?.correctIndex) || body.correctIndex < 0 || body.correctIndex >= body.options.length) errors.correctIndex = "Chọn đúng một đáp án.";
+  if (!Number.isInteger(body?.correctIndex) || body.correctIndex < 0 || body.correctIndex >= (body?.options?.length || 0)) errors.correctIndex = "Chọn đúng một đáp án.";
   if (!body?.pageId) errors.pageId = "Chọn trang chứa quiz.";
+  else if (story && !story.pages.some((page) => page.id === body.pageId)) errors.pageId = "Trang đã chọn không còn trong truyện. Hãy chọn lại trang.";
   if (Object.keys(errors).length) fieldError("Quiz chưa đủ thông tin.", errors);
 }
 
@@ -741,7 +791,11 @@ function validateForPublish(story, database) {
     }
   });
   story.roles?.forEach((role, index) => {
+    const slotPages = new Set();
     role.slots?.forEach((slot, slotIndex) => {
+      if (!story.pages.some((page) => page.id === slot.pageId)) errors[`roles.${index}.slots.${slotIndex}.pageId`] = "Vị trí nhân vật trỏ tới trang không còn trong truyện.";
+      if (slotPages.has(slot.pageId)) errors[`roles.${index}.slots.${slotIndex}.pageId`] = "Một nhân vật chỉ được đặt một lần trên cùng trang.";
+      slotPages.add(slot.pageId);
       if (slot.x < 0 || slot.x > 100 || slot.y < 0 || slot.y > 100 || !Number.isFinite(Number(slot.scale || 1)) || Number(slot.scale || 1) <= 0 || Number(slot.scale || 1) > 5 || !Number.isFinite(Number(slot.rotation || 0)) || Math.abs(Number(slot.rotation || 0)) > 3600) errors[`roles.${index}.slots.${slotIndex}`] = "Tọa độ, kích thước hoặc góc xoay của slot chưa hợp lệ.";
     });
   });
@@ -802,7 +856,25 @@ function childResponse(child) {
 
 function exportQuota(database, user) {
   const entitlement = database.entitlements[user.id] || { plan: user.plan };
-  const used = database.exportUsage[user.id]?.used || 0;
+  const timezone = entitlement.timezone || "Asia/Ho_Chi_Minh";
+  let year;
+  let month;
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "2-digit", timeZone: timezone }).formatToParts(new Date());
+    year = parts.find((part) => part.type === "year")?.value;
+    month = parts.find((part) => part.type === "month")?.value;
+  } catch {
+    const parts = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }).formatToParts(new Date());
+    year = parts.find((part) => part.type === "year")?.value;
+    month = parts.find((part) => part.type === "month")?.value;
+  }
+  const usage = database.exportUsage[user.id] ||= { used: 0 };
+  const periodKey = `${year}-${month}`;
+  const periodChanged = !usage.periodKey || usage.periodKey !== periodKey;
+  if (usage.periodKey && usage.periodKey !== periodKey) usage.used = 0;
+  usage.periodKey = periodKey;
+  if (periodChanged) writeDatabase(database);
+  const used = usage.used || 0;
   const limit = entitlement.plan === "Family" ? null : entitlement.plan === "Pro" ? 5 : 0;
   return {
     plan: entitlement.plan,
@@ -810,7 +882,7 @@ function exportQuota(database, user) {
     limit,
     remaining: limit === null ? null : Math.max(0, limit - used),
     resetAt: entitlement.resetAt || null,
-    timezone: entitlement.timezone || "Asia/Ho_Chi_Minh",
+    timezone,
   };
 }
 
@@ -861,8 +933,67 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
   ensureContentCollections(database);
 
   const queryString = path.includes("?") ? path.slice(path.indexOf("?") + 1) : "";
-  const pathname = path.split("?")[0];
+  const pathname = path.split("?", 1)[0];
 
+  const catalogRoute = [
+    { path: "/subscription-plans", key: "plans", label: "gói sử dụng", required: ["name", "code", "price", "childProfileLimit", "monthlyCreditLimit", "accessFullStories", "canExportStory", "isActive"] },
+    { path: "/credit-costs", key: "credits", label: "chi phí credit", required: ["featureKey", "cost", "featureNameVi", "featureNameEn", "isActive"] },
+    { path: "/education-themes", key: "themes", label: "chủ đề giáo dục", required: ["name"] },
+  ].find((item) => pathname === item.path || pathname.startsWith(`${item.path}/`));
+  if (catalogRoute) {
+    requireRole(user, "admin", "Chỉ quản trị viên mới có thể quản lý danh mục hệ thống.");
+    const entries = database.adminCatalogs[catalogRoute.key];
+    const id = pathname === catalogRoute.path ? null : decodeURIComponent(pathname.slice(catalogRoute.path.length + 1));
+    if (!id && method === "GET") return clone(entries);
+    if (!id && method === "POST") {
+      const errors = {};
+      catalogRoute.required.forEach((key) => {
+        if (body?.[key] === undefined || body[key] === null || body[key] === "") errors[key] = "Trường này không được để trống.";
+      });
+      if (catalogRoute.key === "plans" && (!Number.isFinite(body?.price) || body.price < 0)) errors.price = "Giá phải là số không âm.";
+      if (catalogRoute.key === "plans" && (![body?.childProfileLimit, body?.monthlyCreditLimit].every((value) => Number.isInteger(value) && value >= 0))) errors.childProfileLimit = "Giới hạn phải là số nguyên không âm.";
+      if (catalogRoute.key === "credits" && (!Number.isInteger(body?.cost) || body.cost < 0)) errors.cost = "Chi phí phải là số nguyên không âm.";
+      const uniqueKey = catalogRoute.key === "plans" ? "code" : catalogRoute.key === "credits" ? "featureKey" : "name";
+      const value = String(body?.[uniqueKey] || "").trim().toLocaleLowerCase("vi");
+      if (value && entries.some((entry) => String(entry[uniqueKey] || "").trim().toLocaleLowerCase("vi") === value)) errors[uniqueKey] = "Giá trị này đã tồn tại.";
+      if (Object.keys(errors).length) fieldError(`Không thể tạo ${catalogRoute.label}.`, errors);
+      const item = { ...clone(body), id: `${catalogRoute.key}-${Date.now()}`, createdAt: new Date().toISOString() };
+      entries.unshift(item);
+      if (catalogRoute.key === "themes") database.categories = entries.filter((entry) => String(entry.status).toLowerCase() !== "inactive").map((entry) => entry.name);
+      appendAuditEvent(database, { actor: user, action: `${catalogRoute.key}.created`, targetType: catalogRoute.key, target: body.name || body.featureNameVi || body.code || body.featureKey });
+      writeDatabase(database);
+      return clone(item);
+    }
+    const index = entries.findIndex((entry) => entry.id === id);
+    if (index < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: `Không tìm thấy ${catalogRoute.label}.` });
+    if (method === "GET") return clone(entries[index]);
+    if (method === "PATCH") {
+      const next = { ...entries[index], ...clone(body), id };
+      const previousName = entries[index].name;
+      const uniqueKey = catalogRoute.key === "plans" ? "code" : catalogRoute.key === "credits" ? "featureKey" : "name";
+      const value = String(next[uniqueKey] || "").trim().toLocaleLowerCase("vi");
+      if (value && entries.some((entry, entryIndex) => entryIndex !== index && String(entry[uniqueKey] || "").trim().toLocaleLowerCase("vi") === value)) fieldError("Giá trị này đã tồn tại.", { [uniqueKey]: "Nhập một giá trị duy nhất." });
+      if (catalogRoute.key === "plans" && (!Number.isFinite(next.price) || next.price < 0)) fieldError("Giá chưa hợp lệ.", { price: "Giá phải là số không âm." });
+      if (catalogRoute.key === "credits" && (!Number.isInteger(next.cost) || next.cost < 0)) fieldError("Chi phí chưa hợp lệ.", { cost: "Chi phí phải là số nguyên không âm." });
+      entries[index] = { ...next, updatedAt: new Date().toISOString() };
+      if (catalogRoute.key === "themes") {
+        database.categories = entries.filter((entry) => String(entry.status).toLowerCase() !== "inactive").map((entry) => entry.name);
+        if (previousName && previousName !== entries[index].name) database.stories.forEach((story) => { if (story.category === previousName) story.category = entries[index].name; });
+      }
+      appendAuditEvent(database, { actor: user, action: `${catalogRoute.key}.updated`, targetType: catalogRoute.key, target: entries[index].name || entries[index].featureNameVi || entries[index].code || entries[index].featureKey });
+      writeDatabase(database);
+      return clone(entries[index]);
+    }
+    if (method === "DELETE") {
+      if (catalogRoute.key === "plans" && database.users.some((candidate) => candidate.plan === entries[index].name || candidate.plan === entries[index].code)) throw new ApiError({ status: 409, code: "RESOURCE_IN_USE", message: "Không thể xóa gói đang được tài khoản sử dụng." });
+      if (catalogRoute.key === "themes" && database.stories.some((story) => story.category === entries[index].name)) throw new ApiError({ status: 409, code: "RESOURCE_IN_USE", message: "Không thể xóa chủ đề đang được truyện sử dụng." });
+      const [removed] = entries.splice(index, 1);
+      if (catalogRoute.key === "themes") database.categories = entries.filter((entry) => String(entry.status).toLowerCase() !== "inactive").map((entry) => entry.name);
+      appendAuditEvent(database, { actor: user, action: `${catalogRoute.key}.deleted`, targetType: catalogRoute.key, target: removed.name || removed.featureNameVi || removed.code || removed.featureKey });
+      writeDatabase(database);
+      return { ok: true };
+    }
+  }
   if (pathname === "/admin/users" && method === "GET") {
     requireRole(user, "admin", "Chỉ quản trị viên mới có thể xem tài khoản.");
     const params = new URLSearchParams(queryString);
@@ -896,11 +1027,15 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
         fieldError("Trạng thái tài khoản chưa hợp lệ.", { status: "Chọn trạng thái active hoặc locked." });
       }
       const target = database.users[targetIndex];
-      if (body?.revision !== undefined && body.revision !== target.revision) {
+      if (body?.revision === undefined) fieldError("Thiếu phiên bản tài khoản.", { revision: "Tải lại tài khoản trước khi thao tác." });
+      if (body.revision !== target.revision) {
         throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Tài khoản đã được cập nhật. Hãy tải lại trước khi thao tác." });
       }
+      if (body.status === "locked" && target.role === "admin" && target.status === "active" && database.users.filter((candidate) => candidate.role === "admin" && candidate.status === "active").length <= 1) {
+        throw new ApiError({ status: 409, code: "LAST_ADMIN_NOT_ALLOWED", message: "Không thể khóa admin đang hoạt động cuối cùng." });
+      }
       database.users[targetIndex] = { ...target, status: body.status, revision: (target.revision || 1) + 1, updatedAt: new Date().toISOString() };
-      appendAuditEvent(database, { actor: user, action: body.status === "locked" ? "user.locked" : "user.unlocked", targetType: "user", target: target.email });
+      appendAuditEvent(database, { actor: user, action: body.status === "locked" ? "user.locked" : "user.unlocked", targetType: "user", target: target.email, reason: body.reason });
       writeDatabase(database);
       return publicUser(database.users[targetIndex], user);
     }
@@ -931,10 +1066,15 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     requireRole(user, "admin", "Chỉ quản trị viên mới có thể xử lý báo cáo.");
     const reportIndex = database.reports.findIndex((report) => report.id === reportMatch[1]);
     if (reportIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy báo cáo." });
-    if (method === "GET") return clone(database.reports[reportIndex]);
+    if (method === "GET") {
+      const report = database.reports[reportIndex];
+      const allowedActions = { open: ["start_review"], under_review: ["resolve", "reject"], resolved: ["reopen"], rejected: ["reopen"] }[report.status] || [];
+      return { ...clone(report), allowedActions };
+    }
     if (method === "PATCH") {
       const report = database.reports[reportIndex];
-      if (body?.revision !== undefined && body.revision !== report.revision) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Báo cáo đã được cập nhật. Hãy tải lại trước khi xử lý." });
+      if (body?.revision === undefined) fieldError("Thiếu phiên bản báo cáo.", { revision: "Tải lại báo cáo trước khi xử lý." });
+      if (body.revision !== report.revision) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Báo cáo đã được cập nhật. Hãy tải lại trước khi xử lý." });
       const nextStatus = { start_review: "under_review", resolve: "resolved", reject: "rejected", reopen: "open" }[body?.action];
       if (!nextStatus) fieldError("Thao tác báo cáo chưa hợp lệ.", { action: "Chọn thao tác được phép." });
       const allowedActions = {
@@ -951,7 +1091,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       if (body.note?.trim()) report.notes = [...(report.notes || []), { text: body.note.trim(), author: user.email, createdAt: new Date().toISOString() }];
       report.revision += 1;
       report.updatedAt = new Date().toISOString();
-      appendAuditEvent(database, { actor: user, action: `report.${nextStatus}`, targetType: "report", target: report.targetTitle });
+      appendAuditEvent(database, { actor: user, action: `report.${nextStatus}`, targetType: "report", target: report.targetTitle, reason: body.note });
       writeDatabase(database);
       return clone(report);
     }
@@ -969,13 +1109,14 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     if (index < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy tài khoản." });
     if (database.users[index].id === user.id) throw new ApiError({ status: 409, code: "SELF_ROLE_CHANGE_NOT_ALLOWED", message: "Không thể tự đổi role của tài khoản đang đăng nhập." });
     if (!["parent", "child", "content_manager", "admin"].includes(body?.role)) fieldError("Role chưa hợp lệ.", { role: "Chọn role được server hỗ trợ." });
-    if (database.users[index].role === "admin" && body.role !== "admin" && database.users.filter((candidate) => candidate.role === "admin").length === 1) throw new ApiError({ status: 409, code: "LAST_ADMIN_NOT_ALLOWED", message: "Không thể hạ role của admin cuối cùng." });
+    if (database.users[index].role === "admin" && database.users[index].status === "active" && body.role !== "admin" && database.users.filter((candidate) => candidate.role === "admin" && candidate.status === "active").length <= 1) throw new ApiError({ status: 409, code: "LAST_ADMIN_NOT_ALLOWED", message: "Không thể hạ role của admin đang hoạt động cuối cùng." });
     const target = database.users[index];
-    if (body?.revision !== undefined && body.revision !== target.revision) {
+    if (body?.revision === undefined) fieldError("Thiếu phiên bản quyền.", { revision: "Tải lại quyền trước khi lưu." });
+    if (body.revision !== target.revision) {
       throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Role đã được cập nhật. Hãy tải lại trước khi lưu." });
     }
     database.users[index] = { ...target, role: body.role, revision: (target.revision || 1) + 1, updatedAt: new Date().toISOString() };
-    appendAuditEvent(database, { actor: user, action: "permission.updated", targetType: "user", target: target.name });
+    appendAuditEvent(database, { actor: user, action: "permission.updated", targetType: "user", target: target.name, reason: body.reason });
     writeDatabase(database);
     return publicUser(database.users[index], user);
   }
@@ -990,15 +1131,17 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const errors = {};
     numericFields.forEach((field) => { if (!Number.isInteger(body?.[field]) || body[field] <= 0) errors[field] = "Giá trị phải là số nguyên dương."; });
     if (Object.keys(errors).length) fieldError("Giới hạn chưa hợp lệ.", errors);
-    if (body?.revision && body.revision !== database.systemLimits.revision) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Giới hạn hệ thống đã thay đổi. Hãy tải lại trước khi lưu." });
+    if (body?.revision === undefined) fieldError("Thiếu phiên bản giới hạn.", { revision: "Tải lại giới hạn trước khi lưu." });
+    if (body.revision !== database.systemLimits.revision) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Giới hạn hệ thống đã thay đổi. Hãy tải lại trước khi lưu." });
     database.systemLimits = { ...database.systemLimits, ...Object.fromEntries(numericFields.map((field) => [field, body[field]])), revision: database.systemLimits.revision + 1, updatedAt: new Date().toISOString() };
+    appendAuditEvent(database, { actor: user, action: "system_limits.updated", targetType: "system_limits", target: "Giới hạn hệ thống" });
     writeDatabase(database);
     return clone(database.systemLimits);
   }
 
   if (pathname === "/admin/restrictions" && method === "GET") {
     requireRole(user, "admin", "Chỉ quản trị viên mới có thể xem restrictions.");
-    return { items: clone(database.restrictions).map((item) => ({ ...item, revision: item.revision || 1 })) };
+    return { items: clone(database.restrictions).map((item) => ({ ...item, revision: item.revision || 1, allowedActions: ["toggle"] })) };
   }
   const restrictionMatch = pathname.match(/^\/admin\/restrictions\/([^/]+)$/);
   if (restrictionMatch && method === "PATCH") {
@@ -1007,7 +1150,8 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     if (index < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy restriction." });
     if (!["active", "disabled"].includes(body?.status)) fieldError("Trạng thái restriction chưa hợp lệ.", { status: "Chọn active hoặc disabled." });
     const previous = database.restrictions[index];
-    if (body?.revision !== undefined && body.revision !== (previous.revision || 1)) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Rule đã được cập nhật. Hãy tải lại trước khi thao tác." });
+    if (body?.revision === undefined) fieldError("Thiếu phiên bản rule.", { revision: "Tải lại rule trước khi thao tác." });
+    if (body.revision !== (previous.revision || 1)) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Rule đã được cập nhật. Hãy tải lại trước khi thao tác." });
     database.restrictions[index] = { ...previous, status: body.status, revision: (previous.revision || 1) + 1, updatedAt: new Date().toISOString() };
     appendAuditEvent(database, { actor: user, action: `restriction.${body.status}`, targetType: "restriction", target: previous.value });
     writeDatabase(database);
@@ -1016,7 +1160,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
 
   if (pathname === "/admin/monitoring" && method === "GET") {
     requireRole(user, "admin", "Chỉ quản trị viên mới có thể xem monitoring.");
-    return { items: clone(database.monitoring) };
+    return { items: clone(database.monitoring).map((item) => ({ ...item, revision: item.revision || 1, allowedActions: item.status === "failed" ? ["retry"] : item.status === "processing" ? ["cancel"] : [] })) };
   }
   const monitoringMatch = pathname.match(/^\/admin\/monitoring\/([^/]+)$/);
   if (monitoringMatch && method === "PATCH") {
@@ -1024,10 +1168,13 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const index = database.monitoring.findIndex((item) => item.id === monitoringMatch[1]);
     if (index < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy tác vụ monitoring." });
     const job = database.monitoring[index];
+    if (body?.revision === undefined) fieldError("Thiếu phiên bản tác vụ.", { revision: "Tải lại tác vụ trước khi thao tác." });
+    if (body.revision !== (job.revision || 1)) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Tác vụ đã đổi trạng thái. Hãy tải lại trước khi xác nhận." });
     if (body?.action === "retry" && job.status === "failed") Object.assign(job, { status: "processing", progress: 0, error: null });
     else if (body?.action === "cancel" && job.status === "processing") Object.assign(job, { status: "cancelled", error: null });
     else fieldError("Thao tác monitoring chưa hợp lệ.", { action: "Chỉ retry tác vụ failed hoặc cancel tác vụ processing." });
     job.updatedAt = new Date().toISOString();
+    job.revision = (job.revision || 1) + 1;
     appendAuditEvent(database, { actor: user, action: `monitoring.${body.action}`, targetType: "job", target: job.target });
     writeDatabase(database);
     return clone(job);
@@ -1054,7 +1201,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
         title: item.target,
         status: item.status,
         meta: item.error || `${item.type} · ${item.progress ?? "Chưa có"}%`,
-        to: "/admin/monitoring",
+        to: `/admin/monitoring?status=${encodeURIComponent(item.status)}`,
       })),
     ].slice(0, 5);
     return {
@@ -1125,7 +1272,8 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
 
   if (pathname === "/content/assets" && method === "GET") {
     requireRole(user, "content_manager", "Chỉ Content Manager mới có thể xem asset.");
-    return { items: clone(database.assets), total: database.assets.length };
+    const items = database.assets.filter((asset) => !asset.ownerId || asset.ownerId === user.id);
+    return { items: clone(items), total: items.length };
   }
 
   const assetDetailMatch = pathname.match(/^\/content\/assets\/([^/]+)$/);
@@ -1133,6 +1281,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     requireRole(user, "content_manager", "Chỉ Content Manager mới có thể xóa asset.");
     const assetIndex = database.assets.findIndex((asset) => asset.id === assetDetailMatch[1]);
     if (assetIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy asset." });
+    if (database.assets[assetIndex].ownerId && database.assets[assetIndex].ownerId !== user.id) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy asset." });
     const referenced = database.stories.some((story) => story.coverAssetId === assetDetailMatch[1] || story.pages?.some((page) => page.backgroundAssetId === assetDetailMatch[1] || page.audioTracks?.some((track) => track.assetId === assetDetailMatch[1])) || story.roles?.some((role) => role.defaultAssetId === assetDetailMatch[1] || role.slots?.some((slot) => slot.assetId === assetDetailMatch[1])));
     if (referenced) throw new ApiError({ status: 409, code: "ASSET_IN_USE", message: "Asset đang được story tham chiếu, không thể xóa." });
     const [removed] = database.assets.splice(assetIndex, 1);
@@ -1163,6 +1312,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       size: uploadPayload.size || 0,
       mimeType: uploadPayload.mimeType || "image/webp",
       url: "/images/hero.webp",
+      ownerId: user.id,
       createdAt: new Date().toISOString(),
     };
     database.assets.unshift(asset);
@@ -1184,7 +1334,6 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     }
     if (action === "publish" && method === "POST") {
       assertStoryRevision(story, body?.revision);
-      if (body?.revision && body.revision !== story.revision) throw new ApiError({ status: 409, code: "REVISION_CONFLICT", message: "Story đã có thay đổi mới. Tải lại trước khi publish." });
       const errors = validateForPublish(story, database);
       if (Object.keys(errors).length) throw new ApiError({ status: 422, code: "PUBLISH_VALIDATION_FAILED", message: "Story chưa đủ điều kiện publish.", fieldErrors: errors });
       story.status = "published";
@@ -1211,7 +1360,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const { story } = findStory(database, reorderPagesMatch[1]);
     assertStoryRevision(story, body?.revision);
     const pageById = new Map(story.pages.map((page) => [page.id, page]));
-    if (!Array.isArray(body?.pageIds) || body.pageIds.some((id) => !pageById.has(id))) fieldError("Thứ tự page chưa hợp lệ.", { pageIds: "Danh sách page không khớp story." });
+    if (!Array.isArray(body?.pageIds) || body.pageIds.length !== story.pages.length || new Set(body.pageIds).size !== story.pages.length || body.pageIds.some((id) => !pageById.has(id))) fieldError("Thứ tự page chưa hợp lệ.", { pageIds: "Mỗi page của story phải xuất hiện đúng một lần trong danh sách." });
     story.pages = body.pageIds.map((id, index) => ({ ...pageById.get(id), order: index + 1 }));
     storyMutation(story, { expectedRevision: body?.revision });
     writeDatabase(database);
@@ -1229,6 +1378,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       assertStoryRevision(story, body?.revision);
       const page = story.pages.find((candidate) => candidate.id === body?.pageId);
       if (!page) fieldError("Slot chưa đủ thông tin.", { pageId: "Chọn một page có trong story." });
+      if (role.slots.some((slot) => slot.pageId === body.pageId)) fieldError("Nhân vật đã có trên trang.", { pageId: "Mỗi nhân vật chỉ có một vị trí trên cùng trang." });
       const x = Number(body.x); const y = Number(body.y); const scale = Number(body.scale || 1); const rotation = Number(body.rotation || 0);
       if ([x, y, scale, rotation].some((value) => !Number.isFinite(value)) || x < 0 || x > 100 || y < 0 || y > 100 || scale <= 0 || scale > 5 || Math.abs(rotation) > 3600) fieldError("Tọa độ slot chưa hợp lệ.", { coordinates: "X/Y trong khoảng 0–100, scale từ 0,1–5, góc xoay trong ±3600°." });
       role.slots.push({ id: `slot-${Date.now()}`, pageId: body.pageId, x, y, scale, rotation, flip: Boolean(body.flip), layer: Number(body.layer || 1) });
@@ -1248,6 +1398,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     if (method === "DELETE" && slotMatch[3]) {
       assertStoryRevision(story, body?.revision);
       role.slots = role.slots.filter((slot) => slot.id !== slotMatch[3]);
+      removeSlotReferences(story, [slotMatch[3]]);
       storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story);
     }
   }
@@ -1259,7 +1410,18 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const pageIndex = story.pages.findIndex((page) => page.id === pageDetailMatch[2]);
     if (pageIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy page." });
     if (method === "PATCH") { assertStoryRevision(story, body?.revision); validatePage(body); story.pages[pageIndex] = { ...story.pages[pageIndex], ...mutationPayload(body), title: body.title.trim(), text: body.text.trim() }; storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story); }
-    if (method === "DELETE") { assertStoryRevision(story, body?.revision); story.pages.splice(pageIndex, 1); story.pages.forEach((page, index) => { page.order = index + 1; }); story.roles.forEach((role) => { role.slots = (role.slots || []).filter((slot) => slot.pageId !== pageDetailMatch[2]); }); storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story); }
+    if (method === "DELETE") {
+      assertStoryRevision(story, body?.revision);
+      const deletedPageId = pageDetailMatch[2];
+      story.pages.splice(pageIndex, 1);
+      story.pages.forEach((page, index) => { page.order = index + 1; });
+      story.roles.forEach((role) => { role.slots = (role.slots || []).filter((slot) => slot.pageId !== deletedPageId); });
+      story.vocabulary = (story.vocabulary || []).filter((item) => item.pageId !== deletedPageId);
+      story.quizzes = (story.quizzes || []).filter((item) => item.pageId !== deletedPageId);
+      storyMutation(story, { expectedRevision: body?.revision });
+      writeDatabase(database);
+      return storyResponse(story);
+    }
   }
 
   const roleDetailMatch = pathname.match(/^\/content\/stories\/([^/]+)\/roles\/([^/]+)$/);
@@ -1269,7 +1431,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const roleIndex = story.roles.findIndex((role) => role.id === roleDetailMatch[2]);
     if (roleIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy vai." });
     if (method === "PATCH") { assertStoryRevision(story, body?.revision); validateRole(body); story.roles[roleIndex] = { ...story.roles[roleIndex], ...mutationPayload(body), name: body.name.trim() }; storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story); }
-    if (method === "DELETE") { assertStoryRevision(story, body?.revision); story.roles.splice(roleIndex, 1); storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story); }
+    if (method === "DELETE") { assertStoryRevision(story, body?.revision); removeSlotReferences(story, (story.roles[roleIndex].slots || []).map((slot) => slot.id)); story.roles.splice(roleIndex, 1); storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story); }
   }
 
   const vocabularyDetailMatch = pathname.match(/^\/content\/stories\/([^/]+)\/vocabulary\/([^/]+)$/);
@@ -1280,7 +1442,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const vocabularyIndex = story.vocabulary.findIndex((item) => item.id === vocabularyDetailMatch[2]);
     if (vocabularyIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy từ vựng." });
     if (method === "PATCH") {
-      validateVocabulary(body);
+      validateVocabulary(body, story);
       story.vocabulary[vocabularyIndex] = { ...story.vocabulary[vocabularyIndex], ...mutationPayload(body), word: body.word.trim(), meaning: body.meaning.trim(), audioUrl: body.audioUrl?.trim() || "" };
     } else {
       story.vocabulary.splice(vocabularyIndex, 1);
@@ -1296,7 +1458,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const quizIndex = story.quizzes.findIndex((item) => item.id === quizDetailMatch[2]);
     if (quizIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy quiz." });
     if (method === "PATCH") {
-      validateQuiz(body);
+      validateQuiz(body, story);
       story.quizzes[quizIndex] = { ...story.quizzes[quizIndex], ...mutationPayload(body), pageId: body.pageId, question: body.question.trim(), options: body.options.map((option) => option.trim()), correctIndex: body.correctIndex, feedback: body.feedback?.trim() || "", audioUrl: body.audioUrl?.trim() || "" };
     } else {
       story.quizzes.splice(quizIndex, 1);
@@ -1315,8 +1477,8 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       let item;
       if (collection === "pages") { validatePage(body); item = { ...mutationPayload(body), id: `page-${Date.now()}`, order: story.pages.length + 1, title: body.title.trim(), text: body.text?.trim() || "", backgroundAssetId: body.backgroundAssetId || null, narration: body.narration?.trim() || "", audioTracks: body.audioTracks || [], sequence: body.sequence || [] }; }
       if (collection === "roles") { validateRole(body); item = { id: `role-${Date.now()}`, name: body.name.trim(), custom: body.custom !== false, sensitive: Boolean(body.sensitive), defaultAssetId: body.defaultAssetId || null, slots: [] }; }
-      if (collection === "vocabulary") { validateVocabulary(body); item = { id: `vocab-${Date.now()}`, pageId: body.pageId, word: body.word.trim(), meaning: body.meaning.trim(), audioUrl: body.audioUrl?.trim() || "" }; }
-      if (collection === "quizzes") { validateQuiz(body); item = { id: `quiz-${Date.now()}`, pageId: body.pageId, question: body.question.trim(), options: body.options.map((option) => option.trim()), correctIndex: body.correctIndex, feedback: body.feedback?.trim() || "", audioUrl: body.audioUrl?.trim() || "" }; }
+      if (collection === "vocabulary") { validateVocabulary(body, story); item = { id: `vocab-${Date.now()}`, pageId: body.pageId, word: body.word.trim(), meaning: body.meaning.trim(), audioUrl: body.audioUrl?.trim() || "" }; }
+      if (collection === "quizzes") { validateQuiz(body, story); item = { id: `quiz-${Date.now()}`, pageId: body.pageId, question: body.question.trim(), options: body.options.map((option) => option.trim()), correctIndex: body.correctIndex, feedback: body.feedback?.trim() || "", audioUrl: body.audioUrl?.trim() || "" }; }
       story[collection].push(item); storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story);
     }
   }
@@ -1474,6 +1636,10 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const idempotencyKey = body?.idempotencyKey?.trim();
     const existing = idempotencyKey && items.find((item) => item.idempotencyKey === idempotencyKey);
     if (existing) return { job: clone(existing), quota: exportQuota(database, user), deduplicated: true };
+    const quota = exportQuota(database, user);
+    if (format === "video" && quota.limit !== null && quota.remaining <= 0) {
+      throw new ApiError({ status: 403, code: "EXPORT_QUOTA_EXCEEDED", message: "Bạn đã dùng hết lượt xuất video trong chu kỳ này." });
+    }
     const story = database.stories.find((candidate) => candidate.id === body.storyId);
     const job = {
       id: `export-${user.id}-${Date.now()}`,
@@ -1495,7 +1661,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     };
     database.exports[user.id] = [job, ...items];
     database.exportUsage[user.id] ||= { used: 0 };
-    database.exportUsage[user.id].used += 1;
+    if (format === "video") database.exportUsage[user.id].used += 1;
     writeDatabase(database);
     return { job: clone(job), quota: exportQuota(database, user), deduplicated: false };
   }
@@ -1695,11 +1861,9 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
 
   if (path === "/entitlements" && method === "GET") {
     requireParent(user);
-    const entitlement = database.entitlements[user.id];
-    return clone({
-      ...entitlement,
-      usedChildProfiles: (database.children[user.id] || []).length,
-    });
+    const entitlement = ensureParentEntitlement(database, user);
+    writeDatabase(database);
+    return clone(entitlement);
   }
 
   const childMatch = path.match(/^\/children\/([^/]+)$/);
@@ -1740,7 +1904,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     requireParent(user);
     validateChild(body);
     const children = database.children[user.id] || [];
-    const entitlement = database.entitlements[user.id];
+    const entitlement = ensureParentEntitlement(database, user);
     if (children.length >= entitlement.childProfileLimit) {
       throw new ApiError({
         status: 409,

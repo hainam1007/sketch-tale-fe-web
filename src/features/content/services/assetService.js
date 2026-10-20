@@ -1,5 +1,7 @@
 import { featureApiModes, featureApiRequest, isFeatureMockMode } from "../../../lib/api/featureApi";
-import { getLocalAssetNamespace, localAssetUrl, putLocalAsset, removeLocalAsset } from "./localAssetStore";
+import { ApiError } from "../../../lib/api/errors";
+import { mockRequest } from "../../../mocks/mockServer";
+import { getLocalAssetNamespace, localAssetUrl, putLocalAsset } from "./localAssetStore";
 
 const contentRequest = (options) => featureApiRequest("content", options);
 
@@ -10,11 +12,25 @@ export const AUDIO_MIME_TYPES = Object.freeze(["audio/mpeg", "audio/mp3", "audio
 
 function responseRows(response) {
   if (Array.isArray(response)) return response;
-  return response?.items || [];
+  if (Array.isArray(response?.items)) return response.items;
+  throw new ApiError({ status: 502, code: "CONTENT_ASSET_RESPONSE_INVALID", message: "Không thể đọc danh sách tư liệu. Hãy tải lại trang." });
+}
+
+async function mapWithConcurrency(items, limit, mapper) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await mapper(items[index], index);
+    }
+  }));
+  return results;
 }
 
 async function listBackendAssets(signal) {
-  const stories = responseRows(await contentRequest({ path: "/story-template/getallstories", signal }));
+  const stories = responseRows(await contentRequest({ path: "/story-template/all-stories", signal }));
   const assets = [];
 
   for (const story of stories) {
@@ -31,8 +47,8 @@ async function listBackendAssets(signal) {
     }
   }
 
-  const pageGroups = await Promise.all(stories.map(async (story) => {
-    const pages = responseRows(await contentRequest({ path: `/storypage-template/pages/${story.id}`, signal }));
+  const pageGroups = await mapWithConcurrency(stories, 4, async (story) => {
+    const pages = responseRows(await contentRequest({ path: `/storypage-template/all-pages/${story.id}`, signal }));
     return pages.flatMap((page) => {
       const items = [];
       if (page.backgroundUrl) {
@@ -59,11 +75,23 @@ async function listBackendAssets(signal) {
       }
       return items;
     });
-  }));
+  });
+  const roleGroups = await mapWithConcurrency(stories, 4, async (story) => {
+    const roles = responseRows(await contentRequest({ path: `/story-template/${story.id}/all-roles`, signal }));
+    return roles.flatMap((role) => role.defaultAssetUrl ? [{
+      id: `role-default:${role.id}`,
+      name: `${story.title || "Truyện"} · ${role.roleName || "Nhân vật"}`,
+      kind: "image",
+      mimeType: "image/*",
+      size: 0,
+      url: role.defaultAssetUrl,
+      readOnly: true,
+    }] : []);
+  });
 
   const uniqueAssets = new Map();
-  for (const asset of [...assets, ...pageGroups.flat()]) {
-    if (!uniqueAssets.has(asset.url)) uniqueAssets.set(asset.url, asset);
+  for (const asset of [...assets, ...pageGroups.flat(), ...roleGroups.flat()]) {
+    if (!uniqueAssets.has(asset.id)) uniqueAssets.set(asset.id, asset);
   }
   const items = [...uniqueAssets.values()];
   return { items, total: items.length, page: 1, pageSize: items.length || 1, totalPages: 1 };
@@ -94,9 +122,7 @@ export function uploadAsset({ file, signal }) {
     error.fieldErrors = validationErrors;
     return Promise.reject(error);
   }
-  if (featureApiModes.content === "real") {
-    return Promise.reject(new Error("Backend chưa có API thư viện asset dùng chung; hiện chưa thể upload từ màn này."));
-  }
+  const useMockAdapter = featureApiModes.content === "real" || isFeatureMockMode("content");
   const body = new FormData();
   body.append("file", file);
   body.append("name", file.name);
@@ -104,36 +130,46 @@ export function uploadAsset({ file, signal }) {
   body.append("mimeType", file.type);
   body.append("size", String(file.size));
   const namespace = getLocalAssetNamespace();
-  return contentRequest({ path: "/content/assets", method: "POST", body, signal }).then(async (asset) => {
-    if (!isFeatureMockMode("content")) return asset;
+  const request = useMockAdapter ? mockRequest : contentRequest;
+  return request({ path: "/content/assets", method: "POST", body, signal }).then(async (asset) => {
+    if (!useMockAdapter) return asset;
     try {
       await putLocalAsset(asset.id, file, namespace);
-      return { ...asset, url: await localAssetUrl(asset.id, namespace), local: true, processingStatus: "ready" };
+      return { ...asset, url: await localAssetUrl(asset.id, namespace), local: true, source: "mock", processingStatus: "ready" };
     } catch (error) {
-      await contentRequest({ path: `/content/assets/${asset.id}`, method: "DELETE" }).catch(() => undefined);
+      await request({ path: `/content/assets/${asset.id}`, method: "DELETE" }).catch(() => undefined);
       throw new Error(`Không thể lưu file local: ${error.message}`);
     }
   });
 }
 
 export async function listAssets({ signal } = {}) {
-  if (featureApiModes.content === "real") return listBackendAssets(signal);
+  if (featureApiModes.content === "real") {
+    const backend = await listBackendAssets(signal);
+    const { items: mockItems } = await listMockAssets({ signal });
+    const items = [...backend.items, ...mockItems];
+    return { ...backend, items, total: items.length, pageSize: items.length || 1, totalPages: 1 };
+  }
   const response = await contentRequest({ path: "/content/assets", signal });
   if (!isFeatureMockMode("content")) return response;
   const items = await Promise.all((response.items || []).map(async (asset) => {
-    if (!asset.id) return asset;
+    if (!asset.id) return { ...asset, source: "mock" };
     const url = await localAssetUrl(asset.id);
-    if (url) return { ...asset, url, local: true, processingStatus: "ready" };
-    if (asset.id.startsWith("asset-upload-")) return { ...asset, url: "", local: true, processingStatus: "failed", error: "File local không còn tồn tại. Hãy upload lại asset." };
-    return asset;
+    if (url) return { ...asset, url, local: true, source: "mock", processingStatus: "ready" };
+    if (asset.id.startsWith("asset-upload-")) return { ...asset, url: "", local: true, source: "mock", processingStatus: "failed", error: "File local không còn tồn tại. Hãy upload lại asset." };
+    return { ...asset, source: "mock" };
   }));
   return { ...response, items };
 }
 
-export async function deleteAsset({ assetId }) {
-  if (featureApiModes.content === "real") {
-    throw new Error("Backend hiện chưa có API xóa hoặc quản lý thư viện tư liệu.");
-  }
-  await contentRequest({ path: `/content/assets/${assetId}`, method: "DELETE" });
-  if (isFeatureMockMode("content")) await removeLocalAsset(assetId);
+export async function listMockAssets({ signal } = {}) {
+  const response = await mockRequest({ path: "/content/assets", signal });
+  const items = await Promise.all((response.items || []).map(async (asset) => {
+    if (!asset.id) return { ...asset, source: "mock" };
+    const url = await localAssetUrl(asset.id);
+    if (url) return { ...asset, url, local: true, source: "mock", processingStatus: "ready" };
+    if (asset.id.startsWith("asset-upload-")) return { ...asset, url: "", local: true, source: "mock", processingStatus: "failed", error: "File local không còn tồn tại. Hãy upload lại asset." };
+    return { ...asset, source: "mock" };
+  }));
+  return { ...response, items };
 }

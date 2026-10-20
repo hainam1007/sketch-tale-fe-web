@@ -4,9 +4,20 @@ export function isContentEditorDirty() {
   return typeof window !== "undefined" && window.__sketchTaleContentEditorDirty === true;
 }
 
-export function confirmContentEditorNavigation(event) {
-  if (!isContentEditorDirty() || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return true;
-  return window.confirm("Bạn có thay đổi chưa lưu. Rời trang sẽ bỏ thay đổi đó?");
+export function shouldConfirmContentEditorNavigation(event) {
+  return isContentEditorDirty() && !event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+}
+
+let approvedNavigationUntil = 0;
+
+export function approveNextContentEditorNavigation() {
+  approvedNavigationUntil = Date.now() + 5000;
+}
+
+export function consumeApprovedContentEditorNavigation() {
+  if (Date.now() > approvedNavigationUntil) return false;
+  approvedNavigationUntil = 0;
+  return true;
 }
 
 /** Shared dirty/save state for authoring forms. */

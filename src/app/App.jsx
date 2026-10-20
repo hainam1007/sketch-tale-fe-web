@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, RouterProvider, useLocation } from "react-router-dom";
 import PublicLayout from "../features/public/layouts/PublicLayout";
 import HomePage from "../features/public/pages/HomePage";
 import ContactPage from "../features/public/pages/ContactPage";
@@ -11,12 +11,14 @@ import {
 } from "../features/public/pages/InfoPages";
 import AuthPage from "../features/auth/pages/AuthPage";
 import ConfirmEmailPage from "../features/auth/pages/ConfirmEmailPage";
+import ResetPasswordPage from "../features/auth/pages/ResetPasswordPage";
 import ForbiddenPage from "../features/auth/pages/ForbiddenPage";
 import AppProviders from "./providers/AppProviders";
 import RequireAuth from "./router/RequireAuth";
 import RequireRole from "./router/RequireRole";
 import WorkspaceLayout from "./layouts/WorkspaceLayout";
 import ParentOverviewPage from "../features/parent/pages/ParentOverviewPage";
+import ParentAvailabilityGate from "../features/parent/layouts/ParentAvailabilityGate";
 import ChildrenPage from "../features/parent/pages/ChildrenPage";
 import NewChildPage from "../features/parent/pages/NewChildPage";
 import ChildDetailPage from "../features/parent/pages/ChildDetailPage";
@@ -55,6 +57,7 @@ import ContentStatisticsPage from "../features/content/pages/ContentStatisticsPa
 import ContentOverviewPage from "../features/content/pages/ContentOverviewPage";
 import AdminStatisticsPage from "../features/admin/pages/AdminStatisticsPage";
 import AdminAuditPage from "../features/admin/pages/AdminAuditPage";
+import AdminCatalogPage from "../features/admin/pages/AdminCatalogPage";
 import { ROLES } from "../lib/permissions/roles";
 
 const titles = {
@@ -68,6 +71,7 @@ const titles = {
   "/auth/login": "Đăng nhập minh họa",
   "/auth/register": "Đăng ký minh họa",
   "/auth/forgot-password": "Quên mật khẩu minh họa",
+  "/auth/reset-password": "Đặt lại mật khẩu",
   "/confirm-email": "Xác nhận email",
   "/403": "Không đủ quyền",
 };
@@ -83,6 +87,9 @@ function titleForPath(pathname) {
   if (pathname === "/content") return "Tổng quan Content Manager";
   if (pathname.startsWith("/content")) return "Content Manager";
   if (pathname === "/admin") return "Tổng quan Admin";
+  if (pathname === "/admin/subscription-plans") return "Gói sử dụng";
+  if (pathname === "/admin/credit-costs") return "Chi phí credit";
+  if (pathname === "/admin/education-themes") return "Chủ đề giáo dục";
   if (pathname.startsWith("/admin")) return "Admin Control Room";
   if (pathname === "/profile") return "Hồ sơ tài khoản";
   return "Không tìm thấy trang";
@@ -102,78 +109,86 @@ function RouteEffects() {
   }, [pathname, hash]);
   return null;
 }
-export default function App() {
-  return (
-    <AppProviders>
-      <BrowserRouter>
-        <RouteEffects />
-        <Routes>
-          <Route element={<PublicLayout />}>
-            <Route index element={<HomePage />} />
-            <Route path="faq" element={<FaqPage />} />
-            <Route path="about" element={<AboutPage />} />
-            <Route path="contact" element={<ContactPage />} />
-            <Route path="403" element={<ForbiddenPage />} />
-            <Route path="confirm-email" element={<ConfirmEmailPage />} />
-            {["privacy", "terms", "child-safety"].map((path) => <Route key={path} path={path} element={<PolicyPage path={`/${path}`} />} />)}
-            {["login", "register", "forgot-password"].map((mode) => <Route key={mode} path={`auth/${mode}`} element={<AuthPage key={mode} mode={mode} />} />)}
-            <Route path="*" element={<NotFoundPage />} />
-          </Route>
 
-          <Route element={<RequireAuth />}>
-            <Route element={<WorkspaceLayout />}>
-              <Route path="profile" element={<ProfilePage />} />
-              <Route element={<RequireRole roles={[ROLES.PARENT]} />}>
-                <Route path="parent" element={<ParentOverviewPage />} />
-                <Route path="parent/children" element={<ChildrenPage />} />
-                <Route path="parent/children/new" element={<NewChildPage />} />
-                <Route path="parent/children/:childId" element={<ChildWorkspaceLayout />}>
-                  <Route index element={<ChildDetailPage />} />
-                  <Route path="dashboard" element={<ChildDashboardPage />} />
-                  <Route path="settings" element={<ChildSettingsPage />} />
-                  <Route path="approvals" element={<ChildApprovalsPage />} />
-                  <Route path="library" element={<ChildLibraryPage />} />
-                  <Route path="progress" element={<ChildProgressPage />} />
-                  <Route path="exports" element={<ChildExportsPage />} />
-                </Route>
-                <Route path="parent/plan" element={<ParentPlanPage />} />
-                <Route path="parent/checkout" element={<ParentCheckoutPage />} />
-                <Route path="parent/exports" element={<ParentExportsPage />} />
-                <Route path="parent/library" element={<ParentLibraryPage />} />
-                <Route path="parent/reports" element={<Navigate to="/parent/library" replace />} />
-              </Route>
-              <Route element={<RequireRole roles={[ROLES.CONTENT]} />}>
-                <Route path="content" element={<ContentOverviewPage />} />
-                <Route path="content/stories" element={<ContentStoriesPage />} />
-                <Route path="content/stories/new" element={<StoryEditorPage mode="new" />} />
-                <Route path="content/stories/:storyId" element={<StoryEditorLayout />}>
-                  <Route index element={<StoryMetadataPage />} />
-                  <Route path="pages" element={<StoryPagesPage />} />
-                  <Route path="roles" element={<StoryRolesPage />} />
-                  <Route path="vocabulary" element={<StoryVocabularyPage />} />
-                  <Route path="quizzes" element={<StoryQuizPage />} />
-                  <Route path="preview" element={<StoryPreviewPage />} />
-                </Route>
-                <Route path="content/assets" element={<AssetsPage />} />
-                <Route path="content/statistics" element={<ContentStatisticsPage />} />
-              </Route>
-              <Route element={<RequireRole roles={[ROLES.ADMIN]} />}>
-                <Route path="admin" element={<AdminOverviewPage />} />
-                <Route path="admin/users" element={<AdminUsersPage />} />
-                <Route path="admin/users/:userId" element={<AdminUserDetailPage />} />
-                <Route path="admin/reports" element={<AdminReportsPage />} />
-                <Route path="admin/reports/:reportId" element={<AdminReportDetailPage />} />
-                <Route path="admin/permissions" element={<AdminPermissionsPage />} />
-                <Route path="admin/system-limits" element={<AdminSystemLimitsPage />} />
-                <Route path="admin/restrictions" element={<AdminRestrictionsPage />} />
-                <Route path="admin/monitoring" element={<AdminMonitoringPage />} />
-                <Route path="admin/statistics" element={<AdminStatisticsPage />} />
-                <Route path="admin/audit" element={<AdminAuditPage />} />
-              </Route>
-            </Route>
+function AppRouterLayout() {
+  return <><RouteEffects /><Outlet /></>;
+}
+
+const router = createBrowserRouter(createRoutesFromElements(
+  <Route element={<AppRouterLayout />}>
+    <Route element={<PublicLayout />}>
+      <Route index element={<HomePage />} />
+      <Route path="faq" element={<FaqPage />} />
+      <Route path="about" element={<AboutPage />} />
+      <Route path="contact" element={<ContactPage />} />
+      <Route path="403" element={<ForbiddenPage />} />
+      <Route path="confirm-email" element={<ConfirmEmailPage />} />
+      <Route path="auth/reset-password" element={<ResetPasswordPage />} />
+      {["privacy", "terms", "child-safety"].map((path) => <Route key={path} path={path} element={<PolicyPage path={`/${path}`} />} />)}
+      {["login", "register", "forgot-password"].map((mode) => <Route key={mode} path={`auth/${mode}`} element={<AuthPage key={mode} mode={mode} />} />)}
+      <Route path="*" element={<NotFoundPage />} />
+    </Route>
+
+    <Route element={<RequireAuth />}>
+      <Route element={<WorkspaceLayout />}>
+        <Route path="profile" element={<ProfilePage />} />
+        <Route element={<RequireRole roles={[ROLES.PARENT]} />}>
+          <Route element={<ParentAvailabilityGate />}>
+          <Route path="parent" element={<ParentOverviewPage />} />
+          <Route path="parent/children" element={<ChildrenPage />} />
+          <Route path="parent/children/new" element={<NewChildPage />} />
+          <Route path="parent/children/:childId" element={<ChildWorkspaceLayout />}>
+            <Route index element={<ChildDetailPage />} />
+            <Route path="dashboard" element={<ChildDashboardPage />} />
+            <Route path="settings" element={<ChildSettingsPage />} />
+            <Route path="approvals" element={<ChildApprovalsPage />} />
+            <Route path="library" element={<ChildLibraryPage />} />
+            <Route path="progress" element={<ChildProgressPage />} />
+            <Route path="exports" element={<ChildExportsPage />} />
           </Route>
-        </Routes>
-      </BrowserRouter>
-    </AppProviders>
-  );
+          <Route path="parent/plan" element={<ParentPlanPage />} />
+          <Route path="parent/checkout" element={<ParentCheckoutPage />} />
+          <Route path="parent/exports" element={<ParentExportsPage />} />
+          <Route path="parent/library" element={<ParentLibraryPage />} />
+          <Route path="parent/reports" element={<Navigate to="/parent/library" replace />} />
+          </Route>
+        </Route>
+        <Route element={<RequireRole roles={[ROLES.CONTENT]} />}>
+          <Route path="content" element={<ContentOverviewPage />} />
+          <Route path="content/stories" element={<ContentStoriesPage />} />
+          <Route path="content/stories/new" element={<StoryEditorPage mode="new" />} />
+          <Route path="content/stories/:storyId" element={<StoryEditorLayout />}>
+            <Route index element={<StoryMetadataPage />} />
+            <Route path="pages" element={<StoryPagesPage />} />
+            <Route path="roles" element={<StoryRolesPage />} />
+            <Route path="vocabulary" element={<StoryVocabularyPage />} />
+            <Route path="quizzes" element={<StoryQuizPage />} />
+            <Route path="preview" element={<StoryPreviewPage />} />
+          </Route>
+          <Route path="content/assets" element={<AssetsPage />} />
+          <Route path="content/statistics" element={<ContentStatisticsPage />} />
+        </Route>
+        <Route element={<RequireRole roles={[ROLES.ADMIN]} />}>
+          <Route path="admin" element={<AdminOverviewPage />} />
+          <Route path="admin/users" element={<AdminUsersPage />} />
+          <Route path="admin/users/:userId" element={<AdminUserDetailPage />} />
+          <Route path="admin/reports" element={<AdminReportsPage />} />
+          <Route path="admin/reports/:reportId" element={<AdminReportDetailPage />} />
+          <Route path="admin/permissions" element={<AdminPermissionsPage />} />
+          <Route path="admin/system-limits" element={<AdminSystemLimitsPage />} />
+          <Route path="admin/restrictions" element={<AdminRestrictionsPage />} />
+          <Route path="admin/monitoring" element={<AdminMonitoringPage />} />
+          <Route path="admin/statistics" element={<AdminStatisticsPage />} />
+          <Route path="admin/audit" element={<AdminAuditPage />} />
+          <Route path="admin/subscription-plans" element={<AdminCatalogPage key="plans" kind="plans" />} />
+          <Route path="admin/credit-costs" element={<AdminCatalogPage key="credits" kind="credits" />} />
+          <Route path="admin/education-themes" element={<AdminCatalogPage key="themes" kind="themes" />} />
+        </Route>
+      </Route>
+    </Route>
+  </Route>,
+));
+
+export default function App() {
+  return <AppProviders><RouterProvider router={router} /></AppProviders>;
 }
