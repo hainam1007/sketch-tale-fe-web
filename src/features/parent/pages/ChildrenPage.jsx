@@ -1,5 +1,7 @@
 import { Plus } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
+import FamilyProfilesLive from "../components/FamilyProfilesLive";
+import { moduleApiModes } from "../../../lib/api/featureApi";
 import FamilyProfilesStatus from "../components/FamilyProfilesStatus";
 import FamilyProfilesPreview, { showFamilyProfilePreview } from "../components/FamilyProfilesPreview";
 import "../parent-overview.css";
@@ -15,7 +17,7 @@ export default function ChildrenPage() {
         </div>
         <Link className="workspace-button" to="/parent/children/new"><Plus size={18} aria-hidden="true" /> Thêm tài khoản bé</Link>
       </div>
-      {showFamilyProfilePreview
+      {moduleApiModes.parentProfile === "real" ? <FamilyProfilesLive /> : showFamilyProfilePreview
         ? <FamilyProfilesPreview />
         : <FamilyProfilesStatus showCreate={false} />}
     </div>

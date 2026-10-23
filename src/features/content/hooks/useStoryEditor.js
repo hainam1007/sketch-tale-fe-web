@@ -41,8 +41,8 @@ export function useContentAssets() {
     const items = [];
     if (story?.coverImageUrl) items.push({ id: story.coverAssetId || `story-cover:${story.id}`, name: `${story.title || "Truyện"} · Ảnh bìa`, kind: "image", mimeType: "image/*", size: 0, url: story.coverImageUrl, readOnly: true });
     for (const page of story?.pages || []) {
-      if (page.backgroundUrl) items.push({ id: page.backgroundAssetId || `page-background:${page.id}`, name: `${story.title || "Truyện"} · ${page.title || `Trang ${page.order}`} · Ảnh nền`, kind: "image", mimeType: "image/*", size: 0, url: page.backgroundUrl, readOnly: true });
-      if (page.audioNarrationUrl) items.push({ id: `page-audio:${page.id}`, name: `${story.title || "Truyện"} · ${page.title || `Trang ${page.order}`} · Lời kể`, kind: "audio", mimeType: "audio/*", size: 0, url: page.audioNarrationUrl, readOnly: true });
+      if (page.backgroundUrl) items.push({ id: page.backgroundAssetId || `page-background:${page.id}`, name: `${story.title || "Truyện"} · Trang ${page.order} · Ảnh nền`, kind: "image", mimeType: "image/*", size: 0, url: page.backgroundUrl, readOnly: true });
+      if (page.audioNarrationUrl) items.push({ id: `page-audio:${page.id}`, name: `${story.title || "Truyện"} · Trang ${page.order} · Lời kể`, kind: "audio", mimeType: "audio/*", size: 0, url: page.audioNarrationUrl, readOnly: true });
     }
     const mockAssets = (assetsQuery.data?.items || []).filter((asset) => asset.source === "mock");
     const mockImageAssets = mockAssets.filter((asset) => asset.kind === "image" && asset.url);

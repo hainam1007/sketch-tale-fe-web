@@ -1,7 +1,7 @@
 import { featureApiModes, featureApiRequest } from "../../../lib/api/featureApi";
 import { ApiError } from "../../../lib/api/errors";
 import { SESSION_KEY } from "../../../mocks/mockServer";
-import { listAssets, uploadAsset } from "./assetService";
+import { deleteAsset, listAssets, uploadAsset } from "./assetService";
 import { mergeContentMockOverlay, mergeMockStoryDraft, removeMockSlot, removeMockQuizDraft, saveMockPageOrder, saveMockQuizDraft, saveMockSlotDraft, saveMockStoryDraft } from "./contentMockOverlay";
 import { normalizeStory } from "../models";
 
@@ -222,7 +222,6 @@ function normalizeBackendPage(page) {
   return {
     ...page,
     order: Number(page.pageNumber) || 1,
-    title: `Trang ${Number(page.pageNumber) || 1}`,
     text: page.rawText || "",
     backgroundAssetId: page.backgroundUrl ? `page-background:${page.id}` : null,
     narration: page.audioNarrationUrl || "",
@@ -401,7 +400,9 @@ async function getBackendEditor({ storyId, signal }) {
     contentRequest({ path: `/story-template/${storyId}/roles`, signal }),
     contentRequest({ path: `/story-template/${storyId}/all-quizzes`, signal }),
   ]);
-  const backendPages = responseRows(pageResponse);
+  // The authorized all-pages endpoint includes inactive pages. The editor lists
+  // editable drafts/pending/active pages and hides soft-deleted or archived rows.
+  const backendPages = responseRows(pageResponse).filter((page) => ![3, 4].includes(Number(page.status)));
   const pages = backendPages.map(normalizeBackendPage);
   const roles = responseRows(roleResponse).map(normalizeBackendRole);
   const slotGroups = await mapWithConcurrency(pages, 4, async (page) => {
@@ -542,7 +543,7 @@ export const contentService = {
   listPages: async ({ storyId, signal }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/pages`, signal });
     const response = await contentRequest({ path: `/storypage-template/all-pages/${storyId}`, signal });
-    return { items: responseRows(response).map(normalizeBackendPage) };
+    return { items: responseRows(response).filter((page) => ![3, 4].includes(Number(page.status))).map(normalizeBackendPage) };
   },
   addPage: async ({ storyId, revision, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/pages`, method: "POST", body: revisionBody(payload, revision) });
@@ -552,10 +553,9 @@ export const contentService = {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/pages/${pageId}`, method: "PATCH", body: revisionBody(payload, revision) });
     return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/storypage-template/${pageId}`, method: "PUT", body: backendPageFormData(payload) }));
   },
-  deletePage: ({ storyId, pageId, revision }) => {
-    if (featureApiModes.content !== "mock") throw new Error("Xóa trang hiện chỉ được hỗ trợ trong chế độ mock local.");
-    return contentRequest({ path: `/content/stories/${storyId}/pages/${pageId}`, method: "DELETE", body: revisionBody({}, revision) });
-  },
+  deletePage: ({ storyId, pageId, revision }) => featureApiModes.content === "real"
+    ? mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/storypage-template/story-pages/${pageId}`, method: "DELETE" }))
+    : contentRequest({ path: `/content/stories/${storyId}/pages/${pageId}`, method: "DELETE", body: revisionBody({}, revision) }),
   reorderPages: async ({ storyId, pageIds, revision }) => featureApiModes.content === "real"
     ? (saveMockPageOrder(activeUserId(), storyId, pageIds), getBackendEditor({ storyId }))
     : contentRequest({ path: `/content/stories/${storyId}/pages/reorder`, method: "PATCH", body: revisionBody({ pageIds }, revision) }),
@@ -701,6 +701,7 @@ export const contentService = {
     ? contentRequest({ path: `/story-template/${storyId}`, method: "DELETE" })
     : contentRequest({ path: `/content/stories/${storyId}/hide`, method: "POST", body: { revision } }),
   listAssets,
+  deleteAsset,
   getStatistics: ({ range = "7d", signal } = {}) => featureApiModes.content === "real"
     ? getBackendStatistics(signal)
     : contentRequest({ path: `/content/statistics?range=${range}`, signal }),

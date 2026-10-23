@@ -1,4 +1,4 @@
-import { SpeakerHigh } from "@phosphor-icons/react";
+import { subtitleAt } from "../utils/storySubtitles";
 import { useEffect, useRef, useState } from "react";
 import { evaluateSlotAnimation, pageAnimationClips } from "../utils/storyAnimation";
 
@@ -8,37 +8,118 @@ import { evaluateSlotAnimation, pageAnimationClips } from "../utils/storyAnimati
  * Missing assets stay visible as an error state; a fallback image would hide
  * a contract problem that must be fixed before publish.
  */
-export default function StoryPageRenderer({ story, page, assets, onSlotSelect, onSlotPositionStart, onSlotPositionEnd, onSlotPositionChange, onSlotTransformChange, selectedSlotId, isPlaying = false, playToken = 0, playheadMs, isDrawingPath = false, pathStartPoint, onPathCommit, onPathCancel, onPathPointChange, onPathPointStart, onPathPointEnd, onPathPointSelect, selectedPathPointIndex, selectedAnimationClipId, showPageText = true }) {
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getBackgroundOverflow(imageWidth, imageHeight, stageWidth, stageHeight, scale) {
+  if (!imageWidth || !imageHeight || !stageWidth || !stageHeight) return { x: 0, y: 0 };
+  const coverScale = Math.max(stageWidth / imageWidth, stageHeight / imageHeight);
+  return {
+    x: Math.max(0, (imageWidth * coverScale * scale - stageWidth) / 2),
+    y: Math.max(0, (imageHeight * coverScale * scale - stageHeight) / 2),
+  };
+}
+
+export default function StoryPageRenderer({ story, page, assets, onSlotSelect, onSlotPositionStart, onSlotPositionEnd, onSlotPositionChange, onSlotTransformChange, onBackgroundTransformChange, onBackgroundTransformStart, onBackgroundTransformEnd, selectedSlotId, isPlaying = false, playToken = 0, playheadMs, isDrawingPath = false, pathStartPoint, onPathCommit, onPathCancel, onPathPointChange, onPathPointStart, onPathPointEnd, onPathPointSelect, selectedPathPointIndex, selectedAnimationClipId, showPageText = true }) {
   const stageRef = useRef(null);
+  const backgroundImageRef = useRef(null);
+  const backgroundGestureRef = useRef(null);
   const [drawPoints, setDrawPoints] = useState([]);
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
+  const [backgroundSize, setBackgroundSize] = useState({ width: 0, height: 0 });
+  const [isDraggingBackground, setIsDraggingBackground] = useState(false);
   const drawingPointerRef = useRef(null);
   const canvasGestureRef = useRef(null);
   useEffect(() => { if (!isDrawingPath) setDrawPoints([]); }, [isDrawingPath]);
-  if (!page) return null;
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(([entry]) => {
+      setStageSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [page?.id]);
 
   const assetById = new Map((assets || []).map((asset) => [asset.id, asset]));
-  const background = assetById.get(page.backgroundAssetId || story.coverAssetId)
-    || (page.backgroundUrl ? { url: page.backgroundUrl } : null)
+  const background = assetById.get(page?.backgroundAssetId || story.coverAssetId)
+    || (page?.backgroundUrl ? { url: page.backgroundUrl } : null)
     || (story.coverImageUrl ? { url: story.coverImageUrl } : null);
+  useEffect(() => {
+    setBackgroundSize({ width: Number(background?.width) || 0, height: Number(background?.height) || 0 });
+  }, [background?.url, background?.width, background?.height]);
+  if (!page) return null;
+
   const placements = (story.roles || [])
     .flatMap((role) => (role.slots || [])
       .filter((slot) => slot.pageId === page.id)
       .map((slot) => ({ role, slot })))
+    .concat((page.imageObjects || []).map((slot) => ({ role: { id: slot.id, name: slot.name || "Ảnh phụ" }, slot })))
     .sort((left, right) => Number(left.slot.layer || 0) - Number(right.slot.layer || 0));
   const clips = pageAnimationClips(page);
 
-  const stageStyle = background?.url
-    ? { backgroundImage: `linear-gradient(180deg, rgb(20 29 49 / 0.02), rgb(20 29 49 / 0.45)), url(${background.url})` }
-    : undefined;
+  const backgroundScale = clamp(Number(page.backgroundScale) || 1, 1, 3);
+  const backgroundOffsetX = clamp(Number(page.backgroundOffsetX) || 0, -100, 100);
+  const backgroundOffsetY = clamp(Number(page.backgroundOffsetY) || 0, -100, 100);
+  const backgroundImageWidth = backgroundSize.width || Number(background?.width) || 0;
+  const backgroundImageHeight = backgroundSize.height || Number(background?.height) || 0;
+  const backgroundOverflow = getBackgroundOverflow(backgroundImageWidth, backgroundImageHeight, stageSize.width, stageSize.height, backgroundScale);
+  const backgroundTranslateX = stageSize.width ? backgroundOffsetX / 100 * backgroundOverflow.x / stageSize.width * 100 : 0;
+  const backgroundTranslateY = stageSize.height ? backgroundOffsetY / 100 * backgroundOverflow.y / stageSize.height * 100 : 0;
+  const canTransformBackground = Boolean(background?.url && onBackgroundTransformChange && !isPlaying);
+
+  const beginBackgroundGesture = (event) => {
+    if (event.button !== 0 || !canTransformBackground || !stageRef.current) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const bounds = stageRef.current.getBoundingClientRect();
+    const imageWidth = backgroundImageRef.current?.naturalWidth || backgroundImageWidth;
+    const imageHeight = backgroundImageRef.current?.naturalHeight || backgroundImageHeight;
+    const overflow = getBackgroundOverflow(imageWidth, imageHeight, bounds.width, bounds.height, backgroundScale);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    backgroundGestureRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: backgroundOffsetX,
+      startY: backgroundOffsetY,
+      maxX: overflow.x,
+      maxY: overflow.y,
+    };
+    setIsDraggingBackground(true);
+    onBackgroundTransformStart?.();
+  };
+
+  const moveBackgroundGesture = (event) => {
+    const gesture = backgroundGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const nextX = gesture.maxX ? clamp(gesture.startX + (event.clientX - gesture.startClientX) / gesture.maxX * 100, -100, 100) : gesture.startX;
+    const nextY = gesture.maxY ? clamp(gesture.startY + (event.clientY - gesture.startClientY) / gesture.maxY * 100, -100, 100) : gesture.startY;
+    onBackgroundTransformChange?.({ backgroundOffsetX: Math.round(nextX), backgroundOffsetY: Math.round(nextY) });
+  };
+
+  const endBackgroundGesture = (event) => {
+    if (backgroundGestureRef.current?.pointerId !== event.pointerId) return;
+    backgroundGestureRef.current = null;
+    setIsDraggingBackground(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    onBackgroundTransformEnd?.();
+  };
 
   return (
-    <div ref={stageRef} className={`story-preview-stage${isPlaying ? " story-preview-stage-playing" : ""}${onSlotSelect || onSlotPositionChange || onSlotTransformChange ? " story-preview-stage-editable" : ""}`} style={stageStyle}>
+    <div ref={stageRef} className={`story-preview-stage${isPlaying ? " story-preview-stage-playing" : ""}${onSlotSelect || onSlotPositionChange || onSlotTransformChange ? " story-preview-stage-editable" : ""}${canTransformBackground ? " story-preview-stage-background-editable" : ""}${isDraggingBackground ? " story-preview-stage-background-dragging" : ""}`}>
+      {background?.url && <div className="story-preview-background-viewport" role="presentation" onPointerDown={beginBackgroundGesture} onPointerMove={moveBackgroundGesture} onPointerUp={endBackgroundGesture} onPointerCancel={endBackgroundGesture} onLostPointerCapture={endBackgroundGesture}>
+        <div className="story-preview-background-pan" style={{ transform: `translate(${backgroundTranslateX}%, ${backgroundTranslateY}%)` }}>
+          <img ref={backgroundImageRef} className="story-preview-background-image" src={background.url} alt="" draggable="false" onLoad={(event) => setBackgroundSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} style={{ transform: `scale(${backgroundScale})` }} />
+        </div>
+      </div>}
+
       {!background && <div className="story-preview-missing-asset" role="alert">Chưa chọn ảnh nền</div>}
       <div className="story-preview-stage-copy">
         <span>SKETCHTALE{story.category ? ` · ${story.category}` : ""}</span>
-        <h3>{page.title}</h3>
-        {showPageText && <p>{page.text}</p>}
-        {page.narration && <small><SpeakerHigh size={14} aria-hidden="true" /> {page.narration}</small>}
+        {showPageText && subtitleAt(page, playheadMs || 0) && <p>{subtitleAt(page, playheadMs || 0)}</p>}
+
       </div>
       {placements.map(({ role, slot }) => {
         const roleAsset = assetById.get(slot.assetId || role.defaultAssetId)
@@ -77,6 +158,7 @@ export default function StoryPageRenderer({ story, page, assets, onSlotSelect, o
         const beginGesture = (event, mode = "move") => {
           if (event.button !== 0 || !stageRef.current) return;
           event.preventDefault();
+          event.currentTarget.focus();
           event.stopPropagation();
           const wrapper = event.currentTarget.closest(".story-preview-slot");
           const bounds = stageRef.current.getBoundingClientRect();

@@ -152,14 +152,14 @@ export default function StoryEditorLayout() {
 }
 
 function StoryEditorLoadingState({ isStudio, label }) {
-  return <section className={`story-editor-loading${isStudio ? " story-editor-loading-studio" : ""}`} role="status" aria-live="polite" aria-label={label}>
+  return <section className={`story-editor-loading${isStudio ? " story-editor-loading-shell-studio" : ""}`} role="status" aria-live="polite" aria-busy="true" aria-label={label}>
     <header className="story-editor-loading-header">
       <div>
         <span className="story-editor-loading-kicker"><BookOpen size={15} aria-hidden="true" /> SKETCH TALE / STORY STUDIO</span>
-        <h1>{label}</h1>
+        <h1>Đang mở không gian sáng tác</h1>
         <p>Đang tải bản thảo, trang truyện và công cụ chỉnh sửa.</p>
       </div>
-      <div className="story-editor-loading-status"><span><SpinnerGap size={19} aria-hidden="true" /></span><div><strong>Đang chuẩn bị</strong><small>Chỉ còn một chút nữa</small></div></div>
+      <div className="story-editor-loading-status" aria-hidden="true"><span><SpinnerGap size={19} aria-hidden="true" /></span><div><strong>Đang tải truyện</strong><small>Chuẩn bị nội dung và tư liệu</small></div></div>
     </header>
     <nav className="story-editor-loading-tabs" aria-hidden="true">
       {["Thông tin", "Dựng truyện", "Nhân vật", "Từ vựng", "Câu hỏi", "Xem trước"].map((tab, index) => <span className={(isStudio ? index === 1 : index === 0) ? "active" : ""} key={tab}>{tab}</span>)}

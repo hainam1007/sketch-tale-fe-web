@@ -135,7 +135,10 @@ export function removeMockPage(userId, storyId, pageId, slotIds = [], quizIds = 
 
 export function mergeContentMockOverlay(story, userId, storyId) {
   const overlay = readContentMockOverlay(userId, storyId);
-  let pages = story.pages.map((page) => ({ ...page, ...(overlay.pageDrafts[page.id] || {}) }));
+  let pages = story.pages.map((page) => {
+    const draft = Object.fromEntries(Object.entries(overlay.pageDrafts[page.id] || {}).filter(([key]) => key !== "title"));
+    return { ...page, ...draft };
+  });
   if (overlay.pageOrder.length) {
     const byId = new Map(pages.map((page) => [page.id, page]));
     pages = [

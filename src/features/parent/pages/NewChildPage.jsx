@@ -1,19 +1,21 @@
 import { CheckCircle, Plus, UserCircle } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authService } from "../../auth/authService";
 import "../parent.css";
 
 const emptyCredentials = { username: "", password: "", nickName: "" };
 
 export default function NewChildPage() {
+  const queryClient = useQueryClient();
   const [credentials, setCredentials] = useState(emptyCredentials);
   const [createdAccount, setCreatedAccount] = useState(null);
   const accountMutation = useMutation({
     mutationFn: authService.registerChildAccount,
     retry: false,
     onSuccess: (_response, submitted) => {
+      queryClient.invalidateQueries({ queryKey: ["parent-live-profiles"] });
       setCreatedAccount({
         displayName: submitted.nickName.trim(),
         username: submitted.username.trim(),

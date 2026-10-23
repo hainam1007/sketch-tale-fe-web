@@ -246,23 +246,9 @@
 .auth-login-options {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   margin: 2px 0 20px;
-}
-.auth-remember {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #606479;
-  font-size: 12px;
-  cursor: pointer;
-}
-.auth-remember input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: #f5b82e;
 }
 .auth-card .auth-submit {
   display: flex;
@@ -427,7 +413,7 @@
 }
 @media (max-width: 390px) {
   .auth-login-options {
-    align-items: flex-start;
+    align-items: flex-end;
     flex-direction: column;
     gap: 10px;
   }

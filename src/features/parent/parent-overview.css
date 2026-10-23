@@ -60,3 +60,36 @@
   .parent-entry-actions { grid-template-columns: 1fr; }
   .parent-entry-action { padding: 22px; }
 }
+
+/* Parent live profiles and honest unavailable states. */
+.parent-live-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.parent-live-section-heading h2, .parent-pending-panel h2 { margin: 0 0 8px; font-size: 22px; color: #182b50; }
+.parent-live-section-heading p, .parent-pending-panel > p { color: #58647a; line-height: 1.7; max-width: 65ch; }
+.parent-live-avatar { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; background: #fff0c6; color: #805a13; }
+.parent-live-empty { padding: 28px 12px; text-align: center; color: #58647a; }
+.parent-live-empty p { max-width: 52ch; margin: 12px auto 24px; line-height: 1.7; }
+.parent-live-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid #e1e5ec; }
+.parent-live-shortcuts a { display: flex; flex-direction: column; gap: 8px; padding: 24px 16px; color: #182b50; font-size: 17px; font-weight: 700; text-decoration: none; overflow-wrap: anywhere; transition: background .2s; }
+.parent-live-shortcuts a:hover { background: #fff5dd; }
+.parent-live-shortcuts small { color: #58647a; font-size: 13px; font-weight: 400; }
+.parent-pending-panel { padding: clamp(20px, 3vw, 36px); background: #fff; border: 1px solid #e1e5ec; border-radius: 20px; }
+.parent-pending-label { display: inline-block; padding: 6px 10px; margin-bottom: 20px; background: #fff1cb; color: #775414; font-size: 13px; font-weight: 700; }
+.parent-pending-list { padding: 0; margin: 28px 0; list-style: none; }
+.parent-pending-list li { display: flex; align-items: center; gap: 12px; padding: 20px 0; border-bottom: 1px solid #e1e5ec; color: #182b50; }
+.parent-pending-list li span:last-child { margin-left: auto; color: #58647a; font-size: 12px; }
+.parent-live-form fieldset { border: 0; padding: 0; margin: 24px 0; min-width: 0; }
+.parent-live-form label { display: flex; flex-direction: column; gap: 10px; color: #283952; font-weight: 700; }
+.parent-live-form input { width: 100%; min-height: 48px; border: 1px solid #aab4c3; border-radius: 10px; padding: 12px; background: #fff; color: #182b50; font: inherit; box-sizing: border-box; }
+.parent-live-form input:focus-visible { outline: 3px solid #268aa8; outline-offset: 3px; }
+.parent-live-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+.parent-live-note { color: #58647a; font-size: 13px; line-height: 1.7; }
+.parent-live-form .parent-form-actions { flex-wrap: wrap; }
+.parent-live-form .parent-form-actions > span { margin-right: auto; color: #58647a; font-size: 13px; }
+@media (max-width: 650px) {
+ .parent-live-section-heading { flex-direction: column; }
+ .parent-live-shortcuts, .parent-live-fields { grid-template-columns: 1fr; }
+ .parent-live-shortcuts a + a { border-top: 1px solid #e1e5ec; }
+ .parent-pending-list li { flex-wrap: wrap; }
+ .parent-live-form .parent-form-actions > span { flex: 0 0 100%; width: 100%; }
+ .parent-entry-page .workspace-page-heading p:not(.workspace-eyebrow) { white-space: normal; }
+}

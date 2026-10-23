@@ -58,6 +58,9 @@ import ContentOverviewPage from "../features/content/pages/ContentOverviewPage";
 import AdminStatisticsPage from "../features/admin/pages/AdminStatisticsPage";
 import AdminAuditPage from "../features/admin/pages/AdminAuditPage";
 import AdminCatalogPage from "../features/admin/pages/AdminCatalogPage";
+import AdminModerationCatalogPage from "../features/admin/pages/AdminModerationCatalogPage";
+import AdminContentReportsPage, { AdminContentReportDetailPage } from "../features/admin/pages/AdminContentReportsPage";
+import { moduleApiModes } from "../lib/api/featureApi";
 import { ROLES } from "../lib/permissions/roles";
 
 const titles = {
@@ -90,6 +93,8 @@ function titleForPath(pathname) {
   if (pathname === "/admin/subscription-plans") return "Gói sử dụng";
   if (pathname === "/admin/credit-costs") return "Chi phí credit";
   if (pathname === "/admin/education-themes") return "Chủ đề giáo dục";
+  if (pathname === "/admin/char-types") return "Loại nhân vật";
+  if (pathname === "/admin/prohibited-themes") return "Chủ đề cấm";
   if (pathname.startsWith("/admin")) return "Admin Control Room";
   if (pathname === "/profile") return "Hồ sơ tài khoản";
   return "Không tìm thấy trang";
@@ -138,6 +143,7 @@ const router = createBrowserRouter(createRoutesFromElements(
           <Route path="parent/children" element={<ChildrenPage />} />
           <Route path="parent/children/new" element={<NewChildPage />} />
           <Route path="parent/children/:childId" element={<ChildWorkspaceLayout />}>
+          <Route path="profile" element={<ChildDetailPage />} />
             <Route index element={<ChildDetailPage />} />
             <Route path="dashboard" element={<ChildDashboardPage />} />
             <Route path="settings" element={<ChildSettingsPage />} />
@@ -172,8 +178,8 @@ const router = createBrowserRouter(createRoutesFromElements(
           <Route path="admin" element={<AdminOverviewPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
           <Route path="admin/users/:userId" element={<AdminUserDetailPage />} />
-          <Route path="admin/reports" element={<AdminReportsPage />} />
-          <Route path="admin/reports/:reportId" element={<AdminReportDetailPage />} />
+          <Route path="admin/reports" element={moduleApiModes.adminReports === "real" ? <AdminContentReportsPage /> : <AdminReportsPage />} />
+          <Route path="admin/reports/:reportId" element={moduleApiModes.adminReports === "real" ? <AdminContentReportDetailPage /> : <AdminReportDetailPage />} />
           <Route path="admin/permissions" element={<AdminPermissionsPage />} />
           <Route path="admin/system-limits" element={<AdminSystemLimitsPage />} />
           <Route path="admin/restrictions" element={<AdminRestrictionsPage />} />
@@ -183,6 +189,8 @@ const router = createBrowserRouter(createRoutesFromElements(
           <Route path="admin/subscription-plans" element={<AdminCatalogPage key="plans" kind="plans" />} />
           <Route path="admin/credit-costs" element={<AdminCatalogPage key="credits" kind="credits" />} />
           <Route path="admin/education-themes" element={<AdminCatalogPage key="themes" kind="themes" />} />
+          <Route path="admin/char-types" element={<AdminModerationCatalogPage key="charTypes" kind="charTypes" />} />
+          <Route path="admin/prohibited-themes" element={<AdminModerationCatalogPage key="prohibitedThemes" kind="prohibitedThemes" />} />
         </Route>
       </Route>
     </Route>

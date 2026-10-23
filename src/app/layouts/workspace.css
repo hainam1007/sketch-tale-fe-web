@@ -538,9 +538,17 @@
 .story-preview-navigation button.active { border-color: #f0dfad; color: #5e4708; background: #fff4cc; }
 .story-preview-main { min-width: 0; }
 .story-preview-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; color: #828994; font-size: 11px; font-weight: 900; }
-.story-preview-stage { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 13px; background-color: #dce8d8; background-position: center; background-size: cover; }
-.story-preview-stage::after { position: absolute; inset: auto 0 0; height: 42%; background: linear-gradient(180deg, transparent, rgb(21 29 45 / .7)); content: ""; pointer-events: none; }
-.story-preview-stage-copy { position: absolute; z-index: 1; right: 22px; bottom: 19px; left: 22px; color: #fff; }
+.story-preview-stage { position: relative; isolation: isolate; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 13px; background-color: #dce8d8; }
+.story-preview-stage::before { position: absolute; z-index: 1; inset: 0; background: linear-gradient(180deg, rgb(20 29 49 / .02), rgb(20 29 49 / .45)); content: ""; pointer-events: none; }
+.story-preview-stage::after { position: absolute; z-index: 1; inset: auto 0 0; height: 42%; background: linear-gradient(180deg, transparent, rgb(21 29 45 / .7)); content: ""; pointer-events: none; }
+.story-preview-background-viewport { position: absolute; z-index: 0; inset: 0; overflow: hidden; }
+.story-preview-background-pan { position: absolute; inset: 0; }
+.story-preview-background-image { display: block; width: 100%; height: 100%; transform-origin: center; object-fit: cover; pointer-events: none; user-select: none; }
+.story-preview-stage-background-editable .story-preview-background-viewport { cursor: grab; touch-action: none; }
+.story-preview-stage-background-editable .story-preview-stage-copy { pointer-events: none; }
+.story-preview-stage-background-dragging .story-preview-background-viewport { cursor: grabbing; }
+.story-preview-background-hint { position: absolute; z-index: 4; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid rgb(255 255 255 / .28); border-radius: 7px; color: #fff; background: rgb(26 34 45 / .78); font-size: 11px; font-weight: 700; pointer-events: none; }
+.story-preview-stage-copy { position: absolute; z-index: 2; right: 22px; bottom: 19px; left: 22px; color: #fff; }
 .story-preview-stage-copy > span { color: #ffe6a2; font-size: 9px; font-weight: 900; letter-spacing: 1.2px; }
 .story-preview-stage-copy h3 { max-width: 24ch; margin: 5px 0 3px; font-size: clamp(18px, 3vw, 28px); letter-spacing: -.7px; }
 .story-preview-stage-copy p { max-width: 58ch; margin: 0; color: #f2f4f1; font-size: 12px; line-height: 1.45; }

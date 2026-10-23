@@ -1,6 +1,8 @@
 import { Outlet, useLocation } from "react-router-dom";
-import FamilyProfilesStatus from "../components/FamilyProfilesStatus";
+import ParentChildExperience from "../pages/ParentChildExperience";
+import FamilyReportsDemo from "../pages/FamilyReportsDemo";
 import { getFamilyProfilePreview, showFamilyProfilePreview } from "../components/FamilyProfilesPreview";
+import { moduleApiModes } from "../../../lib/api/featureApi";
 
 const availableParentRoutes = new Set([
   "/parent",
@@ -15,22 +17,14 @@ export default function ParentAvailabilityGate() {
   const normalizedPath = pathname.replace(/\/+$/, "") || "/";
   const previewDetailMatch = normalizedPath.match(/^\/parent\/children\/([^/]+)$/);
   const isPreviewDetail = showFamilyProfilePreview && previewDetailMatch && getFamilyProfilePreview(previewDetailMatch[1]);
+  const isLiveCatalog = normalizedPath === "/parent/library" && moduleApiModes.parentCatalog === "real";
 
-  if (availableParentRoutes.has(normalizedPath) || isPreviewDetail) return <Outlet />;
-
-  return (
-    <div className="parent-page">
-      <div className="workspace-page-heading">
-        <div>
-          <p className="workspace-eyebrow">PHỤ HUYNH</p>
-          <h1>Không gian của gia đình</h1>
-          <p>Thông tin từng bé sẽ tập trung tại đây để bạn tiện theo dõi và đồng hành.</p>
-        </div>
-      </div>
-      <FamilyProfilesStatus
-        title="Khu vực này sẽ mở cùng hồ sơ của bé"
-        message="Quay lại danh sách hồ sơ để tiếp tục quản lý tài khoản của gia đình."
-      />
-    </div>
-  );
+  const childMatch = normalizedPath.match(/^\/parent\/children\/([^/]+)(?:\/([^/]+))?$/);
+  if (childMatch && childMatch[1] !== "new" && moduleApiModes.parentProfile === "real") {
+    const childId = decodeURIComponent(childMatch[1]);
+    return <ParentChildExperience key={childId} childId={childId} section={childMatch[2] || ""} />;
+  }
+  if (["/parent/reports", "/parent/exports"].includes(normalizedPath)) return <FamilyReportsDemo exports={normalizedPath.endsWith("exports")} />;
+  if (availableParentRoutes.has(normalizedPath) || isPreviewDetail || isLiveCatalog) return <Outlet />;
+  return <Outlet />;
 }

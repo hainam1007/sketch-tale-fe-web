@@ -121,7 +121,7 @@ export function animationDuration(page, audioDurations = {}) {
     const playableLength = Number(track.durationMs) > 0 ? Number(track.durationMs) : Math.max(0, fullLength - Number(track.trimStartMs || 0));
     return Math.max(end, Number(track.startMs || 0) + playableLength);
   }, 0);
-  return Math.max(3000, motionEnd, audioEnd);
+  return Math.max(3000, motionEnd, audioEnd, ...(page?.subtitles || []).map((cue) => Number(cue.startMs) + Number(cue.durationMs)));
 }
 
 export function clipsConflict(clips, candidate, excludeId) {
