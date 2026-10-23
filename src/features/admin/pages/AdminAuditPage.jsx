@@ -1,43 +1,456 @@
-import { MagnifyingGlass, ShieldCheck, X } from "@phosphor-icons/react";
+import {
+  ArrowClockwise,
+  MagnifyingGlass,
+  ShieldCheck,
+  X,
+} from "@phosphor-icons/react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
 import { adminService } from "../services/adminService";
 import { queryKeys } from "../../../lib/api/queryKeys";
+import AdminDialog from "../components/AdminDialog";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 
-const ranges = [["7d", "7 ngày gần đây"], ["30d", "30 ngày gần đây"], ["all", "Tất cả thời gian"]];
+const ranges = [
+  ["7d", "7 ngày gần đây"],
+  ["30d", "30 ngày gần đây"],
+  ["all", "Tất cả thời gian"],
+];
 export default function AdminAuditPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = useState(null);
+  const [scope, setScope] = useState("all");
+  const [scopeValue, setScopeValue] = useState("");
+  const [appliedScope, setAppliedScope] = useState({ scope: "all", value: "" });
   const rawPage = Number(searchParams.get("page"));
   const rawPageSize = Number(searchParams.get("pageSize"));
   const requestedRange = searchParams.get("range");
-  const filters = { actor: searchParams.get("actor") || "all", action: searchParams.get("action") || "all", range: ranges.some(([value]) => value === requestedRange) ? requestedRange : "30d", search: searchParams.get("search") || "", page: Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1, pageSize: [10, 25, 50].includes(rawPageSize) ? rawPageSize : 10 };
-  const auditQuery = useQuery({ queryKey: queryKeys.adminAudit(user.id), queryFn: ({ signal }) => adminService.listAudit({ signal }), placeholderData: (previous) => previous });
-  const detailQuery = useQuery({ queryKey: ["admin-audit-detail", user.id, selected?.id], queryFn: ({ signal }) => adminService.getAudit({ auditId: selected.id, signal }), enabled: Boolean(selected?.id), retry: false });
-  function updateFilter(key, value) { const next = new URLSearchParams(searchParams); const isDefault = (key === "actor" || key === "action") && value === "all" || key === "range" && value === "30d" || key === "pageSize" && value === "10" || key === "page" && value === "1"; if (value && !isDefault) next.set(key, value); else next.delete(key); if (key !== "page") next.delete("page"); setSearchParams(next, { replace: key === "search" }); }
-  if (auditQuery.isLoading) return <LoadingState label="Đang tải nhật ký thao tác" />;
-  if (auditQuery.isError) return <ErrorState title="Không thể tải nhật ký thao tác" message={auditQuery.error.message} onRetry={() => auditQuery.refetch()} />;
+  const filters = {
+    actor: searchParams.get("actor") || "all",
+    action: searchParams.get("action") || "all",
+    range: ranges.some(([value]) => value === requestedRange)
+      ? requestedRange
+      : "30d",
+    search: searchParams.get("search") || "",
+    page: Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1,
+    pageSize: [10, 25, 50].includes(rawPageSize) ? rawPageSize : 10,
+  };
+  const auditQuery = useQuery({
+    queryKey: [...queryKeys.adminAudit(user.id), appliedScope],
+    queryFn: ({ signal }) =>
+      adminService.listAudit({ ...appliedScope, signal }),
+  });
+  const detailQuery = useQuery({
+    queryKey: ["admin-audit-detail", user.id, selected?.id],
+    queryFn: ({ signal }) =>
+      adminService.getAudit({ auditId: selected.id, signal }),
+    enabled: Boolean(selected?.id),
+    retry: false,
+  });
+  function updateFilter(key, value) {
+    const next = new URLSearchParams(searchParams);
+    const isDefault =
+      ((key === "actor" || key === "action") && value === "all") ||
+      (key === "range" && value === "30d") ||
+      (key === "pageSize" && value === "10") ||
+      (key === "page" && value === "1");
+    if (value && !isDefault) next.set(key, value);
+    else next.delete(key);
+    if (key !== "page") next.delete("page");
+    setSearchParams(next, { replace: key === "search" });
+  }
+  if (auditQuery.isLoading)
+    return <LoadingState label="Đang tải nhật ký thao tác" />;
+  if (auditQuery.isError && !auditQuery.data)
+    return (
+      <ErrorState
+        title="Không thể tải nhật ký thao tác"
+        message={auditQuery.error.message}
+        onRetry={() => auditQuery.refetch()}
+      />
+    );
   const rows = Array.isArray(auditQuery.data) ? auditQuery.data : [];
-  const actors = [...new Set(rows.map((item) => item.createBy).filter(Boolean))];
+  const actors = [
+    ...new Set(rows.map((item) => item.createBy).filter(Boolean)),
+  ];
   const actions = [...new Set(rows.map((item) => item.action).filter(Boolean))];
-  const cutoff = filters.range === "all" ? 0 : Date.now() - (filters.range === "7d" ? 7 : 30) * 24 * 60 * 60 * 1000;
+  const cutoff =
+    filters.range === "all"
+      ? 0
+      : auditQuery.dataUpdatedAt - (filters.range === "7d" ? 7 : 30) * 24 * 60 * 60 * 1000;
   const filtered = rows.filter((item) => {
     const createdAt = new Date(item.createdAt).getTime();
-    const searchText = `${item.createBy || ""} ${item.action || ""} ${item.entityName || ""} ${item.primaryKey || ""}`.toLocaleLowerCase("vi");
-    return (filters.actor === "all" || item.createBy === filters.actor)
-      && (filters.action === "all" || item.action === filters.action)
-      && (filters.range === "all" || (Number.isFinite(createdAt) && createdAt >= cutoff))
-      && (!filters.search || searchText.includes(filters.search.toLocaleLowerCase("vi")));
+    const searchText =
+      `${item.createBy || ""} ${item.action || ""} ${item.entityName || ""} ${item.primaryKey || ""}`.toLocaleLowerCase(
+        "vi",
+      );
+    return (
+      (filters.actor === "all" || item.createBy === filters.actor) &&
+      (filters.action === "all" || item.action === filters.action) &&
+      (filters.range === "all" ||
+        (Number.isFinite(createdAt) && createdAt >= cutoff)) &&
+      (!filters.search ||
+        searchText.includes(filters.search.toLocaleLowerCase("vi")))
+    );
   });
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / filters.pageSize));
-  const items = filtered.slice((filters.page - 1) * filters.pageSize, filters.page * filters.pageSize);
-  const detail = detailQuery.data ? { ...selected, ...detailQuery.data } : selected;
-  return <div className="workspace-dashboard audit-page"><div className="workspace-page-heading"><div><p className="workspace-eyebrow">ADMIN / AUDIT VIEWER</p><h1>Nhật ký thao tác</h1><p>Chỉ đọc: tra cứu ai đã làm gì và đối tượng nào bị thay đổi.</p></div><ShieldCheck size={43} className="admin-heading-icon" aria-hidden="true" /></div><div className="audit-filter-panel"><label><span>Người thực hiện</span><select aria-label="Lọc actor" value={filters.actor} onChange={(event) => updateFilter("actor", event.target.value)}><option value="all">Tất cả người thực hiện</option>{actors.map((actor) => <option value={actor} key={actor}>{actor}</option>)}</select></label><label><span>Hành động</span><select aria-label="Lọc action" value={filters.action} onChange={(event) => updateFilter("action", event.target.value)}><option value="all">Tất cả hành động</option>{actions.map((action) => <option value={action} key={action}>{action}</option>)}</select></label><label><span>Khoảng thời gian</span><select aria-label="Khoảng thời gian audit" value={filters.range} onChange={(event) => updateFilter("range", event.target.value)}>{ranges.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label className="audit-search"><span>Tìm đối tượng</span><div><MagnifyingGlass size={15} aria-hidden="true" /><input aria-label="Tìm audit" value={filters.search} onChange={(event) => updateFilter("search", event.target.value)} placeholder="ID, loại đối tượng hoặc người thực hiện" /></div></label><label><span>Số dòng</span><select aria-label="Số dòng audit" value={String(filters.pageSize)} onChange={(event) => updateFilter("pageSize", event.target.value)}><option value="10">10 / trang</option><option value="25">25 / trang</option><option value="50">50 / trang</option></select></label></div><section className="analytics-card audit-table-card"><div className="analytics-card-heading"><div><h2>Event đã ghi nhận</h2><p>{total} event phù hợp bộ lọc.</p></div></div>{items.length ? <><div className="analytics-table-wrap"><table className="analytics-table audit-table"><caption className="sr-only">Danh sách audit event</caption><thead><tr><th>Thời gian</th><th>Người thực hiện (ID)</th><th>Hành động</th><th>Đối tượng</th><th><span className="sr-only">Chi tiết</span></th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td>{formatDateTime(item.createdAt)}</td><td><code>{item.createBy || "Không rõ"}</code></td><td><code>{item.action || "Chưa xác định"}</code></td><td>{item.entityName || "Chưa xác định"}<small><code>{item.primaryKey || ""}</code></small></td><td><button className="workspace-button workspace-button-quiet audit-detail-button" type="button" onClick={() => setSelected(item)}>Xem</button></td></tr>)}</tbody></table></div><div className="admin-table-footer"><p className="admin-table-footnote">{total ? `${(filters.page - 1) * filters.pageSize + 1}–${Math.min(filters.page * filters.pageSize, total)} / ${total} event` : "0 event"}</p><nav className="admin-pagination" aria-label="Phân trang audit"><button type="button" className="workspace-button workspace-button-quiet" disabled={filters.page <= 1} onClick={() => updateFilter("page", String(filters.page - 1))}>Trước</button><span>Trang {filters.page} / {totalPages}</span><button type="button" className="workspace-button workspace-button-quiet" disabled={filters.page >= totalPages} onClick={() => updateFilter("page", String(filters.page + 1))}>Sau</button></nav></div></> : <div className="workspace-state workspace-state-empty"><ShieldCheck size={29} aria-hidden="true" /><strong>Không có event phù hợp</strong><p>Thử đổi actor, hành động hoặc khoảng thời gian.</p></div>}</section>{selected && <div className="admin-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelected(null); }}><section className="admin-dialog audit-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="audit-detail-title"><div className="admin-dialog-heading"><div><p className="workspace-eyebrow">AUDIT EVENT</p><h2 id="audit-detail-title">Chi tiết thao tác</h2></div><button className="icon-button" type="button" aria-label="Đóng chi tiết audit" onClick={() => setSelected(null)}><X size={18} aria-hidden="true" /></button></div>{detailQuery.isFetching && <p role="status">Đang tải chi tiết…</p>}{detailQuery.isError && <p role="alert">{detailQuery.error.message}</p>}<dl className="audit-detail-meta"><div><dt>Thời gian</dt><dd>{formatDateTime(detail?.createdAt)}</dd></div><div><dt>Người thực hiện (ID)</dt><dd><code>{detail?.createBy || "Không rõ"}</code></dd></div><div><dt>Hành động</dt><dd><code>{detail?.action || "Chưa xác định"}</code></dd></div><div><dt>Loại đối tượng</dt><dd>{detail?.entityName || "Chưa xác định"}</dd></div><div><dt>ID đối tượng</dt><dd><code>{detail?.primaryKey || "Chưa xác định"}</code></dd></div></dl><pre>{JSON.stringify({ oldValues: detail?.oldValues, newValues: detail?.newValues, changedColumns: detail?.changedColumns }, null, 2)}</pre><p className="audit-detail-readonly">Backend chưa cung cấp tên người dùng hoặc trạng thái thành công/thất bại cho bản ghi này.</p><div className="admin-dialog-actions"><button className="workspace-button workspace-button-quiet" type="button" onClick={() => setSelected(null)}>Đóng</button></div></section></div>}</div>;
+  const currentPage = Math.min(filters.page, totalPages);
+  const items = [...filtered]
+    .sort(
+      (a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0),
+    )
+    .slice(
+      (currentPage - 1) * filters.pageSize,
+      currentPage * filters.pageSize,
+    );
+  const detail = detailQuery.data
+    ? { ...selected, ...detailQuery.data }
+    : selected;
+  return (
+    <div className="workspace-dashboard audit-page">
+      <div className="workspace-page-heading">
+        <div>
+          <p className="workspace-eyebrow">ADMIN / AUDIT VIEWER</p>
+          <h1>Nhật ký thao tác</h1>
+          <p>Chỉ đọc: tra cứu ai đã làm gì và đối tượng nào bị thay đổi.</p>
+        </div>
+        <ShieldCheck
+          size={43}
+          className="admin-heading-icon"
+          aria-hidden="true"
+        />
+      </div>
+      <div className="admin-source-note is-live">
+        <span className="admin-source-indicator" />
+        Nhật ký từ hệ thống · Chỉ đọc
+        <button
+          className="icon-button"
+          aria-label="Làm mới nhật ký"
+          disabled={auditQuery.isFetching}
+          onClick={() => auditQuery.refetch()}
+        >
+          <ArrowClockwise size={18} />
+        </button>
+      </div>
+      {auditQuery.isError && (
+        <p role="alert">Không thể làm mới. Đang giữ dữ liệu đã tải.</p>
+      )}
+      <form
+        className="admin-audit-scope"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setAppliedScope({ scope, value: scopeValue });
+          setSearchParams({ range: "all" });
+        }}
+      >
+        <label>
+          Tra cứu theo
+          <select
+            aria-label="Phạm vi tra cứu"
+            value={scope}
+            onChange={(event) => setScope(event.target.value)}
+          >
+            <option value="all">Toàn bộ nhật ký</option>
+            <option value="user">ID người thực hiện</option>
+            <option value="entity">Loại đối tượng</option>
+            <option value="target">ID đối tượng</option>
+          </select>
+        </label>
+        {scope !== "all" && (
+          <label>
+            Giá trị tra cứu
+            <input
+              aria-label="Giá trị tra cứu"
+              value={scopeValue}
+              onChange={(event) => setScopeValue(event.target.value)}
+              required
+              pattern={
+                scope === "entity"
+                  ? undefined
+                  : "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+              }
+              title={
+                scope === "entity" ? "Tên loại đối tượng" : "Nhập UUID hợp lệ"
+              }
+            />
+          </label>
+        )}
+        <button
+          className="workspace-button"
+          disabled={
+            auditQuery.isFetching || (scope !== "all" && !scopeValue.trim())
+          }
+        >
+          Tra cứu
+        </button>
+      </form>
+      <div className="audit-filter-panel">
+        <label>
+          <span>Người thực hiện</span>
+          <select
+            aria-label="Lọc actor"
+            value={filters.actor}
+            onChange={(event) => updateFilter("actor", event.target.value)}
+          >
+            <option value="all">Tất cả người thực hiện</option>
+            {actors.map((actor) => (
+              <option value={actor} key={actor}>
+                {actor}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Hành động</span>
+          <select
+            aria-label="Lọc action"
+            value={filters.action}
+            onChange={(event) => updateFilter("action", event.target.value)}
+          >
+            <option value="all">Tất cả hành động</option>
+            {actions.map((action) => (
+              <option value={action} key={action}>
+                {action}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Khoảng thời gian</span>
+          <select
+            aria-label="Khoảng thời gian audit"
+            value={filters.range}
+            onChange={(event) => updateFilter("range", event.target.value)}
+          >
+            {ranges.map(([value, label]) => (
+              <option value={value} key={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="audit-search">
+          <span>Tìm đối tượng</span>
+          <div>
+            <MagnifyingGlass size={15} aria-hidden="true" />
+            <input
+              aria-label="Tìm audit"
+              value={filters.search}
+              onChange={(event) => updateFilter("search", event.target.value)}
+              placeholder="ID, loại đối tượng hoặc người thực hiện"
+            />
+          </div>
+        </label>
+        <label>
+          <span>Số dòng</span>
+          <select
+            aria-label="Số dòng audit"
+            value={String(filters.pageSize)}
+            onChange={(event) => updateFilter("pageSize", event.target.value)}
+          >
+            <option value="10">10 / trang</option>
+            <option value="25">25 / trang</option>
+            <option value="50">50 / trang</option>
+          </select>
+        </label>
+      </div>
+      <section className="analytics-card audit-table-card">
+        <div className="analytics-card-heading">
+          <div>
+            <h2>Thao tác đã ghi nhận</h2>
+            <p aria-live="polite">{total} thao tác phù hợp bộ lọc.</p>
+            <button
+              className="workspace-button workspace-button-quiet"
+              onClick={() => setSearchParams({ range: "all" })}
+            >
+              Xóa bộ lọc
+            </button>
+          </div>
+        </div>
+        {items.length ? (
+          <>
+            <div className="analytics-table-wrap">
+              <table className="analytics-table audit-table">
+                <caption className="sr-only">Danh sách audit event</caption>
+                <thead>
+                  <tr>
+                    <th>Thời gian</th>
+                    <th>Người thực hiện (ID)</th>
+                    <th>Hành động</th>
+                    <th>Đối tượng</th>
+                    <th>
+                      <span className="sr-only">Chi tiết</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id}>
+                      <td>{formatDateTime(item.createdAt)}</td>
+                      <td>
+                        <code>{item.createBy || "Không rõ"}</code>
+                      </td>
+                      <td>
+                        <code>{item.action || "Chưa xác định"}</code>
+                      </td>
+                      <td>
+                        {item.entityName || "Chưa xác định"}
+                        <small>
+                          <code>{item.primaryKey || ""}</code>
+                        </small>
+                      </td>
+                      <td>
+                        <button
+                          className="workspace-button workspace-button-quiet audit-detail-button"
+                          type="button"
+                          onClick={() => setSelected(item)}
+                        >
+                          Xem
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="admin-table-footer">
+              <p className="admin-table-footnote">
+                {total
+                  ? `${(currentPage - 1) * filters.pageSize + 1}–${Math.min(currentPage * filters.pageSize, total)} / ${total} thao tác`
+                  : "0 thao tác"}
+              </p>
+              <nav className="admin-pagination" aria-label="Phân trang audit">
+                <button
+                  type="button"
+                  className="workspace-button workspace-button-quiet"
+                  disabled={currentPage <= 1}
+                  onClick={() => updateFilter("page", String(currentPage - 1))}
+                >
+                  Trước
+                </button>
+                <span>
+                  Trang {currentPage} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="workspace-button workspace-button-quiet"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => updateFilter("page", String(currentPage + 1))}
+                >
+                  Sau
+                </button>
+              </nav>
+            </div>
+          </>
+        ) : (
+          <div className="workspace-state workspace-state-empty">
+            <ShieldCheck size={29} aria-hidden="true" />
+            <strong>Không có thao tác phù hợp</strong>
+            <p>Thử đổi người thực hiện, hành động hoặc khoảng thời gian.</p>
+          </div>
+        )}
+      </section>
+      {selected && (
+        <AdminDialog
+          className="audit-detail-dialog"
+          labelledBy="audit-detail-title"
+          onClose={() => setSelected(null)}
+        >
+          <div className="admin-dialog-heading">
+            <div>
+              <p className="workspace-eyebrow">AUDIT EVENT</p>
+              <h2 id="audit-detail-title">Chi tiết thao tác</h2>
+            </div>
+            <button
+              className="icon-button"
+              type="button"
+              aria-label="Đóng chi tiết audit"
+              onClick={() => setSelected(null)}
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+          {detailQuery.isFetching && <p role="status">Đang tải chi tiết…</p>}
+          {detailQuery.isError && (
+            <p role="alert">{detailQuery.error.message}</p>
+          )}
+          <dl className="audit-detail-meta">
+            <div>
+              <dt>Thời gian</dt>
+              <dd>{formatDateTime(detail?.createdAt)}</dd>
+            </div>
+            <div>
+              <dt>Người thực hiện (ID)</dt>
+              <dd>
+                <code>{detail?.createBy || "Không rõ"}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Hành động</dt>
+              <dd>
+                <code>{detail?.action || "Chưa xác định"}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Loại đối tượng</dt>
+              <dd>{detail?.entityName || "Chưa xác định"}</dd>
+            </div>
+            <div>
+              <dt>ID đối tượng</dt>
+              <dd>
+                <code>{detail?.primaryKey || "Chưa xác định"}</code>
+              </dd>
+            </div>
+          </dl>
+          <pre>
+            {JSON.stringify(
+              {
+                oldValues: parseValue(detail?.oldValues),
+                newValues: parseValue(detail?.newValues),
+                changedColumns: parseValue(detail?.changedColumns),
+              },
+              null,
+              2,
+            )}
+          </pre>
+          <p className="audit-detail-readonly">
+            Backend chưa cung cấp tên người dùng hoặc trạng thái thành công/thất
+            bại cho bản ghi này.
+          </p>
+          <div className="admin-dialog-actions">
+            <button
+              className="workspace-button workspace-button-quiet"
+              type="button"
+              onClick={() => setSelected(null)}
+            >
+              Đóng
+            </button>
+          </div>
+        </AdminDialog>
+      )}
+    </div>
+  );
 }
 
-function formatDateTime(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "Thời gian chưa xác định" : new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }).format(date); }
+function formatDateTime(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "Thời gian chưa xác định"
+    : new Intl.DateTimeFormat("vi-VN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Asia/Ho_Chi_Minh",
+      }).format(date);
+}
+
+function parseValue(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}

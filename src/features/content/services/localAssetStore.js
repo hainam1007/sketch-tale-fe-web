@@ -44,9 +44,9 @@ export function getLocalAssetNamespace() {
   return namespaceFromSession();
 }
 
-export async function putLocalAsset(assetId, blob, namespace = namespaceFromSession()) {
+export async function putLocalAsset(assetId, blob, namespace = namespaceFromSession(), category = "background") {
   if (!assetId || !blob) throw new Error("Asset local cần có ID và file.");
-  const record = { key: keyFor(namespace, assetId), namespace, assetId, blob, updatedAt: Date.now() };
+  const record = { key: keyFor(namespace, assetId), namespace, assetId, blob, category, updatedAt: Date.now() };
   const database = await openDatabase();
   if (!database) {
     memoryStore.set(record.key, record);

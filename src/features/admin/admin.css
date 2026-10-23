@@ -38,6 +38,7 @@
 .admin-editor-panel .admin-dialog-heading { padding-bottom: 15px; border-bottom: 1px solid #efeee9; }
 .admin-editor-demo-hint, .admin-field-note { padding: 10px 12px; border-radius: 8px; background: #fff8e6; color: #735d24 !important; font-size: 12px !important; line-height: 1.5; }
 .admin-editor-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; padding: 16px 0 2px; }
+.admin-editor-fields:where(fieldset) { border: 0; min-width: 0; margin: 0; }
 .admin-catalog-field { display: grid; align-content: start; gap: 6px; color: #48515e; font-size: 12px; font-weight: 800; }
 .admin-catalog-field > span b { color: #b34e58; }
 .admin-catalog-field input, .admin-catalog-field select, .admin-catalog-field textarea { width: 100%; min-height: 41px; box-sizing: border-box; padding: 9px 11px; border: 1px solid #d9dadd; border-radius: 8px; color: #303946; background: white; font: inherit; font-size: 13px; font-weight: 600; }
@@ -83,3 +84,43 @@
   .admin-dialog-actions > * { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .admin-editor-panel, .admin-overlay { scroll-behavior: auto; } }
+.workspace-app-admin { font-variant-numeric: tabular-nums; }
+.workspace-app-admin .workspace-dashboard { width: 100%; max-width: 1440px; min-width: 0; margin-inline: auto; }
+.workspace-app-admin .workspace-page-heading h1 { letter-spacing: -.025em; text-wrap: balance; }
+.workspace-app-admin .workspace-page-heading p { max-width: 70ch; line-height: 1.6; }
+.workspace-app-admin :is(button, a, input, select, textarea):focus-visible { outline: 3px solid #99701c; outline-offset: 3px; }
+.workspace-app-admin :is(.admin-report-item, .restriction-card, .admin-user-meta dd, .audit-detail-meta dd) { overflow-wrap: anywhere; min-width: 0; }
+.workspace-app-admin :is(.analytics-table-wrap, .admin-table-wrap, .admin-catalog-table-wrap, .admin-users-table-wrap, .admin-permission-table-wrap) { position: relative; max-width: 100%; overflow-x: auto; }
+.workspace-app-admin .admin-source-note { flex-wrap: wrap; line-height: 1.5; }
+.workspace-app-admin .admin-source-note > button { margin-left: auto; }
+.workspace-app-admin .admin-table-footer { flex-wrap: wrap; padding: 12px 16px; }
+.workspace-app-admin .admin-pagination { flex-wrap: wrap; gap: 10px; }
+.workspace-app-admin .admin-report-pagination { justify-content: flex-end; margin-top: 20px; }
+.workspace-app-admin .admin-filter-title { flex-wrap: wrap; }
+.workspace-app-admin .admin-filter-title .admin-search { flex: 1; min-width: 180px; }
+.workspace-app-admin .admin-filter-title .admin-search input { width: 100%; padding: 10px 12px; border: 1px solid #d1d5da; border-radius: 8px; font: inherit; }
+.admin-audit-scope { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+.admin-audit-scope label { display: grid; flex: 1; gap: 6px; min-width: 180px; color: #59616d; font-size: 13px; }
+.admin-audit-scope :is(select, input) { min-height: 42px; width: 100%; padding: 9px 12px; border: 1px solid #d1d5da; border-radius: 8px; background: #fff; color: #3f4855; font: inherit; }
+.workspace-app-admin .audit-filter-panel { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.workspace-app-admin .audit-search { grid-column: span 2; }
+.workspace-app-admin .audit-filter-panel :is(label, input, select) { min-width: 0; max-width: 100%; }
+.workspace-app-admin .analytics-card { min-width: 0; }
+.workspace-app-admin .analytics-table-wrap { width: 100%; }
+@media (prefers-reduced-motion: reduce) { .workspace-app-admin .workspace-sidebar { transition: none; } }
+.admin-native-dialog { position: fixed; margin: auto; max-height: calc(100dvh - 32px); overflow-y: auto; }
+.admin-native-dialog::backdrop { background: rgb(19 24 31 / .45); }
+.workspace-app-admin .admin-dialog { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.workspace-app-admin .audit-detail-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.7; }
+@media (max-width: 800px) {
+  .workspace-app-admin .audit-filter-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-app-admin .admin-filter-fields { flex-wrap: wrap; }
+  .workspace-app-admin .admin-filter-fields > * { min-width: 0; }
+}
+@media (max-width: 560px) {
+  .workspace-app-admin .audit-filter-panel { grid-template-columns: 1fr; }
+  .workspace-app-admin .audit-search { grid-column: auto; }
+  .workspace-app-admin .admin-pagination { justify-content: center; width: 100%; }
+  .admin-audit-scope { align-items: stretch; flex-direction: column; }
+  .admin-native-dialog { width: calc(100% - 24px); padding: 18px; }
+}

@@ -1,7 +1,11 @@
-import { featureApiRequest } from "../../../lib/api/featureApi";
+import { featureApiRequest, moduleApiModes } from "../../../lib/api/featureApi";
+import { parentCatalogService } from "./parentCatalogService";
 
 export const childrenService = {
-  storyCatalog: ({ signal } = {}) => featureApiRequest("parent", { path: "/parent/stories", signal }),
+  storyCatalog: ({ signal } = {}) => moduleApiModes.parentCatalog === "real"
+    ? parentCatalogService.list({ signal })
+    : featureApiRequest("parent", { path: "/parent/stories", signal }),
+  catalogStory: ({ storyId, signal }) => parentCatalogService.get({ storyId, signal }),
   recommendStory: ({ childId, storyId }) => featureApiRequest("parent", { path: `/children/${childId}/recommendations`, method: "POST", body: { storyId } }),
   list: ({ signal } = {}) => featureApiRequest("parent", { path: "/children", signal }),
   get: ({ childId, signal }) => featureApiRequest("parent", { path: `/children/${childId}`, signal }),

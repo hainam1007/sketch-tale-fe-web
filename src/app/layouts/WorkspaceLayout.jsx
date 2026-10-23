@@ -20,7 +20,7 @@ import { useAuth } from "../../features/auth/AuthProvider";
 import BrandLogo from "../../components/branding/BrandLogo";
 import { useConfirmToast } from "../../components/feedback/useConfirmToast";
 import { ROLES, roleHome, roleLabels } from "../../lib/permissions/roles";
-import { isFeatureMockMode } from "../../lib/api/featureApi";
+import { isFeatureMockMode, moduleApiModes } from "../../lib/api/featureApi";
 import { approveNextContentEditorNavigation, isContentEditorDirty, shouldConfirmContentEditorNavigation } from "../../features/content/hooks/useEditorSaveState";
 import "./workspace.css";
 import "../../features/content/content.css";
@@ -49,10 +49,12 @@ const roleNavigation = {
     { to: "/admin/restrictions", label: "Nội dung hạn chế", icon: Prohibit },
     { to: "/admin/monitoring", label: "Giám sát", icon: ChartLineUp },
     { to: "/admin/statistics", label: "Số liệu", icon: ChartLineUp },
-    { to: "/admin/audit", label: "Audit", icon: ShieldCheck },
+    { to: "/admin/audit", label: "Nhật ký thao tác", icon: ShieldCheck },
     { to: "/admin/subscription-plans", label: "Gói sử dụng", icon: Package },
     { to: "/admin/credit-costs", label: "Chi phí credit", icon: Coins },
     { to: "/admin/education-themes", label: "Chủ đề giáo dục", icon: GraduationCap },
+    { to: "/admin/char-types", label: "Loại nhân vật", icon: UsersThree },
+    { to: "/admin/prohibited-themes", label: "Chủ đề cấm", icon: Prohibit },
   ],
 };
 
@@ -67,7 +69,7 @@ export default function WorkspaceLayout() {
   const menuButtonRef = useRef(null);
   const sidebarRef = useRef(null);
   const navigation = roleNavigation[user.role] || roleNavigation[ROLES.PARENT];
-  const isAdminCatalogPage = user.role === ROLES.ADMIN && /^\/admin\/(subscription-plans|credit-costs|education-themes)$/.test(location.pathname);
+  const isAdminCatalogPage = /^\/admin\/(subscription-plans|credit-costs|education-themes|char-types|prohibited-themes|audit|restrictions)(?:\/|$)/.test(location.pathname) || (location.pathname.startsWith("/admin/reports") && moduleApiModes.adminReports === "real");
 
   function closeMobile() {
     setMobileOpen(false);
@@ -155,7 +157,7 @@ export default function WorkspaceLayout() {
           <List size={23} aria-hidden="true" />
         </button>
         <main id="main" className="workspace-main" tabIndex={-1}>
-          {user.role === ROLES.ADMIN && !isAdminCatalogPage && isFeatureMockMode("admin") && <div className="admin-demo-banner" role="status"><span aria-hidden="true" /> Một số tính năng quản trị dùng Dữ liệu mô phỏng; từng khu vực hiển thị nhãn nguồn dữ liệu.</div>}
+          {user.role === ROLES.ADMIN && !isAdminCatalogPage && isFeatureMockMode("admin") && <div className="admin-demo-banner" role="status"><span aria-hidden="true" /> Giao diện xem trước · Dữ liệu mô phỏng. Chức năng này chưa có API; thao tác chỉ thay đổi dữ liệu demo.</div>}
           <Outlet />
         </main>
       </div>

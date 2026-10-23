@@ -685,7 +685,6 @@ function removeSlotReferences(story, slotIds) {
 
 function validatePage(body) {
   const errors = {};
-  if (!body?.title?.trim()) errors.title = "Nhập tiêu đề trang.";
   (body?.audioTracks || []).forEach((track, index) => {
     if (!track?.assetId) errors[`audioTracks.${index}.assetId`] = "Chọn tệp âm thanh.";
     if (!Number.isFinite(Number(track?.startMs || 0)) || Number(track?.startMs || 0) < 0) errors[`audioTracks.${index}.startMs`] = "Thời điểm bắt đầu phải từ 0 trở lên.";
@@ -1282,7 +1281,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const assetIndex = database.assets.findIndex((asset) => asset.id === assetDetailMatch[1]);
     if (assetIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy asset." });
     if (database.assets[assetIndex].ownerId && database.assets[assetIndex].ownerId !== user.id) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy asset." });
-    const referenced = database.stories.some((story) => story.coverAssetId === assetDetailMatch[1] || story.pages?.some((page) => page.backgroundAssetId === assetDetailMatch[1] || page.audioTracks?.some((track) => track.assetId === assetDetailMatch[1])) || story.roles?.some((role) => role.defaultAssetId === assetDetailMatch[1] || role.slots?.some((slot) => slot.assetId === assetDetailMatch[1])));
+    const referenced = database.stories.some((story) => story.coverAssetId === assetDetailMatch[1] || story.pages?.some((page) => page.backgroundAssetId === assetDetailMatch[1] || page.imageObjects?.some((image) => image.assetId === assetDetailMatch[1]) || page.audioTracks?.some((track) => track.assetId === assetDetailMatch[1])) || story.roles?.some((role) => role.defaultAssetId === assetDetailMatch[1] || role.slots?.some((slot) => slot.assetId === assetDetailMatch[1])));
     if (referenced) throw new ApiError({ status: 409, code: "ASSET_IN_USE", message: "Asset đang được story tham chiếu, không thể xóa." });
     const [removed] = database.assets.splice(assetIndex, 1);
     writeDatabase(database);
@@ -1303,12 +1302,14 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       kind: body.get("kind"),
       mimeType: body.get("mimeType"),
       size: Number(body.get("size")),
+      category: body.get("category") || "background",
     } : body;
     validateAsset(uploadPayload);
     const asset = {
       id: `asset-upload-${Date.now()}`,
       name: uploadPayload.name,
       kind: uploadPayload.kind || "image",
+      category: uploadPayload.category || "background",
       size: uploadPayload.size || 0,
       mimeType: uploadPayload.mimeType || "image/webp",
       url: "/images/hero.webp",
@@ -1409,7 +1410,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const { story } = findStory(database, pageDetailMatch[1]);
     const pageIndex = story.pages.findIndex((page) => page.id === pageDetailMatch[2]);
     if (pageIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy page." });
-    if (method === "PATCH") { assertStoryRevision(story, body?.revision); validatePage(body); story.pages[pageIndex] = { ...story.pages[pageIndex], ...mutationPayload(body), title: body.title.trim(), text: body.text.trim() }; storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story); }
+    if (method === "PATCH") { assertStoryRevision(story, body?.revision); validatePage(body); story.pages[pageIndex] = { ...story.pages[pageIndex], ...mutationPayload(body), text: body.text.trim() }; storyMutation(story, { expectedRevision: body?.revision }); writeDatabase(database); return storyResponse(story); }
     if (method === "DELETE") {
       assertStoryRevision(story, body?.revision);
       const deletedPageId = pageDetailMatch[2];
@@ -1475,7 +1476,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     if (method === "POST") {
       assertStoryRevision(story, body?.revision);
       let item;
-      if (collection === "pages") { validatePage(body); item = { ...mutationPayload(body), id: `page-${Date.now()}`, order: story.pages.length + 1, title: body.title.trim(), text: body.text?.trim() || "", backgroundAssetId: body.backgroundAssetId || null, narration: body.narration?.trim() || "", audioTracks: body.audioTracks || [], sequence: body.sequence || [] }; }
+      if (collection === "pages") { validatePage(body); item = { ...mutationPayload(body), id: `page-${Date.now()}`, order: story.pages.length + 1, text: body.text?.trim() || "", backgroundAssetId: body.backgroundAssetId || null, narration: body.narration?.trim() || "", audioTracks: body.audioTracks || [], sequence: body.sequence || [] }; }
       if (collection === "roles") { validateRole(body); item = { id: `role-${Date.now()}`, name: body.name.trim(), custom: body.custom !== false, sensitive: Boolean(body.sensitive), defaultAssetId: body.defaultAssetId || null, slots: [] }; }
       if (collection === "vocabulary") { validateVocabulary(body, story); item = { id: `vocab-${Date.now()}`, pageId: body.pageId, word: body.word.trim(), meaning: body.meaning.trim(), audioUrl: body.audioUrl?.trim() || "" }; }
       if (collection === "quizzes") { validateQuiz(body, story); item = { id: `quiz-${Date.now()}`, pageId: body.pageId, question: body.question.trim(), options: body.options.map((option) => option.trim()), correctIndex: body.correctIndex, feedback: body.feedback?.trim() || "", audioUrl: body.audioUrl?.trim() || "" }; }
@@ -1796,7 +1797,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       const assetUrl = (id) => database.assets.find((asset) => asset.id === id)?.url || null;
       return { id: story.id, title: published.title, description: published.description, category: published.category,
         imageUrl: assetUrl(published.coverAssetId),
-        pages: [...(published.pages || [])].sort((a, b) => a.order - b.order).map((page) => ({ id: page.id, title: page.title, text: page.text, imageUrl: assetUrl(page.backgroundAssetId || published.coverAssetId) })) };
+        pages: [...(published.pages || [])].sort((a, b) => a.order - b.order).map((page) => ({ id: page.id, text: page.text, imageUrl: assetUrl(page.backgroundAssetId || published.coverAssetId) })) };
     }).filter(Boolean);
     return { items: clone(items), total: items.length };
   }

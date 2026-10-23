@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authService, isRealApi } from "./authService";
-import { ACCESS_TOKEN_KEY, hasAccessToken } from "../../lib/api/httpClient";
+import { ACCESS_TOKEN_KEY, hasAccessToken, refreshAccessTokenIfNeeded } from "../../lib/api/httpClient";
+import { getTokenPair } from "../../lib/api/authTokenStorage";
 import { normalizeApiError } from "../../lib/api/errors";
 import { SESSION_KEY } from "../../mocks/mockServer";
 
@@ -9,6 +10,8 @@ const AuthContext = createContext(null);
 
 export default function AuthProvider({ children }) {
   const queryClient = useQueryClient();
+  const restoreSessionRef = useRef(null);
+  const cancelRestoreRef = useRef(null);
   const [session, setSession] = useState(() =>
     isRealApi && !hasAccessToken()
       ? { status: "anonymous", user: null }
@@ -33,12 +36,23 @@ export default function AuthProvider({ children }) {
         if (active && revision === restoreRevision && (!isRealApi || hasAccessToken())) {
           setSession({ status: "authenticated", user });
         }
-      } catch {
+      } catch (error) {
         if (active && revision === restoreRevision) {
-          setSession({ status: "anonymous", user: null });
+          const isInvalidSession = [401, 423].includes(error?.status) || (isRealApi && !hasAccessToken());
+          const cachedUser = isInvalidSession ? null : authService.getCachedUser();
+          if (cachedUser) {
+            setSession({ status: "authenticated", user: cachedUser });
+          } else if (isInvalidSession || !isRealApi) {
+            setSession({ status: "anonymous", user: null });
+          } else {
+            setSession({ status: "error", user: null });
+          }
         }
       }
     }
+
+    restoreSessionRef.current = () => restoreSession(true);
+    cancelRestoreRef.current = () => { restoreRevision += 1; };
 
     function handleStorage(event) {
       const sessionKey = isRealApi ? ACCESS_TOKEN_KEY : SESSION_KEY;
@@ -51,6 +65,8 @@ export default function AuthProvider({ children }) {
     return () => {
       active = false;
       restoreRevision += 1;
+      restoreSessionRef.current = null;
+      cancelRestoreRef.current = null;
       window.removeEventListener("storage", handleStorage);
     };
   }, [queryClient]);
@@ -64,17 +80,65 @@ export default function AuthProvider({ children }) {
     return () => window.removeEventListener("sketchtale:auth-invalid", handleInvalidSession);
   }, [queryClient]);
 
+  useEffect(() => {
+    if (session.status !== "authenticated") return undefined;
+
+    let refreshing = false;
+    async function refreshIfNeeded() {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        await refreshAccessTokenIfNeeded();
+      } catch {
+        // Keep the current UI through transient network failures; the regular
+        // API request path will retry refresh if the access token expires.
+      } finally {
+        refreshing = false;
+      }
+    }
+    function refreshWhenVisible() {
+      if (document.visibilityState === "visible") void refreshIfNeeded();
+    }
+
+    const timer = window.setInterval(refreshIfNeeded, 60_000);
+    window.addEventListener("focus", refreshIfNeeded);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    void refreshIfNeeded();
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshIfNeeded);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [session.status]);
+
   const login = useCallback(async (credentials) => {
+    cancelRestoreRef.current?.();
+    const previousPair = getTokenPair();
     try {
-      const user = await authService.login(credentials);
+      const user = credentials.loginType === "child"
+        ? await authService.loginChild(credentials)
+        : await authService.login(credentials);
+      queryClient.clear();
       setSession({ status: "authenticated", user });
       return user;
     } catch (error) {
+      const currentPair = getTokenPair();
+      if (previousPair?.accessToken !== currentPair?.accessToken || previousPair?.sessionId !== currentPair?.sessionId) {
+        queryClient.clear();
+        setSession({ status: "anonymous", user: null });
+      }
       throw normalizeApiError(error);
     }
-  }, []);
+  }, [queryClient]);
+
+  const loginChild = useCallback(
+    (credentials) => login({ ...credentials, loginType: "child" }),
+    [login],
+  );
 
   const logout = useCallback(async () => {
+    cancelRestoreRef.current?.();
     let serverLogoutSucceeded = true;
     try {
       await authService.logout();
@@ -87,9 +151,13 @@ export default function AuthProvider({ children }) {
     return serverLogoutSucceeded;
   }, [queryClient]);
 
+  const retryRestore = useCallback(() => {
+    if (restoreSessionRef.current) void restoreSessionRef.current();
+  }, []);
+
   const value = useMemo(
-    () => ({ ...session, login, logout }),
-    [login, logout, session],
+    () => ({ ...session, login, loginChild, logout, retryRestore }),
+    [login, loginChild, logout, retryRestore, session],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

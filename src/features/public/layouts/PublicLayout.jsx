@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { ArrowRight, List, X } from "@phosphor-icons/react";
 import BrandLogo from "../../../components/branding/BrandLogo";
+import { useAuth } from "../../auth/AuthProvider";
+import { roleHome } from "../../../lib/permissions/roles";
 
 const navigation = [
   ["/#features", "Cách hoạt động"],
@@ -20,8 +22,12 @@ export default function PublicLayout() {
   const menuButton = useRef(null);
   const menu = useRef(null);
   const location = useLocation();
+  const { status, user } = useAuth();
   const landing = location.pathname === "/";
   const currentNavigation = landing ? landingNavigation : navigation;
+  const isAuthenticated = status === "authenticated" && Boolean(user);
+  const authLink = isAuthenticated ? roleHome(user.role) : "/auth/login";
+  const authLabel = isAuthenticated ? "Vào không gian" : "Đăng nhập";
   const open = menuLocation === location.key;
   const setOpen = (value) => setMenuLocation(value ? location.key : null);
   useEffect(() => {
@@ -59,8 +65,8 @@ export default function PublicLayout() {
           <Link to="/" className="brand" aria-label="SketchTale - Trang chủ">
             <BrandLogo />
           </Link>
-          <Link className="login-link" to="/auth/login">
-            Đăng nhập
+          <Link className="login-link" to={authLink}>
+            {authLabel}
           </Link>
           <button
             className="menu-button"
@@ -83,7 +89,7 @@ export default function PublicLayout() {
           {[
             ...currentNavigation,
             ...(landing ? [["#character", "Bắt đầu ngay"]] : []),
-            ["/auth/login", "Đăng nhập"],
+            [authLink, authLabel],
           ].map(([to, label]) =>
             landing && to.startsWith("#") ? (
               <a key={to} href={to} onClick={() => setOpen(false)}>

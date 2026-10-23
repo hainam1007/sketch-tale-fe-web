@@ -1,7 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft,
   ArrowRight,
   BookOpen,
   EnvelopeSimple,
@@ -36,7 +35,7 @@ const content = {
   },
 };
 export default function AuthPage({ mode }) {
-  const { login } = useAuth();
+  const { login, status, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [errors, setErrors] = useState({});
@@ -47,6 +46,13 @@ export default function AuthPage({ mode }) {
   const form = useRef(null);
   const copy = content[mode];
   const forgot = mode === "forgot-password";
+
+  useEffect(() => {
+    if (mode === "login" && status === "authenticated" && user) {
+      navigate(roleHome(user.role), { replace: true });
+    }
+  }, [mode, navigate, status, user]);
+
   async function submit(event) {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
@@ -76,7 +82,6 @@ export default function AuthPage({ mode }) {
         const user = await login({
           email: values.identifier.trim(),
           password: values.password,
-          rememberSession: values.rememberSession === "on",
         });
         navigate(roleHome(user.role), { replace: true });
       } catch (error) {
@@ -130,9 +135,6 @@ export default function AuthPage({ mode }) {
   return (
     <div className="container auth-story-page">
       <section className="auth-story" aria-label="Cùng bé mở trang sách">
-        <Link to="/" className="auth-back">
-          <ArrowLeft size={17} aria-hidden="true" /> Về trang chủ
-        </Link>
         <div className="auth-story-heading">
           <span className="auth-kicker">
             <BookOpen size={18} aria-hidden="true" /> MỖI NGÀY, MỘT CÂU CHUYỆN
@@ -277,10 +279,6 @@ export default function AuthPage({ mode }) {
           ))}
           {mode === "login" && (
             <div className="auth-login-options">
-              <label className="auth-remember" htmlFor="auth-remember-session">
-                <input id="auth-remember-session" name="rememberSession" type="checkbox" defaultChecked />
-                Ghi nhớ đăng nhập
-              </label>
               <Link className="text-link forgot-link" to="/auth/forgot-password">
                 Quên mật khẩu?
               </Link>

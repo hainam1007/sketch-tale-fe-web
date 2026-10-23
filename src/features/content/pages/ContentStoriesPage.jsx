@@ -1,4 +1,4 @@
-import { BookOpen, Funnel, MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
+import { BookOpen, MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
@@ -65,7 +65,7 @@ export default function ContentStoriesPage() {
   return <div className="workspace-dashboard content-stories-page">
     <div className="workspace-page-heading"><div><p className="workspace-eyebrow">NỘI DUNG / KHO TRUYỆN</p><h1>Kho truyện</h1><p>Quản lý bản nháp, ảnh bìa và các phiên bản trước khi chỉnh sửa.</p></div><Link className="workspace-button" to="/content/stories/new"><Plus size={18} aria-hidden="true" /> Tạo truyện</Link></div>
     <section className="admin-filter-panel content-filter-panel" aria-labelledby="story-filter-title">
-      <div className="content-filter-heading"><div className="admin-filter-title"><Funnel size={18} aria-hidden="true" /><strong id="story-filter-title">Lọc truyện</strong><span className="content-filter-hint">Bộ lọc được lưu trong địa chỉ trang để bạn có thể quay lại.</span></div>{hasActiveFilters && <Link className="content-filter-clear" to="/content/stories" replace><X size={15} aria-hidden="true" /> Xóa bộ lọc</Link>}</div>
+      <div className="content-filter-heading"><div className="admin-filter-title"><MagnifyingGlass size={18} aria-hidden="true" /><strong id="story-filter-title">Tìm kiếm</strong></div>{hasActiveFilters && <Link className="content-filter-clear" to="/content/stories" replace><X size={15} aria-hidden="true" /> Xóa bộ lọc</Link>}</div>
       <div className="admin-filter-fields">
         <label className="admin-search"><span className="sr-only">Tìm truyện</span><MagnifyingGlass size={18} aria-hidden="true" /><input type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Tìm theo tên hoặc mô tả" /></label>
         <label><span className="sr-only">Lọc trạng thái</span><select value={filters.status} onChange={(event) => updateFilter("status", event.target.value)}><option value="all">Tất cả trạng thái</option><option value="draft">Bản nháp</option>{featureApiModes.content !== "real" && <option value="pending">Chờ duyệt</option>}<option value="published">Đã xuất bản</option>{featureApiModes.content !== "real" && <option value="hidden">Đã ẩn</option>}<option value="archived">Đã lưu trữ</option>{featureApiModes.content === "real" && <option value="unknown">Chưa xác định</option>}</select></label>
