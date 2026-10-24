@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowRight, Sparkle } from "@phosphor-icons/react";
+import { ArrowRight, Sparkle } from "@phosphor-icons/react";
 import Reveal from "./Reveal";
 
 export default function LandingHero() {
@@ -38,15 +38,6 @@ export default function LandingHero() {
             <a className="landing-button landing-button-quiet" href="#stories">
               Khám phá truyện <ArrowRight size={19} aria-hidden="true" />
             </a>
-          </Reveal>
-          <Reveal
-            as="a"
-            className="landing-scroll-cue"
-            href="#features"
-            delay={400}
-            direction="left"
-          >
-            <ArrowDown size={17} aria-hidden="true" /> Xem cách hoạt động
           </Reveal>
         </div>
         <Reveal className="landing-hero-art" delay={160} direction="right">

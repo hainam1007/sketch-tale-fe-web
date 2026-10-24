@@ -18,19 +18,15 @@ import BrandLogo from "../../../components/branding/BrandLogo";
 import { roleHome } from "../../../lib/permissions/roles";
 const content = {
   login: {
-    title: "Chào bố mẹ,\nmừng trở lại!",
-    description: "Một chút thời gian bên nhau, thêm một câu chuyện để nhớ.",
+    title: "Đăng nhập",
     button: "Đăng nhập",
   },
   register: {
-    title: "Cùng mở một hành trình mới.",
-    description: "Tài khoản dành cho phụ huynh đồng hành cùng bé.",
+    title: "Đăng ký",
     button: "Đăng ký",
   },
   "forgot-password": {
-    title: "Tìm lại đường về kệ sách.",
-    description:
-      "Nhập email tài khoản phụ huynh để kiểm tra biểu mẫu đặt lại mật khẩu.",
+    title: "Quên mật khẩu",
     button: "Kiểm tra email",
   },
 };
@@ -98,9 +94,7 @@ export default function AuthPage({ mode }) {
           email: values.email.trim(),
           password: values.password,
         });
-        setMessage("Đăng ký thành công. Bạn có thể đăng nhập bằng email hoặc tên tài khoản.");
-        form.current?.reset();
-        setVisiblePasswords({});
+        navigate(`/confirm-email?email=${encodeURIComponent(values.email.trim())}`, { replace: true });
       } catch (error) {
         setMessageType("error");
         setMessage(error.message);
@@ -182,16 +176,14 @@ export default function AuthPage({ mode }) {
           Cùng đọc, cùng cười, cùng lớn lên.
         </p>
       </section>
-      <section className="auth-card" aria-labelledby="auth-title">
+      <section className={`auth-card auth-card-${mode}`} aria-labelledby="auth-title">
         <div className="auth-card-topline">
           <div className="auth-card-mark">
             <BrandLogo variant="widget" alt="Biểu tượng SketchTale" />
           </div>
-          <span className="auth-kicker">GÓC CỦA BỐ MẸ</span>
         </div>
         <header className="auth-intro">
           <h1 id="auth-title">{copy.title}</h1>
-          <p>{copy.description}</p>
         </header>
         <form
           ref={form}
