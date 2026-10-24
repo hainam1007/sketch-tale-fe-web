@@ -47,16 +47,6 @@ const workspaceDetails = {
       { icon: ChartLineUp, title: "Hiệu quả", description: "Theo dõi dữ liệu đọc và hoàn thành.", to: "/content/statistics" },
     ],
   },
-  [ROLES.ADMIN]: {
-    eyebrow: "Không gian quản trị",
-    title: "Giữ cho workspace vận hành rõ ràng.",
-    description: "Kiểm tra tài khoản, báo cáo và các tín hiệu cần xử lý.",
-    shortcuts: [
-      { icon: UsersThree, title: "Tài khoản", description: "Quản lý người dùng và quyền truy cập.", to: "/admin/users" },
-      { icon: ShieldCheck, title: "Báo cáo nội dung", description: "Xem các báo cáo đang chờ xử lý.", to: "/admin/reports" },
-      { icon: ChartLineUp, title: "Giám sát", description: "Theo dõi sức khỏe vận hành.", to: "/admin/monitoring" },
-    ],
-  },
 };
 
 export default function ProfilePage() {
@@ -133,12 +123,12 @@ export default function ProfilePage() {
           </div>
         </div>
         <Link className="profile-home-link" to={home}>
-          {user.role === ROLES.CHILD ? "Về trang chủ" : "Về không gian của bạn"}
+          {user.role === ROLES.CHILD ? "Về trang chủ" : user.role === ROLES.ADMIN ? "Về trang tổng quan" : "Về không gian của bạn"}
           <ArrowRight size={18} aria-hidden="true" />
         </Link>
       </section>
 
-      <div className="profile-content-grid">
+      <div className={`profile-content-grid ${!details ? "is-single" : ""}`}>
         <section className="profile-panel" aria-labelledby="profile-details-title">
           <div className="profile-panel-heading">
             <span className="profile-panel-icon"><UserCircle size={24} aria-hidden="true" /></span>
@@ -151,7 +141,7 @@ export default function ProfilePage() {
           </dl>
           <div className="profile-session" aria-labelledby="profile-session-title">
             <ShieldCheck size={23} aria-hidden="true" />
-            <div><h3 id="profile-session-title">Phiên đăng nhập</h3><p><CheckCircle size={16} weight="fill" aria-hidden="true" /> Bạn đang đăng nhập</p></div>
+            <div><h3 id="profile-session-title">Phiên đăng nhập</h3><p><CheckCircle size={16} weight="fill" aria-hidden="true" /> Đang hoạt động</p></div>
           </div>
           <p className="profile-session-footnote"><LockKey size={16} aria-hidden="true" /> Quyền truy cập được giới hạn theo vai trò của bạn.</p>
         </section>

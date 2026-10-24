@@ -3,9 +3,9 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import {
   BookOpen,
   ChartLineUp,
+  ClockCounterClockwise,
   Coins,
   GraduationCap,
-  Gauge,
   House,
   List,
   Package,
@@ -20,7 +20,6 @@ import { useAuth } from "../../features/auth/AuthProvider";
 import BrandLogo from "../../components/branding/BrandLogo";
 import { useConfirmToast } from "../../components/feedback/useConfirmToast";
 import { ROLES, roleHome, roleLabels } from "../../lib/permissions/roles";
-import { isFeatureMockMode, moduleApiModes } from "../../lib/api/featureApi";
 import { approveNextContentEditorNavigation, isContentEditorDirty, shouldConfirmContentEditorNavigation } from "../../features/content/hooks/useEditorSaveState";
 import "./workspace.css";
 import "../../features/content/content.css";
@@ -43,18 +42,14 @@ const roleNavigation = {
   [ROLES.ADMIN]: [
     { to: "/admin", label: "Tổng quan", icon: House, end: true },
     { to: "/admin/users", label: "Tài khoản", icon: UsersThree },
-    { to: "/admin/permissions", label: "Phân quyền", icon: ShieldCheck },
-    { to: "/admin/reports", label: "Báo cáo nội dung", icon: ShieldCheck },
-    { to: "/admin/system-limits", label: "Giới hạn hệ thống", icon: Gauge },
-    { to: "/admin/restrictions", label: "Nội dung hạn chế", icon: Prohibit },
-    { to: "/admin/monitoring", label: "Giám sát", icon: ChartLineUp },
-    { to: "/admin/statistics", label: "Số liệu", icon: ChartLineUp },
-    { to: "/admin/audit", label: "Nhật ký thao tác", icon: ShieldCheck },
     { to: "/admin/subscription-plans", label: "Gói sử dụng", icon: Package },
     { to: "/admin/credit-costs", label: "Chi phí credit", icon: Coins },
+    { to: "/admin/reports", label: "Báo cáo nội dung", icon: ShieldCheck },
+    { to: "/admin/restrictions", label: "Từ khóa hạn chế", icon: Prohibit },
+    { to: "/admin/prohibited-themes", label: "Chủ đề cấm", icon: Prohibit },
     { to: "/admin/education-themes", label: "Chủ đề giáo dục", icon: GraduationCap },
     { to: "/admin/char-types", label: "Loại nhân vật", icon: UsersThree },
-    { to: "/admin/prohibited-themes", label: "Chủ đề cấm", icon: Prohibit },
+    { to: "/admin/audit", label: "Nhật ký thao tác", icon: ClockCounterClockwise },
   ],
 };
 
@@ -69,7 +64,6 @@ export default function WorkspaceLayout() {
   const menuButtonRef = useRef(null);
   const sidebarRef = useRef(null);
   const navigation = roleNavigation[user.role] || roleNavigation[ROLES.PARENT];
-  const isAdminCatalogPage = /^\/admin\/(subscription-plans|credit-costs|education-themes|char-types|prohibited-themes|audit|restrictions)(?:\/|$)/.test(location.pathname) || (location.pathname.startsWith("/admin/reports") && moduleApiModes.adminReports === "real");
 
   function closeMobile() {
     setMobileOpen(false);
@@ -157,7 +151,6 @@ export default function WorkspaceLayout() {
           <List size={23} aria-hidden="true" />
         </button>
         <main id="main" className="workspace-main" tabIndex={-1}>
-          {user.role === ROLES.ADMIN && !isAdminCatalogPage && isFeatureMockMode("admin") && <div className="admin-demo-banner" role="status"><span aria-hidden="true" /> Giao diện xem trước · Dữ liệu mô phỏng. Chức năng này chưa có API; thao tác chỉ thay đổi dữ liệu demo.</div>}
           <Outlet />
         </main>
       </div>

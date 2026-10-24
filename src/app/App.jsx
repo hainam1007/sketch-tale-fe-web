@@ -37,12 +37,7 @@ import ProfilePage from "../features/profile/pages/ProfilePage";
 import AdminUsersPage from "../features/admin/pages/AdminUsersPage";
 import AdminOverviewPage from "../features/admin/pages/AdminOverviewPage";
 import AdminUserDetailPage from "../features/admin/pages/AdminUserDetailPage";
-import AdminReportsPage from "../features/admin/pages/AdminReportsPage";
-import AdminReportDetailPage from "../features/admin/pages/AdminReportDetailPage";
-import AdminPermissionsPage from "../features/admin/pages/AdminPermissionsPage";
-import AdminSystemLimitsPage from "../features/admin/pages/AdminSystemLimitsPage";
 import AdminRestrictionsPage from "../features/admin/pages/AdminRestrictionsPage";
-import AdminMonitoringPage from "../features/admin/pages/AdminMonitoringPage";
 import ContentStoriesPage from "../features/content/pages/ContentStoriesPage";
 import StoryEditorPage from "../features/content/pages/StoryEditorPage";
 import StoryEditorLayout from "../features/content/layouts/StoryEditorLayout";
@@ -55,12 +50,10 @@ import StoryPreviewPage from "../features/content/pages/StoryPreviewPage";
 import AssetsPage from "../features/content/pages/AssetsPage";
 import ContentStatisticsPage from "../features/content/pages/ContentStatisticsPage";
 import ContentOverviewPage from "../features/content/pages/ContentOverviewPage";
-import AdminStatisticsPage from "../features/admin/pages/AdminStatisticsPage";
 import AdminAuditPage from "../features/admin/pages/AdminAuditPage";
 import AdminCatalogPage from "../features/admin/pages/AdminCatalogPage";
 import AdminModerationCatalogPage from "../features/admin/pages/AdminModerationCatalogPage";
 import AdminContentReportsPage, { AdminContentReportDetailPage } from "../features/admin/pages/AdminContentReportsPage";
-import { moduleApiModes } from "../lib/api/featureApi";
 import { ROLES } from "../lib/permissions/roles";
 
 const titles = {
@@ -178,19 +171,19 @@ const router = createBrowserRouter(createRoutesFromElements(
           <Route path="admin" element={<AdminOverviewPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
           <Route path="admin/users/:userId" element={<AdminUserDetailPage />} />
-          <Route path="admin/reports" element={moduleApiModes.adminReports === "real" ? <AdminContentReportsPage /> : <AdminReportsPage />} />
-          <Route path="admin/reports/:reportId" element={moduleApiModes.adminReports === "real" ? <AdminContentReportDetailPage /> : <AdminReportDetailPage />} />
-          <Route path="admin/permissions" element={<AdminPermissionsPage />} />
-          <Route path="admin/system-limits" element={<AdminSystemLimitsPage />} />
+          <Route path="admin/reports" element={<AdminContentReportsPage />} />
+          <Route path="admin/reports/:reportId" element={<AdminContentReportDetailPage />} />
           <Route path="admin/restrictions" element={<AdminRestrictionsPage />} />
-          <Route path="admin/monitoring" element={<AdminMonitoringPage />} />
-          <Route path="admin/statistics" element={<AdminStatisticsPage />} />
-          <Route path="admin/audit" element={<AdminAuditPage />} />
           <Route path="admin/subscription-plans" element={<AdminCatalogPage key="plans" kind="plans" />} />
           <Route path="admin/credit-costs" element={<AdminCatalogPage key="credits" kind="credits" />} />
           <Route path="admin/education-themes" element={<AdminCatalogPage key="themes" kind="themes" />} />
           <Route path="admin/char-types" element={<AdminModerationCatalogPage key="charTypes" kind="charTypes" />} />
           <Route path="admin/prohibited-themes" element={<AdminModerationCatalogPage key="prohibitedThemes" kind="prohibitedThemes" />} />
+          <Route path="admin/audit" element={<AdminAuditPage />} />
+          <Route path="admin/permissions" element={<Navigate to="/admin" replace />} />
+          <Route path="admin/system-limits" element={<Navigate to="/admin" replace />} />
+          <Route path="admin/monitoring" element={<Navigate to="/admin" replace />} />
+          <Route path="admin/statistics" element={<Navigate to="/admin" replace />} />
         </Route>
       </Route>
     </Route>
