@@ -6,6 +6,7 @@ import { authService } from "../authService";
 import "./auth.css";
 
 const headings = {
+  pending: "Cần xác nhận email",
   ready: "Xác nhận email của bạn",
   loading: "Đang xác thực email",
   success: "Email đã được xác thực",
@@ -19,7 +20,7 @@ export default function ConfirmEmailPage() {
   const [searchParams] = useSearchParams();
   const email = (searchParams.get("email") || "").trim();
   const token = searchParams.get("token") || "";
-  const [status, setStatus] = useState(email && token ? "ready" : "invalid");
+  const [status, setStatus] = useState(email && token ? "ready" : email ? "pending" : "invalid");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -94,7 +95,9 @@ export default function ConfirmEmailPage() {
         <header className="auth-intro">
           <h1 id="confirm-email-title">{headings[status]}</h1>
           <p>
-            {status === "success"
+            {status === "pending"
+              ? "Email xác nhận đã được gửi đến địa chỉ này. Hãy kiểm tra hộp thư đến và thư rác, rồi mở liên kết để hoàn tất đăng ký."
+              : status === "success"
               ? "Email của bạn đã được xác nhận. Đăng nhập để tiếp tục."
               : status === "invalid"
                 ? "Đường dẫn thiếu email hoặc mã xác nhận. Hãy mở lại liên kết trong email."
@@ -125,7 +128,7 @@ export default function ConfirmEmailPage() {
             Đăng nhập <ArrowRight size={20} aria-hidden="true" />
           </Link>
         )}
-        {status === "error" && email && (
+        {(status === "pending" || status === "error" || status === "resent") && email && (
           <button className="button auth-submit" type="button" onClick={resendEmail}>
             Gửi email xác nhận mới <ArrowRight size={20} aria-hidden="true" />
           </button>
