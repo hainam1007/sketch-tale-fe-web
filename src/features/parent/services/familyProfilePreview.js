@@ -24,5 +24,3 @@ export const previewProfiles = [
 export const showFamilyProfilePreview = import.meta.env.DEV && featureApiModes.parent === "mock";
 export const getFamilyProfilePreview = (childId) =>
   showFamilyProfilePreview ? previewProfiles.find((profile) => profile.id === childId) || null : null;
-
-\r\n
