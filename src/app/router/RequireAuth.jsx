@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../../features/auth/AuthProvider";
+import { useAuth } from "../../features/auth/useAuth";
 import { ErrorState, LoadingState } from "../../components/feedback/States";
 
 export default function RequireAuth() {

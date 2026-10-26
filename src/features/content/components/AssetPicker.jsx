@@ -1,7 +1,7 @@
 import { Check, MagnifyingGlass, SpeakerHigh, UploadSimple, X } from "@phosphor-icons/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { contentService } from "../services/contentService";
 import { assetCategory, validateAssetFile } from "../services/assetService";

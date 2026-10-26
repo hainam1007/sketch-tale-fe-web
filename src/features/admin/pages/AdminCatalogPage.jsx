@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowClockwise, Check, Coins, GraduationCap, MagnifyingGlass, Package, PencilSimple, Plus, X } from "@phosphor-icons/react";
 import { useBlocker } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import { adminCatalogService } from "../services/adminCatalogService";

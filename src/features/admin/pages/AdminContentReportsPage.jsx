@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Check, Eye, MagnifyingGlass, WarningCircle, X } from "@phosphor-icons/react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { adminService } from "../services/adminService";
 import {
   LoadingState,

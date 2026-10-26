@@ -1,4 +1,6 @@
-# SketchTale — tổng quan dự án và trạng thái hiện tại
+# SketchTale — tổng quan sản phẩm và snapshot ngày 19/10/2026
+
+> **Snapshot lịch sử:** bảng API và blocker bên dưới phản ánh ngày 19/10. Parent profile và Admin reports đã có adapter mới hơn. Xem [kiến trúc hiện tại](ARCHITECTURE.md) và [mục lục](README.md) để tra cứu các đợt tích hợp sau đó.
 
 > Cập nhật: 19/10/2026. Tổng hợp từ working tree, tài liệu dự án và source backend commit `42846917f9e2381042267d916d3aa02cbef4d591` đã xác nhận đang chạy trên Render.
 >

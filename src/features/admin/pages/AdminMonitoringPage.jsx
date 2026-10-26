@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowClockwise, ChartLineUp, Funnel, MagnifyingGlass, Stop, WarningCircle, X } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { adminService } from "../services/adminService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { EmptyState, ErrorState, LoadingState } from "../../../components/feedback/States";

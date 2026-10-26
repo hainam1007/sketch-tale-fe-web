@@ -234,8 +234,8 @@
 
 .parent-plan-page a:focus-visible { outline: 3px solid #314866; outline-offset: 3px; }
 .parent-plan-page .workspace-button { transition: transform .2s ease, background .2s ease, box-shadow .2s ease; }
-.parent-plan-page .workspace-button:hover { transform: translateY(-1px); }
-.parent-plan-page .workspace-button:active { transform: translateY(1px); }
+.parent-plan-page .workspace-button:hover { transform: translateY(2px); }
+.parent-plan-page .workspace-button:active { transform: translateY(3px); }
 
 @media (max-width: 930px) {
   .plan-current-card { grid-template-columns: 1fr; }

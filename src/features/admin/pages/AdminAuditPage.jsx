@@ -6,7 +6,7 @@ import {
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { adminService } from "../services/adminService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import AdminDialog from "../components/AdminDialog";

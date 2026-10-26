@@ -228,7 +228,7 @@
   text-decoration: underline;
 }
 .landing-button:active {
-  transform: translateY(4px);
+  transform: translateY(3px);
 }
 .landing-button-primary:active {
   box-shadow: 0 4px 0 #dfa424;

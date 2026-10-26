@@ -1,7 +1,7 @@
 import { Check, ImageSquare, MagnifyingGlass, Plus, Trash, UploadSimple, UserCircle, X } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { contentService } from "../services/contentService";
 import { assetCategory, ASSET_CATEGORIES, validateAssetFile } from "../services/assetService";
 import { queryKeys } from "../../../lib/api/queryKeys";
@@ -45,7 +45,7 @@ export default function AssetsPage() {
   });
   const deleteMutation = useMutation({
     mutationFn: (asset) => contentService.deleteAsset(asset),
-    onSuccess: async (_, asset) => {
+    onSuccess: async () => {
       setPreviewAssetId("");
       setSuccess("Ảnh đã bị xóa khỏi thư viện.");
       await queryClient.invalidateQueries({ queryKey: queryKeys.assets(user.id) });

@@ -12,7 +12,7 @@ import {
   UserCircle,
 } from "@phosphor-icons/react";
 import "./auth.css";
-import { useAuth } from "../AuthProvider";
+import { useAuth } from "../useAuth";
 import { authService, isRealApi } from "../authService";
 import BrandLogo from "../../../components/branding/BrandLogo";
 import { roleHome } from "../../../lib/permissions/roles";

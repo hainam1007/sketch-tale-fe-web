@@ -2,7 +2,7 @@ import { Funnel, LockKey, MagnifyingGlass, PencilSimple, Plus, Prohibit, Warning
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { adminService } from "../services/adminService";
 import { ErrorState, LoadingState, EmptyState } from "../../../components/feedback/States";
 import StatusBadge from "../../../components/ui/StatusBadge";

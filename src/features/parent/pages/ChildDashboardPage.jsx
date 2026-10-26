@@ -12,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useOutletContext, useSearchParams } from "react-router-dom";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import { queryKeys } from "../../../lib/api/queryKeys";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { childrenService } from "../services/childrenService";
 import "../child-dashboard.css";
 

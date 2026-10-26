@@ -2,7 +2,7 @@ import { ArrowLeft, Check, Package, Sparkle, UserCircle } from "@phosphor-icons/
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { adminService } from "../services/adminService";
 import { adminCatalogService } from "../services/adminCatalogService";
 import { queryKeys } from "../../../lib/api/queryKeys";

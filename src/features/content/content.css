@@ -449,12 +449,12 @@
 }
 
 .workspace-app-content .workspace-button:hover:not(:disabled) {
-  transform: none;
+  transform: translateY(2px);
   background: var(--cm-accent-hover);
 }
 
 .workspace-app-content .workspace-button:active:not(:disabled) {
-  transform: scale(.99);
+  transform: translateY(3px) scale(.99);
   box-shadow: none;
 }
 
@@ -3118,7 +3118,7 @@
 .workspace-app-content .story-filmstrip > button.is-dragging { opacity: .45; cursor: grabbing; }
 .workspace-app-content .story-filmstrip > button.is-drop-target { box-shadow: -4px 0 0 var(--cm-selected-border); }
 .workspace-app-content .story-preset-grid button { min-height: 80px; gap: 8px; }
-.workspace-app-content .story-preset-grid button:hover .story-preset-glyph { transform: translateY(-3px); }
+.workspace-app-content .story-preset-grid button:hover .story-preset-glyph { transform: translateY(1px); }
 .workspace-app-content .story-preset-glyph { transition: transform 180ms ease; }
 
 /* Image library: local uploads grouped like a creative asset browser. */

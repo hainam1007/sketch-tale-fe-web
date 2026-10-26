@@ -16,7 +16,7 @@ import {
   UsersThree,
   X,
 } from "@phosphor-icons/react";
-import { useAuth } from "../../features/auth/AuthProvider";
+import { useAuth } from "../../features/auth/useAuth";
 import BrandLogo from "../../components/branding/BrandLogo";
 import { useConfirmToast } from "../../components/feedback/useConfirmToast";
 import { ROLES, roleHome, roleLabels } from "../../lib/permissions/roles";

@@ -1,8 +1,16 @@
 # Tài liệu dự án SketchTale
 
-Danh mục này chỉ giữ các tài liệu còn backlog, cần contract/quyết định, hoặc chưa được nghiệm thu. Bản tổng quan hiện trạng là [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md). Các trạng thái API chi tiết và bước triển khai nằm trong runbook và báo cáo tích hợp.
+Danh mục gồm hướng dẫn hiện tại, contract/backlog và báo cáo lịch sử. [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) chứa thông tin sản phẩm và snapshot ngày 19/10, không phải bảng API mới nhất.
 
-## Đầu mối
+## Hiện trạng và tài liệu mới
+
+- [Kiến trúc, cấu hình và kiểm thử](ARCHITECTURE.md): đối chiếu source 24/10.
+- [Parent experience v2](api-integration/PARENT_EXPERIENCE_V2_2026-10-23.md): thay thế hướng UI “sắp ra mắt”.
+- [Parent API/UX](api-integration/PARENT_API_UX_PLAN_2026-10-23.md), [Admin API](api-integration/ADMIN_API_PLAN_2026-10-23.md): tích hợp 23/10.
+- [API status 21/10](api-integration/API_IMPLEMENTATION_STATUS_2026-10-21.md), [connection plan](api-integration/API_CONNECTION_PLAN_2026-10-21.md), [handoff](api-integration/LUNA_API_HANDOFF_2026-10-21.md), [operation matrix](api-integration/LUNA_API_OPERATION_MATRIX_2026-10-21.md).
+- [Auth controller](AUTH_CONTROLLER_README.md), [Auth optimization](AUTH_API_OPTIMIZATION_PLAN.md), [Parent API còn thiếu](PARENT_MISSING_APIS_BACKEND.md).
+
+## Tổng quan và lịch sử đợt 19/10
 
 | Tài liệu | Phạm vi hiện còn mở |
 | --- | --- |
@@ -24,4 +32,4 @@ Danh mục này chỉ giữ các tài liệu còn backlog, cần contract/quyế
 | Story Editor | [STORY_EDITOR_UX_REDESIGN_PLAN.md](STORY_EDITOR_UX_REDESIGN_PLAN.md), [STORY_EDITOR_CANVA_ANIMATION_PLAN.md](STORY_EDITOR_CANVA_ANIMATION_PLAN.md), [STORY_EDITOR_UI_UX_DETAIL_SPEC.md](STORY_EDITOR_UI_UX_DETAIL_SPEC.md) |
 | Admin | [ADMIN_UI_UX_PLAN_2026-10-17.md](ADMIN_UI_UX_PLAN_2026-10-17.md), [ADMIN_CONTRACT.md](ADMIN_CONTRACT.md) |
 
-Tài liệu hoàn tất, bản kế hoạch cũ đã được thay thế và snapshot OpenAPI trùng lặp đã được dọn. Qua rà soát không có file tài liệu nào rỗng; mọi file còn lại có nội dung và backlog, contract hoặc điều kiện nghiệm thu chưa đóng. OpenAPI snapshot được giữ làm dữ liệu tham chiếu cho công việc API còn mở.
+Giữ báo cáo và snapshot theo ngày để truy vết contract/quyết định. Kế hoạch cũ không xác nhận hành vi source mới. Kiểm tra local hoặc request được intercept không chứng minh quyền truy cập, persistence hay trạng thái deploy của backend thật.

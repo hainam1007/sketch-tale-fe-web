@@ -15,7 +15,7 @@ import {
   UsersThree,
 } from "@phosphor-icons/react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { authService, isRealApi } from "../../auth/authService";
 import { roleHome, roleLabels, ROLES } from "../../../lib/permissions/roles";
 import "../profile.css";

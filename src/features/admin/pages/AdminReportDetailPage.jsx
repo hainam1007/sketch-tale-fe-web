@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowLeft, CheckCircle, ClipboardText, Flag, Note, WarningCircle } from "@phosphor-icons/react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { adminService } from "../services/adminService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";

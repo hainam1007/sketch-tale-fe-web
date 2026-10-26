@@ -13,7 +13,7 @@ import {
   Gear,
   ShieldCheck,
 } from "@phosphor-icons/react";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { parentProfileService } from "../services/parentProfileService";
 import { useParentDemo, demoBooks } from "../services/parentDemoState";
 import ChildAvatar from "../components/ChildAvatar";

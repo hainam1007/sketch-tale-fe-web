@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../../features/auth/AuthProvider";
+import { useAuth } from "../../features/auth/useAuth";
 
 export default function RequireRole({ roles }) {
   const { user } = useAuth();

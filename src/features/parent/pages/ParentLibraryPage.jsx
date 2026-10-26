@@ -9,7 +9,7 @@ import {
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { childrenService } from "../services/childrenService";
 import { parentProfileService } from "../services/parentProfileService";
 import { useParentDemo } from "../services/parentDemoState";

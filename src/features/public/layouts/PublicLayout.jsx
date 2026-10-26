@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { ArrowRight, List, X } from "@phosphor-icons/react";
 import BrandLogo from "../../../components/branding/BrandLogo";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { roleHome } from "../../../lib/permissions/roles";
 
 const navigation = [

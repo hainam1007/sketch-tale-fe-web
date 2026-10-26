@@ -4,10 +4,15 @@ SketchTale là hệ thống kể chuyện tương tác từ tranh vẽ của tr�
 
 ## Chạy local
 
+Yêu cầu Node.js 20.19+ hoặc 22.12+.
+
 ```sh
-npm install
+cp .env.example .env.development
+npm ci
 npm run dev
 ```
+
+Với PowerShell, có thể dùng `Copy-Item .env.example .env.development` thay cho `cp`. Vite không tự nạp `.env.example`; cần tạo `.env.development` trước khi chạy dev server. Cấu hình mẫu bật API thật cho đăng nhập và Content Manager. Các phần chưa tích hợp API vẫn dùng mock theo cấu hình mặc định. Tạo tài khoản hợp lệ trên backend để đăng nhập bằng API.
 
 Các lệnh kiểm tra có trong `package.json`:
 
@@ -17,7 +22,7 @@ npm run build
 npm test
 ```
 
-Bản preview sau build chạy bằng `npm run preview`. Kiểm tra trạng thái và giới hạn mới nhất trước khi dùng kết quả test để nghiệm thu API; các thay đổi tích hợp ngày 19/10/2026 chưa được lint/build/E2E hoặc kiểm tra trên Render.
+Bản preview sau build chạy bằng `npm run preview`. Xem [kiến trúc, cấu hình và kiểm thử](docs/ARCHITECTURE.md) để chọn bộ test phù hợp. Kết quả local không thay cho nghiệm thu API trên Render.
 
 ## Khu vực ứng dụng
 
@@ -32,7 +37,7 @@ Frontend dùng React 19, Vite 8, JavaScript/JSX, React Router, TanStack Query, C
 
 API có sẵn và contract đủ rõ dùng API thật theo từng operation. Chức năng chưa có API tiếp tục dùng mock ở cả local và production, có nhãn **“Dữ liệu mô phỏng”**. Lỗi từ API thật không được tự chuyển sang mock.
 
-Một số API đã có adapter trong source, nhưng chưa được kiểm tra đầy đủ trên Backend thật. Parent profile/child profile vẫn mock do backend thiếu kiểm tra ownership; Admin core và các field editor chưa có API cũng tiếp tục mock. Xem [tổng quan dự án](docs/PROJECT_SUMMARY.md) và [runbook nối API](docs/LUNA_EXTRAMAX_API_RUNBOOK_2026-10-19.md) để biết trạng thái cụ thể.
+Một số API đã có adapter trong source, nhưng chưa được kiểm tra đầy đủ trên Backend thật. Parent/Child profile đã có adapter thật và mặc định bật khi `VITE_API_MODE=real`; ownership vẫn cần nghiệm thu trên backend. Admin reports có adapter đọc thật; Admin core và các field editor chưa có API tiếp tục mock. Xem [kiến trúc hiện tại](docs/ARCHITECTURE.md) và [mục lục tài liệu](docs/README.md) để biết trạng thái cụ thể.
 
 Không chép token hoặc secret vào tài liệu. Cấu hình môi trường chỉ chọn nguồn dữ liệu; không dùng cờ frontend thay cho kiểm tra quyền của Backend.
 

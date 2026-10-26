@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useOutletContext } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import ChildForm from "../components/ChildForm";
 import { childrenService } from "../services/childrenService";
 import { queryKeys } from "../../../lib/api/queryKeys";

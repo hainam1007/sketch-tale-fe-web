@@ -40,8 +40,8 @@
 .workspace-page-heading h1 { margin: 0; color: #1b2432; font-size: clamp(28px, 4vw, 43px); letter-spacing: -1.6px; line-height: 1.08; }
 .workspace-page-heading p { max-width: 58ch; margin: 10px 0 0; color: #707784; font-size: 15px; }
 .workspace-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 43px; padding: 10px 17px; border: 1px solid transparent; border-radius: 10px; background: #f4be36; color: #241b07; font-size: 13px; font-weight: 900; text-decoration: none; box-shadow: 0 3px 0 #d69a16; }
-.workspace-button:hover { transform: translateY(-1px); background: #f8ca54; }
-.workspace-button:active { transform: translateY(2px); box-shadow: 0 1px 0 #d69a16; }
+.workspace-button:hover { transform: translateY(2px); background: #f8ca54; box-shadow: 0 1px 0 #d69a16; }
+.workspace-button:active { transform: translateY(3px); box-shadow: 0 1px 0 #d69a16; }
 .workspace-button-quiet { border-color: #d9dce0; background: #fff; color: #3b4350; box-shadow: none; }
 .workspace-button-quiet:hover { background: #f5f6f6; }
 .workspace-button-danger { border-color: #f2c9cf; background: #fff4f5; color: #9b3144; box-shadow: none; }
