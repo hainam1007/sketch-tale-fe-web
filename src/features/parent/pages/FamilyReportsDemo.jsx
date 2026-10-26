@@ -1,6 +1,6 @@
 ﻿import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { parentProfileService } from "../services/parentProfileService";
 import { savedAvatar } from "../services/profilePresentation";
 import ChildAvatar from "../components/ChildAvatar";

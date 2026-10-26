@@ -1,7 +1,7 @@
 import { BookOpen, ChartLineUp, CheckCircle, Clock } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useOutletContext } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { childrenService } from "../services/childrenService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { EmptyState, ErrorState, LoadingState } from "../../../components/feedback/States";

@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ImageSquare, TextT, UploadSimple } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { useConfirmToast } from "../../../components/feedback/useConfirmToast";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { featureApiModes } from "../../../lib/api/featureApi";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import AssetPicker from "./AssetPicker";

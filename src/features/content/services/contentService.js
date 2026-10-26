@@ -161,15 +161,6 @@ function backendRoleFormData(payload, { creating = false } = {}) {
   return form;
 }
 
-function unsupportedBackendOperation() {
-  return Promise.reject(new ApiError({
-    status: 501,
-    code: "CONTENT_OPERATION_NOT_SUPPORTED",
-    message: "Không thể thực hiện thao tác này lúc này.",
-    requestId: "frontend-content-capability-guard",
-  }));
-}
-
 async function mutateBackendStoryAndRefresh(storyId, performMutation, { decorate } = {}) {
   let result;
   try {

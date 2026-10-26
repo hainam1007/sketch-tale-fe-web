@@ -6,13 +6,12 @@ import {
   ArrowRight,
 } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import FamilyProfilesLive from "../components/FamilyProfilesLive";
 import { moduleApiModes } from "../../../lib/api/featureApi";
 import FamilyProfilesStatus from "../components/FamilyProfilesStatus";
-import FamilyProfilesPreview, {
-  showFamilyProfilePreview,
-} from "../components/FamilyProfilesPreview";
+import FamilyProfilesPreview from "../components/FamilyProfilesPreview";
+import { showFamilyProfilePreview } from "../services/familyProfilePreview";
 import "../parent-overview.css";
 
 export default function ParentOverviewPage() {

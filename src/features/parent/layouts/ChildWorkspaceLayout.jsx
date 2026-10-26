@@ -4,10 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useConfirmToast } from "../../../components/feedback/useConfirmToast";
 import { childrenService } from "../services/childrenService";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState, ForbiddenState, LoadingState } from "../../../components/feedback/States";
-import { getFamilyProfilePreview } from "../components/FamilyProfilesPreview";
+import { getFamilyProfilePreview } from "../services/familyProfilePreview";
 
 const tabs = [
   { suffix: "/dashboard", label: "Tổng quan" },

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowCounterClockwise, ArrowLeft, CaretLeft, CaretRight, CheckCircle, Eye, Image as ImageIcon, MagicWand, Plus, SpeakerHigh, Stack, TextT, Trash, UploadSimple, UserPlus, X } from "@phosphor-icons/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { useConfirmToast } from "../../../components/feedback/useConfirmToast";
 import { EditorField, EditorMutationMessage } from "../components/StoryEditorParts";
 import PublishIssues from "../components/PublishIssues";

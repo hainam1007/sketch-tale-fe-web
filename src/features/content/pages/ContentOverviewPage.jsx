@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowRight, BookOpen, ChartLineUp, CheckCircle, Clock, MagnifyingGlass, Package, PencilSimple, Plus } from "@phosphor-icons/react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { contentService } from "../services/contentService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import StatusBadge from "../../../components/ui/StatusBadge";

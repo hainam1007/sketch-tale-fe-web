@@ -1,18 +1,63 @@
-import { useMemo } from "react";
-import { MagnifyingGlass, WarningCircle } from "@phosphor-icons/react";
+import { useMemo, useState } from "react";
+import { Check, Eye, MagnifyingGlass, WarningCircle, X } from "@phosphor-icons/react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "../../auth/useAuth";
 import { adminService } from "../services/adminService";
 import {
   LoadingState,
   ErrorState,
   EmptyState,
+  SuccessState,
 } from "../../../components/feedback/States";
 import StatusBadge from "../../../components/ui/StatusBadge";
+import "../admin.css";
 
-function enumCode(value) {
-  return `Mã ${value ?? "chưa rõ"}`;
+const reportStatusLabels = {
+  0: "Chờ xử lý",
+  1: "Đang xem xét",
+  2: "Đã giải quyết",
+  3: "Bác bỏ / Không vi phạm",
+};
+
+const reportStatusTones = {
+  0: "warning",
+  1: "neutral",
+  2: "success",
+  3: "danger",
+};
+
+const targetTypeLabels = {
+  0: "Nhân vật",
+  1: "Truyện",
+  2: "Nội dung / Lời thoại",
+};
+
+function formatTargetType(value) {
+  return targetTypeLabels[value] || `Đối tượng #${value}`;
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : new Intl.DateTimeFormat("vi-VN", {
+        dateStyle: "medium",
+        timeZone: "Asia/Ho_Chi_Minh",
+      }).format(date);
+}
+
+function formatDateTime(value) {
+  if (!value) return "Chưa cập nhật";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : new Intl.DateTimeFormat("vi-VN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Asia/Ho_Chi_Minh",
+      }).format(date);
 }
 
 export default function AdminContentReportsPage() {
@@ -29,7 +74,7 @@ export default function AdminContentReportsPage() {
     () =>
       (query.data || []).filter(
         (item) =>
-          `${item.id || ""} ${item.targetId || ""} ${item.reason || ""} ${item.createBy || ""}`
+          `${item.id || ""} ${item.targetId || ""} ${item.reason || ""} ${item.createBy || ""} ${item.reporterName || ""} ${item.reporterEmail || ""}`
             .toLocaleLowerCase("vi")
             .includes(search.toLocaleLowerCase("vi")) &&
           (status === "all" || String(item.status) === status),
@@ -42,6 +87,7 @@ export default function AdminContentReportsPage() {
     totalPages,
     Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1,
   );
+
   function setFilter(key, value) {
     const next = new URLSearchParams(searchParams);
     if (value && value !== "all") next.set(key, value);
@@ -60,13 +106,14 @@ export default function AdminContentReportsPage() {
         onRetry={() => query.refetch()}
       />
     );
+
   return (
     <div className="workspace-dashboard admin-reports-page">
       <div className="workspace-page-heading">
         <div>
-          <p className="workspace-eyebrow">ADMIN / BACKEND REPORTS</p>
-          <h1>Báo cáo nội dung</h1>
-          <p>Tra cứu báo cáo theo nội dung, người gửi và trạng thái.</p>
+          <p className="workspace-eyebrow">ADMIN / KIỂM DUYỆT</p>
+          <h1>Báo cáo vi phạm nội dung</h1>
+          <p>Xem xét khiếu nại từ người dùng và đưa ra quyết định xử lý vi phạm.</p>
         </div>
         <WarningCircle
           size={42}
@@ -74,17 +121,7 @@ export default function AdminContentReportsPage() {
           aria-hidden="true"
         />
       </div>
-      <div className="admin-source-note is-live">
-        <span className="admin-source-indicator" />
-        Báo cáo từ hệ thống · Chỉ đọc
-        <button
-          className="workspace-button workspace-button-quiet"
-          disabled={query.isFetching}
-          onClick={() => query.refetch()}
-        >
-          {query.isFetching ? "Đang tải…" : "Làm mới"}
-        </button>
-      </div>
+
       <section className="admin-filter-panel">
         <div className="admin-filter-fields">
           <label className="admin-search">
@@ -94,7 +131,7 @@ export default function AdminContentReportsPage() {
               aria-label="Tìm báo cáo nội dung"
               value={search}
               onChange={(event) => setFilter("search", event.target.value)}
-              placeholder="Tìm theo ID đối tượng, lý do hoặc người gửi"
+              placeholder="Tìm kiếm theo tên, email, lý do hoặc loại nội dung"
             />
           </label>
           <label>
@@ -105,9 +142,9 @@ export default function AdminContentReportsPage() {
               onChange={(event) => setFilter("status", event.target.value)}
             >
               <option value="all">Mọi trạng thái</option>
-              {[0, 1, 2, 3].map((value) => (
-                <option key={value} value={value}>
-                  Trạng thái · Mã {value}
+              {[0, 1, 2, 3].map((val) => (
+                <option key={val} value={val}>
+                  {reportStatusLabels[val]}
                 </option>
               ))}
             </select>
@@ -123,37 +160,119 @@ export default function AdminContentReportsPage() {
           </span>
         </div>
       </section>
+
       {query.isError && (
         <p className="admin-refresh-note" role="status">
           Không thể làm mới; đang hiển thị dữ liệu đã tải trước đó.
         </p>
       )}
+
       {rows.length ? (
-        <div className="admin-report-list">
-          {rows.slice((currentPage - 1) * 10, currentPage * 10).map((item) => (
-            <Link
-              className="admin-report-item"
-              to={`/admin/reports/${item.id}`}
-              key={item.id}
+        <div className="admin-users-table-wrap">
+          <table className="admin-users-table">
+            <caption className="sr-only">Danh sách báo cáo vi phạm nội dung</caption>
+            <thead>
+              <tr>
+                <th>Người gửi</th>
+                <th>Email</th>
+                <th>Loại nội dung</th>
+                <th>Nội dung khiếu nại</th>
+                <th>Thời gian gửi</th>
+                <th>Thời gian cập nhật</th>
+                <th>Trạng thái</th>
+                <th className="admin-action-header">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice((currentPage - 1) * 10, currentPage * 10).map((item) => (
+                <tr key={item.id}>
+                  <td>
+                    <div className="admin-user-cell">
+                      <span className="admin-user-initial">
+                        {item.reporterName?.slice(0, 1)?.toUpperCase() || "U"}
+                      </span>
+                      <span>
+                        <strong>{item.reporterName || "Người dùng"}</strong>
+                        <small>ID: {item.createBy?.slice(0, 8) || "—"}</small>
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="admin-user-email">{item.reporterEmail || "—"}</span>
+                  </td>
+                  <td>
+                    <span className="admin-report-type-badge">
+                      {formatTargetType(item.targetType)}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="admin-report-reason-col">
+                      <strong title={item.reason}>
+                        {item.reason || `Báo cáo vi phạm ${formatTargetType(item.targetType).toLowerCase()}`}
+                      </strong>
+                      {item.targetId && (
+                        <small>Mã đối tượng: {item.targetId.slice(0, 8)}…</small>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <span>{formatDate(item.createdAt)}</span>
+                  </td>
+                  <td>
+                    <span>{formatDateTime(item.updatedAt)}</span>
+                  </td>
+                  <td>
+                    <StatusBadge
+                      value={String(item.status ?? "unknown")}
+                      label={reportStatusLabels[item.status] || `Mã ${item.status}`}
+                      tone={reportStatusTones[item.status] || "neutral"}
+                    />
+                  </td>
+                  <td>
+                    <div className="admin-action-icons">
+                      <Link
+                        className="admin-icon-btn"
+                        to={`/admin/reports/${item.id}`}
+                        title="Xem chi tiết & xử lý"
+                        aria-label={`Xem chi tiết báo cáo ${item.id}`}
+                      >
+                        <Eye size={18} aria-hidden="true" />
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="admin-table-footer">
+            <p className="admin-table-footnote">
+              {(currentPage - 1) * 10 + 1}–{Math.min(currentPage * 10, rows.length)} / {rows.length} báo cáo.
+            </p>
+            <nav
+              className="admin-pagination admin-report-pagination"
+              aria-label="Phân trang báo cáo"
             >
-              <div className="admin-report-item-main">
-                <span className="admin-report-type">
-                  Loại đối tượng · {enumCode(item.targetType)} · {item.id}
-                </span>
-                <h2>{item.targetId || "Chưa có ID đối tượng"}</h2>
-                <p>{item.reason || "Chưa có lý do được cung cấp."}</p>
-                <small>
-                  Gửi bởi {item.createBy || "Chưa xác định"} ·{" "}
-                  {formatDate(item.createdAt)}
-                </small>
-              </div>
-              <StatusBadge
-                value={String(item.status ?? "unknown")}
-                label={`Trạng thái · ${enumCode(item.status)}`}
-                tone="neutral"
-              />
-            </Link>
-          ))}
+              <button
+                type="button"
+                className="workspace-button workspace-button-quiet"
+                disabled={currentPage <= 1}
+                onClick={() => setFilter("page", String(currentPage - 1))}
+              >
+                Trước
+              </button>
+              <span aria-live="polite">
+                Trang {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                className="workspace-button workspace-button-quiet"
+                disabled={currentPage >= totalPages}
+                onClick={() => setFilter("page", String(currentPage + 1))}
+              >
+                Sau
+              </button>
+            </nav>
+          </div>
         </div>
       ) : (
         <EmptyState
@@ -163,34 +282,10 @@ export default function AdminContentReportsPage() {
           }
           message={
             search
-              ? "Thử tìm bằng ID đối tượng, lý do hoặc người gửi."
-              : "Danh sách backend hiện không có báo cáo."
+              ? "Thử tìm bằng tên, email, lý do hoặc loại nội dung."
+              : "Danh sách hiện không có báo cáo nào."
           }
         />
-      )}
-      {rows.length > 0 && (
-        <nav
-          className="admin-pagination admin-report-pagination"
-          aria-label="Phân trang báo cáo"
-        >
-          <button
-            className="workspace-button workspace-button-quiet"
-            disabled={currentPage <= 1}
-            onClick={() => setFilter("page", String(currentPage - 1))}
-          >
-            Trước
-          </button>
-          <span aria-live="polite">
-            Trang {currentPage} / {totalPages} · {rows.length} báo cáo
-          </span>
-          <button
-            className="workspace-button workspace-button-quiet"
-            disabled={currentPage >= totalPages}
-            onClick={() => setFilter("page", String(currentPage + 1))}
-          >
-            Sau
-          </button>
-        </nav>
       )}
     </div>
   );
@@ -199,11 +294,39 @@ export default function AdminContentReportsPage() {
 export function AdminContentReportDetailPage() {
   const { user } = useAuth();
   const { reportId } = useParams();
+  const queryClient = useQueryClient();
+
+  const [feedback, setFeedback] = useState("");
+  const [errorFeedback, setErrorFeedback] = useState("");
+
   const query = useQuery({
     queryKey: ["backend-content-report", user.id, reportId],
     queryFn: ({ signal }) =>
       adminService.getContentReport({ reportId, signal }),
   });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ nextStatus }) =>
+      adminService.updateContentReportStatus({
+        reportId,
+        status: nextStatus,
+        targetType: query.data?.targetType,
+        targetId: query.data?.targetId,
+        reason: query.data?.reason,
+      }),
+    onSuccess: (_, variables) => {
+      setFeedback(`Đã chuyển trạng thái báo cáo sang: "${reportStatusLabels[variables.nextStatus]}".`);
+      setErrorFeedback("");
+      queryClient.invalidateQueries({ queryKey: ["backend-content-report", user.id, reportId] });
+      queryClient.invalidateQueries({ queryKey: ["backend-content-reports", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["admin-audit", user.id] });
+    },
+    onError: (err) => {
+      setErrorFeedback(err.message || "Không thể cập nhật trạng thái báo cáo.");
+      setFeedback("");
+    },
+  });
+
   if (query.isLoading)
     return <LoadingState label="Đang tải chi tiết báo cáo" />;
   if (query.isError)
@@ -214,13 +337,9 @@ export function AdminContentReportDetailPage() {
         onRetry={() => query.refetch()}
       />
     );
+
   const item = query.data;
-  if (
-    !item ||
-    typeof item !== "object" ||
-    Array.isArray(item) ||
-    typeof item.id !== "string"
-  )
+  if (!item || typeof item !== "object" || Array.isArray(item) || typeof item.id !== "string")
     return (
       <ErrorState
         title="Dữ liệu báo cáo không hợp lệ"
@@ -228,65 +347,89 @@ export function AdminContentReportDetailPage() {
         onRetry={() => query.refetch()}
       />
     );
+
   return (
     <div className="workspace-dashboard admin-report-detail-page">
       <div className="admin-detail-back">
-        <Link to="/admin/reports">← Quay lại báo cáo</Link>
+        <Link to="/admin/reports">← Quay lại danh sách báo cáo</Link>
       </div>
+
       <div className="workspace-page-heading">
         <div>
           <p className="workspace-eyebrow">ADMIN / CHI TIẾT BÁO CÁO</p>
-          <h1>{item.targetId || "Báo cáo nội dung"}</h1>
-          <p>{item.reason || "Chưa có lý do được cung cấp."}</p>
+          <h1>Báo cáo vi phạm: {item.reason || formatTargetType(item.targetType)}</h1>
+          <p>Nội dung khiếu nại đối với {formatTargetType(item.targetType).toLowerCase()}</p>
         </div>
         <StatusBadge
           value={String(item.status ?? "unknown")}
-          label={`Trạng thái · ${enumCode(item.status)}`}
-          tone="neutral"
+          label={reportStatusLabels[item.status] || "Chưa xác định"}
+          tone={reportStatusTones[item.status] || "neutral"}
         />
       </div>
+
       <section className="admin-report-detail-card">
         <dl className="admin-user-meta">
           <div>
-            <dt>Báo cáo ID</dt>
-            <dd>{item.id || "—"}</dd>
+            <dt>Loại nội dung bị báo cáo</dt>
+            <dd><strong>{formatTargetType(item.targetType)}</strong></dd>
           </div>
           <div>
-            <dt>Loại đối tượng · mã backend</dt>
-            <dd>{enumCode(item.targetType)}</dd>
+            <dt>Lý do khiếu nại</dt>
+            <dd>{item.reason || "Chưa có mô tả chi tiết."}</dd>
           </div>
           <div>
-            <dt>Target ID</dt>
-            <dd>{item.targetId || "—"}</dd>
+            <dt>Người gửi báo cáo</dt>
+            <dd>
+              <strong>{item.reporterName || "Người dùng"}</strong>
+              {item.reporterEmail && item.reporterEmail !== "—" && (
+                <span style={{ display: "block", color: "#6b7280", fontSize: "12px", marginTop: "2px" }}>
+                  {item.reporterEmail}
+                </span>
+              )}
+            </dd>
           </div>
           <div>
-            <dt>Người tạo</dt>
-            <dd>{item.createBy || "—"}</dd>
+            <dt>Thời gian gửi</dt>
+            <dd>{formatDateTime(item.createdAt)}</dd>
           </div>
           <div>
-            <dt>Tạo lúc</dt>
-            <dd>{formatDate(item.createdAt)}</dd>
-          </div>
-          <div>
-            <dt>Cập nhật lúc</dt>
-            <dd>{formatDate(item.updatedAt)}</dd>
+            <dt>Thời gian cập nhật</dt>
+            <dd>{formatDateTime(item.updatedAt)}</dd>
           </div>
         </dl>
-        <p className="admin-report-target-preview">
-          Chỉ đọc. Swagger hiện mô tả PATCH cập nhật DTO, nhưng chưa xác nhận ý
-          nghĩa trạng thái hoặc tác động kiểm duyệt.
-        </p>
+
+        {feedback && <SuccessState>{feedback}</SuccessState>}
+        {errorFeedback && <p className="admin-mutation-error" role="alert">{errorFeedback}</p>}
+
+        <div className="admin-report-actions-box">
+          <div className="admin-report-actions-info">
+            <h3>Xử lý khiếu nại nội dung</h3>
+            <p>Chọn hành động giải quyết hoặc bác bỏ báo cáo vi phạm:</p>
+          </div>
+          <div className="admin-report-actions-buttons">
+            <button
+              className="workspace-button"
+              type="button"
+              disabled={updateMutation.isPending || item.status === 2}
+              onClick={() => updateMutation.mutate({ nextStatus: 2 })}
+            >
+              <Check size={16} aria-hidden="true" />
+              {updateMutation.isPending ? "Đang xử lý…" : "Đã giải quyết vi phạm"}
+            </button>
+
+            <button
+              className="workspace-button workspace-button-quiet"
+              type="button"
+              disabled={updateMutation.isPending || item.status === 3}
+              onClick={() => updateMutation.mutate({ nextStatus: 3 })}
+            >
+              <X size={16} aria-hidden="true" />
+              Bác bỏ khiếu nại
+            </button>
+          </div>
+        </div>
       </section>
     </div>
   );
 }
 
-function formatDate(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "Thời gian chưa xác định"
-    : new Intl.DateTimeFormat("vi-VN", {
-        dateStyle: "medium",
-        timeZone: "Asia/Ho_Chi_Minh",
-      }).format(date);
-}

@@ -65,7 +65,7 @@ test("contact validation and auth explicitly remain demo with no persistence", a
   await page.getByLabel("Email", { exact: true }).fill("demo@example.com");
   await page.getByLabel("Mật khẩu", { exact: true }).fill("only-a-demo");
   await page.getByLabel("Nhập lại mật khẩu").fill("only-a-demo");
-  await page.getByRole("button", { name: "Kiểm tra đăng ký" }).click();
+  await page.getByRole("button", { name: "Đăng ký", exact: true }).click();
   await expect(page.getByRole("status")).toContainText(
     "Bản demo chưa đăng nhập hoặc tạo tài khoản.",
   );

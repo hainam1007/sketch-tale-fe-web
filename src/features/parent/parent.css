@@ -436,8 +436,8 @@
 .export-page-child .export-job-actions { min-width: 132px; }
 .export-page .export-quota-card { margin-top: 0; }
 .workspace-button { transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease; }
-.workspace-button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(66, 53, 19, .1); }
-.workspace-button:active:not(:disabled) { transform: translateY(1px) scale(.985); }
+.workspace-button:hover:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #d69a16; }
+.workspace-button:active:not(:disabled) { transform: translateY(3px) scale(.985); }
 @media (max-width: 800px) {
   .child-heading { align-items: flex-start; }
   .child-heading-person img { width: 48px; height: 48px; }
@@ -566,7 +566,7 @@
 }
 .parent-icon-button:hover {
   background: #fff6dd;
-  transform: translateY(-2px);
+  transform: translateY(2px);
 }
 .parent-notification-dot {
   position: absolute;
@@ -601,13 +601,17 @@
 }
 .parent-primary-button:hover,
 .parent-dark-button:hover {
-  transform: translateY(-2px);
+  transform: translateY(2px);
   background: #f8c84c;
 }
+.parent-primary-button:hover { box-shadow: 0 2px 0 #d99e19; }
+.parent-dark-button:hover { box-shadow: 0 2px 0 #00082d; }
 .parent-primary-button:active,
 .parent-dark-button:active {
-  transform: translateY(1px);
+  transform: translateY(3px);
 }
+.parent-primary-button:active { box-shadow: 0 1px 0 #d99e19; }
+.parent-dark-button:active { box-shadow: 0 1px 0 #00082d; }
 .parent-dashboard-hero-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.78fr) minmax(320px, .82fr);
@@ -794,7 +798,7 @@
 .parent-light-button:hover {
   border-color: #cbb77b;
   background: #fffaf0;
-  transform: translateY(-2px);
+  transform: translateY(2px);
 }
 .parent-spotlight-footer-link {
   display: inline-flex;
@@ -1718,7 +1722,7 @@
 }
 .parent-dashboard-v0 .parent-range-trigger:hover {
   border-color: #f1c147;
-  transform: translateY(-1px);
+  transform: translateY(2px);
 }
 .parent-dashboard-v0 .parent-range-picker.is-open .parent-range-trigger {
   border-color: #f7bd35;

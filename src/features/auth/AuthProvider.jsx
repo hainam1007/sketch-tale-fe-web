@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authService, isRealApi } from "./authService";
 import { ACCESS_TOKEN_KEY, hasAccessToken, refreshAccessTokenIfNeeded } from "../../lib/api/httpClient";
@@ -6,7 +6,7 @@ import { getTokenPair } from "../../lib/api/authTokenStorage";
 import { normalizeApiError } from "../../lib/api/errors";
 import { SESSION_KEY } from "../../mocks/mockServer";
 
-const AuthContext = createContext(null);
+import { AuthContext } from "./AuthContext";
 
 export default function AuthProvider({ children }) {
   const queryClient = useQueryClient();
@@ -161,10 +161,4 @@ export default function AuthProvider({ children }) {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const value = useContext(AuthContext);
-  if (!value) throw new Error("useAuth phải được dùng bên trong AuthProvider.");
-  return value;
 }

@@ -2,7 +2,7 @@ import { FloppyDisk, MagnifyingGlass, ShieldCheck, WarningCircle, X } from "@pho
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { adminService } from "../services/adminService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";

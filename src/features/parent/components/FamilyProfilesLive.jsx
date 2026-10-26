@@ -1,7 +1,7 @@
 ﻿import { ArrowRight, ArrowClockwise, Plus, Clock } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { parentProfileService } from "../services/parentProfileService";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import ChildAvatar from "./ChildAvatar";

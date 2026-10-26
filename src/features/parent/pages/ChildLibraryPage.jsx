@@ -2,7 +2,7 @@ import { useState } from "react";
 import { BookOpen, Heart, MagnifyingGlass, Trash, Eye, EyeSlash, WarningCircle } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOutletContext, useParams, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { childrenService } from "../services/childrenService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { EmptyState, ErrorState, LoadingState } from "../../../components/feedback/States";

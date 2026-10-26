@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CheckCircle, FloppyDisk, Gear, WarningCircle } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOutletContext, useParams } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { childrenService } from "../services/childrenService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";

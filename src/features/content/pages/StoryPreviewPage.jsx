@@ -2,7 +2,7 @@ import { subtitleAt } from "../utils/storySubtitles";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Eye, EyeSlash, Pause, Play, SpeakerHigh } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { LoadingState } from "../../../components/feedback/States";
 import { contentService } from "../services/contentService";

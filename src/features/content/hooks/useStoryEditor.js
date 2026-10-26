@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { useOutletContext, useParams } from "react-router-dom";
 import { contentService } from "../services/contentService";
 import { queryKeys } from "../../../lib/api/queryKeys";

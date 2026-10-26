@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, CheckCircle, EyeSlash, FloppyDisk, Rocket, SpinnerGap, WarningCircle } from "@phosphor-icons/react";
 import { Link, NavLink, Outlet, useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { contentService } from "../services/contentService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState } from "../../../components/feedback/States";

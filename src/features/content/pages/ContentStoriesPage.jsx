@@ -2,7 +2,7 @@ import { BookOpen, MagnifyingGlass, Plus, X } from "@phosphor-icons/react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { contentService } from "../services/contentService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { EmptyState, ErrorState, LoadingState } from "../../../components/feedback/States";

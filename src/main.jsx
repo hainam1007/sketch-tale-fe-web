@@ -5,6 +5,7 @@ import "./styles/tokens.css";
 import "./styles/global.css";
 import App from "./app/App.jsx";
 import "./styles/dropdowns.css";
+import "./styles/button-interactions.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

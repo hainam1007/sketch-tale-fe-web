@@ -1,5 +1,4 @@
 import {
-  ArrowClockwise,
   MagnifyingGlass,
   ShieldCheck,
   X,
@@ -7,29 +6,62 @@ import {
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth } from "../../auth/useAuth";
 import { adminService } from "../services/adminService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import AdminDialog from "../components/AdminDialog";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
+import "../admin.css";
 
 const ranges = [
   ["7d", "7 ngày gần đây"],
   ["30d", "30 ngày gần đây"],
   ["all", "Tất cả thời gian"],
 ];
+
+function parseAuditTime(value) {
+  if (!value) return 0;
+  const normalized = typeof value === "string" ? value.replace(/Z$/i, "+07:00") : value;
+  return Date.parse(normalized) || 0;
+}
+
+function formatDateTime(value) {
+  if (!value) return "Thời gian chưa xác định";
+  const normalized = typeof value === "string" ? value.replace(/Z$/i, "+07:00") : value;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime())
+    ? "Thời gian chưa xác định"
+    : new Intl.DateTimeFormat("vi-VN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Asia/Ho_Chi_Minh",
+      }).format(date);
+}
+
+function roleLabel(role) {
+  switch (role) {
+    case "admin":
+      return "Quản trị viên";
+    case "editor":
+      return "Biên tập viên";
+    case "parent":
+      return "Phụ huynh";
+    case "system":
+      return "Hệ thống";
+    default:
+      return "Người dùng";
+  }
+}
+
 export default function AdminAuditPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = useState(null);
-  const [scope, setScope] = useState("all");
-  const [scopeValue, setScopeValue] = useState("");
-  const [appliedScope, setAppliedScope] = useState({ scope: "all", value: "" });
   const rawPage = Number(searchParams.get("page"));
   const rawPageSize = Number(searchParams.get("pageSize"));
   const requestedRange = searchParams.get("range");
   const filters = {
-    actor: searchParams.get("actor") || "all",
+    role: searchParams.get("role") || "all",
     action: searchParams.get("action") || "all",
     range: ranges.some(([value]) => value === requestedRange)
       ? requestedRange
@@ -38,11 +70,12 @@ export default function AdminAuditPage() {
     page: Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1,
     pageSize: [10, 25, 50].includes(rawPageSize) ? rawPageSize : 10,
   };
+
   const auditQuery = useQuery({
-    queryKey: [...queryKeys.adminAudit(user.id), appliedScope],
-    queryFn: ({ signal }) =>
-      adminService.listAudit({ ...appliedScope, signal }),
+    queryKey: queryKeys.adminAudit(user.id),
+    queryFn: ({ signal }) => adminService.listAudit({ signal }),
   });
+
   const detailQuery = useQuery({
     queryKey: ["admin-audit-detail", user.id, selected?.id],
     queryFn: ({ signal }) =>
@@ -50,10 +83,11 @@ export default function AdminAuditPage() {
     enabled: Boolean(selected?.id),
     retry: false,
   });
+
   function updateFilter(key, value) {
     const next = new URLSearchParams(searchParams);
     const isDefault =
-      ((key === "actor" || key === "action") && value === "all") ||
+      ((key === "role" || key === "action") && value === "all") ||
       (key === "range" && value === "30d") ||
       (key === "pageSize" && value === "10") ||
       (key === "page" && value === "1");
@@ -62,6 +96,7 @@ export default function AdminAuditPage() {
     if (key !== "page") next.delete("page");
     setSearchParams(next, { replace: key === "search" });
   }
+
   if (auditQuery.isLoading)
     return <LoadingState label="Đang tải nhật ký thao tác" />;
   if (auditQuery.isError && !auditQuery.data)
@@ -72,51 +107,57 @@ export default function AdminAuditPage() {
         onRetry={() => auditQuery.refetch()}
       />
     );
+
   const rows = Array.isArray(auditQuery.data) ? auditQuery.data : [];
-  const actors = [
-    ...new Set(rows.map((item) => item.createBy).filter(Boolean)),
-  ];
   const actions = [...new Set(rows.map((item) => item.action).filter(Boolean))];
   const cutoff =
     filters.range === "all"
       ? 0
-      : auditQuery.dataUpdatedAt - (filters.range === "7d" ? 7 : 30) * 24 * 60 * 60 * 1000;
+      : Date.now() - (filters.range === "7d" ? 7 : 30) * 24 * 60 * 60 * 1000;
+
   const filtered = rows.filter((item) => {
-    const createdAt = new Date(item.createdAt).getTime();
-    const searchText =
-      `${item.createBy || ""} ${item.action || ""} ${item.entityName || ""} ${item.primaryKey || ""}`.toLocaleLowerCase(
-        "vi",
-      );
-    return (
-      (filters.actor === "all" || item.createBy === filters.actor) &&
-      (filters.action === "all" || item.action === filters.action) &&
-      (filters.range === "all" ||
-        (Number.isFinite(createdAt) && createdAt >= cutoff)) &&
-      (!filters.search ||
-        searchText.includes(filters.search.toLocaleLowerCase("vi")))
-    );
+    const createdAt = parseAuditTime(item.createdAt);
+    const searchTarget = `${item.actorName || ""} ${item.actorEmail || ""} ${item.createBy || ""} ${item.action || ""} ${item.entityName || ""} ${item.primaryKey || ""}`.toLowerCase();
+    const q = filters.search.trim().toLowerCase();
+
+    const matchesRole =
+      filters.role === "all" ||
+      item.actorRole === filters.role ||
+      (filters.role === "admin" && (item.actorRole === "admin" || item.createBy === "51d68f92-299b-4c57-b07a-ef6f57146b8b" || item.createBy === "5c7c010b-d573-4798-b194-e21149ba9755")) ||
+      (filters.role === "parent" && item.actorRole === "parent") ||
+      (filters.role === "editor" && item.actorRole === "editor") ||
+      (filters.role === "system" && (item.actorRole === "system" || item.createBy === "00000000-0000-0000-0000-000000000000"));
+
+    const matchesAction = filters.action === "all" || item.action === filters.action;
+    const matchesRange = filters.range === "all" || (Number.isFinite(createdAt) && createdAt >= cutoff);
+    const matchesSearch = !q || searchTarget.includes(q);
+
+    return matchesRole && matchesAction && matchesRange && matchesSearch;
   });
+
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / filters.pageSize));
   const currentPage = Math.min(filters.page, totalPages);
   const items = [...filtered]
     .sort(
-      (a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0),
+      (a, b) => parseAuditTime(b.createdAt) - parseAuditTime(a.createdAt),
     )
     .slice(
       (currentPage - 1) * filters.pageSize,
       currentPage * filters.pageSize,
     );
+
   const detail = detailQuery.data
     ? { ...selected, ...detailQuery.data }
     : selected;
+
   return (
     <div className="workspace-dashboard audit-page">
       <div className="workspace-page-heading">
         <div>
           <p className="workspace-eyebrow">ADMIN / AUDIT VIEWER</p>
           <h1>Nhật ký thao tác</h1>
-          <p>Chỉ đọc: tra cứu ai đã làm gì và đối tượng nào bị thay đổi.</p>
+          <p>Theo dõi lịch sử thay đổi hệ thống và hoạt động của người dùng.</p>
         </div>
         <ShieldCheck
           size={43}
@@ -124,84 +165,20 @@ export default function AdminAuditPage() {
           aria-hidden="true"
         />
       </div>
-      <div className="admin-source-note is-live">
-        <span className="admin-source-indicator" />
-        Nhật ký từ hệ thống · Chỉ đọc
-        <button
-          className="icon-button"
-          aria-label="Làm mới nhật ký"
-          disabled={auditQuery.isFetching}
-          onClick={() => auditQuery.refetch()}
-        >
-          <ArrowClockwise size={18} />
-        </button>
-      </div>
-      {auditQuery.isError && (
-        <p role="alert">Không thể làm mới. Đang giữ dữ liệu đã tải.</p>
-      )}
-      <form
-        className="admin-audit-scope"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setAppliedScope({ scope, value: scopeValue });
-          setSearchParams({ range: "all" });
-        }}
-      >
-        <label>
-          Tra cứu theo
-          <select
-            aria-label="Phạm vi tra cứu"
-            value={scope}
-            onChange={(event) => setScope(event.target.value)}
-          >
-            <option value="all">Toàn bộ nhật ký</option>
-            <option value="user">ID người thực hiện</option>
-            <option value="entity">Loại đối tượng</option>
-            <option value="target">ID đối tượng</option>
-          </select>
-        </label>
-        {scope !== "all" && (
-          <label>
-            Giá trị tra cứu
-            <input
-              aria-label="Giá trị tra cứu"
-              value={scopeValue}
-              onChange={(event) => setScopeValue(event.target.value)}
-              required
-              pattern={
-                scope === "entity"
-                  ? undefined
-                  : "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-              }
-              title={
-                scope === "entity" ? "Tên loại đối tượng" : "Nhập UUID hợp lệ"
-              }
-            />
-          </label>
-        )}
-        <button
-          className="workspace-button"
-          disabled={
-            auditQuery.isFetching || (scope !== "all" && !scopeValue.trim())
-          }
-        >
-          Tra cứu
-        </button>
-      </form>
+
       <div className="audit-filter-panel">
         <label>
-          <span>Người thực hiện</span>
+          <span>Vai trò người thực hiện</span>
           <select
-            aria-label="Lọc actor"
-            value={filters.actor}
-            onChange={(event) => updateFilter("actor", event.target.value)}
+            aria-label="Lọc vai trò"
+            value={filters.role}
+            onChange={(event) => updateFilter("role", event.target.value)}
           >
-            <option value="all">Tất cả người thực hiện</option>
-            {actors.map((actor) => (
-              <option value={actor} key={actor}>
-                {actor}
-              </option>
-            ))}
+            <option value="all">Tất cả vai trò</option>
+            <option value="admin">Quản trị viên (Admin)</option>
+            <option value="parent">Phụ huynh (Parent)</option>
+            <option value="editor">Biên tập viên (Editor)</option>
+            <option value="system">Hệ thống (System)</option>
           </select>
         </label>
         <label>
@@ -234,14 +211,14 @@ export default function AdminAuditPage() {
           </select>
         </label>
         <label className="audit-search">
-          <span>Tìm đối tượng</span>
+          <span>Tìm kiếm</span>
           <div>
             <MagnifyingGlass size={15} aria-hidden="true" />
             <input
-              aria-label="Tìm audit"
+              aria-label="Tìm theo tên, email, đối tượng"
               value={filters.search}
               onChange={(event) => updateFilter("search", event.target.value)}
-              placeholder="ID, loại đối tượng hoặc người thực hiện"
+              placeholder="Tìm theo tên, email hoặc đối tượng..."
             />
           </div>
         </label>
@@ -258,6 +235,7 @@ export default function AdminAuditPage() {
           </select>
         </label>
       </div>
+
       <section className="analytics-card audit-table-card">
         <div className="analytics-card-heading">
           <div>
@@ -273,44 +251,50 @@ export default function AdminAuditPage() {
         </div>
         {items.length ? (
           <>
-            <div className="analytics-table-wrap">
-              <table className="analytics-table audit-table">
-                <caption className="sr-only">Danh sách audit event</caption>
+            <div className="admin-users-table-wrap">
+              <table className="admin-users-table">
+                <caption className="sr-only">Danh sách nhật ký thao tác</caption>
                 <thead>
                   <tr>
                     <th>Thời gian</th>
-                    <th>Người thực hiện (ID)</th>
+                    <th>Tên người thực hiện</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
                     <th>Hành động</th>
                     <th>Đối tượng</th>
-                    <th>
-                      <span className="sr-only">Chi tiết</span>
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item) => (
-                    <tr key={item.id}>
-                      <td>{formatDateTime(item.createdAt)}</td>
+                    <tr
+                      key={item.id}
+                      onClick={() => setSelected(item)}
+                      style={{ cursor: "pointer" }}
+                      title="Nhấn để xem chi tiết thao tác"
+                    >
                       <td>
-                        <code>{item.createBy || "Không rõ"}</code>
+                        <span className="admin-date-cell">{formatDateTime(item.createdAt)}</span>
                       </td>
                       <td>
-                        <code>{item.action || "Chưa xác định"}</code>
+                        <strong className="admin-catalog-primary">{item.actorName || "Hệ thống"}</strong>
                       </td>
                       <td>
-                        {item.entityName || "Chưa xác định"}
-                        <small>
-                          <code>{item.primaryKey || ""}</code>
-                        </small>
+                        <span className="admin-user-email">{item.actorEmail || "—"}</span>
                       </td>
                       <td>
-                        <button
-                          className="workspace-button workspace-button-quiet audit-detail-button"
-                          type="button"
-                          onClick={() => setSelected(item)}
-                        >
-                          Xem
-                        </button>
+                        <span className={`admin-badge-rule role-${item.actorRole || "system"}`}>
+                          {roleLabel(item.actorRole)}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`admin-badge-action action-${(item.action || "").toLowerCase()}`}>
+                          {item.action || "Chưa xác định"}
+                        </span>
+                      </td>
+                      <td>
+                        <strong title={item.primaryKey ? `ID: ${item.primaryKey}` : undefined}>
+                          {item.entityName || "Dữ liệu hệ thống"}
+                        </strong>
                       </td>
                     </tr>
                   ))}
@@ -350,10 +334,11 @@ export default function AdminAuditPage() {
           <div className="workspace-state workspace-state-empty">
             <ShieldCheck size={29} aria-hidden="true" />
             <strong>Không có thao tác phù hợp</strong>
-            <p>Thử đổi người thực hiện, hành động hoặc khoảng thời gian.</p>
+            <p>Thử đổi vai trò, hành động hoặc nội dung tìm kiếm.</p>
           </div>
         )}
       </section>
+
       {selected && (
         <AdminDialog
           className="audit-detail-dialog"
@@ -384,9 +369,22 @@ export default function AdminAuditPage() {
               <dd>{formatDateTime(detail?.createdAt)}</dd>
             </div>
             <div>
-              <dt>Người thực hiện (ID)</dt>
+              <dt>Người thực hiện</dt>
               <dd>
-                <code>{detail?.createBy || "Không rõ"}</code>
+                <strong>{detail?.actorName || "Hệ thống"}</strong>
+                {detail?.actorEmail && detail.actorEmail !== "—" && (
+                  <span style={{ marginLeft: 8, color: "var(--color-text-muted)" }}>
+                    ({detail.actorEmail})
+                  </span>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Vai trò</dt>
+              <dd>
+                <span className={`admin-badge-rule role-${detail?.actorRole || "system"}`}>
+                  {roleLabel(detail?.actorRole)}
+                </span>
               </dd>
             </div>
             <div>
@@ -396,13 +394,14 @@ export default function AdminAuditPage() {
               </dd>
             </div>
             <div>
-              <dt>Loại đối tượng</dt>
-              <dd>{detail?.entityName || "Chưa xác định"}</dd>
-            </div>
-            <div>
-              <dt>ID đối tượng</dt>
+              <dt>Đối tượng thao tác</dt>
               <dd>
-                <code>{detail?.primaryKey || "Chưa xác định"}</code>
+                <strong>{detail?.entityName || "Dữ liệu hệ thống"}</strong>
+                {detail?.primaryKey && (
+                  <small style={{ display: "block", color: "var(--color-text-muted)", marginTop: 4 }}>
+                    ID: {detail.primaryKey}
+                  </small>
+                )}
               </dd>
             </div>
           </dl>
@@ -417,10 +416,6 @@ export default function AdminAuditPage() {
               2,
             )}
           </pre>
-          <p className="audit-detail-readonly">
-            Backend chưa cung cấp tên người dùng hoặc trạng thái thành công/thất
-            bại cho bản ghi này.
-          </p>
           <div className="admin-dialog-actions">
             <button
               className="workspace-button workspace-button-quiet"
@@ -434,17 +429,6 @@ export default function AdminAuditPage() {
       )}
     </div>
   );
-}
-
-function formatDateTime(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "Thời gian chưa xác định"
-    : new Intl.DateTimeFormat("vi-VN", {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "Asia/Ho_Chi_Minh",
-      }).format(date);
 }
 
 function parseValue(value) {

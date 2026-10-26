@@ -1,7 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import ParentChildExperience from "../pages/ParentChildExperience";
 import FamilyReportsDemo from "../pages/FamilyReportsDemo";
-import { getFamilyProfilePreview, showFamilyProfilePreview } from "../components/FamilyProfilesPreview";
+import { getFamilyProfilePreview, showFamilyProfilePreview } from "../services/familyProfilePreview";
 import { moduleApiModes } from "../../../lib/api/featureApi";
 
 const availableParentRoutes = new Set([
