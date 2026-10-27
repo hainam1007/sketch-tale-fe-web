@@ -16,7 +16,6 @@ const tabs = [
   { suffix: "/approvals", label: "Phê duyệt" },
   { suffix: "/library", label: "Thư viện" },
   { suffix: "/progress", label: "Tiến độ" },
-  { suffix: "/exports", label: "Bản xuất" },
 ];
 
 export default function ChildWorkspaceLayout() {

@@ -1,11 +1,11 @@
-﻿import { ArrowRight, ArrowClockwise, Plus, Clock } from "@phosphor-icons/react";
+﻿import { ArrowClockwise, Plus, Clock, Carrot, Rabbit } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { parentProfileService } from "../services/parentProfileService";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import ChildAvatar from "./ChildAvatar";
-import { ageLabel, savedAvatar } from "../services/profilePresentation";
+import { savedAvatar } from "../services/profilePresentation";
 import "../parent-experience.css";
 export default function FamilyProfilesLive() {
   const { user } = useAuth();
@@ -26,7 +26,6 @@ export default function FamilyProfilesLive() {
     <section className="family-picker" aria-labelledby="family-live-title">
       <div className="family-section-heading">
         <div>
-          <p className="workspace-eyebrow">MỖI BÉ, MỘT HÀNH TRÌNH</p>
           <h2 id="family-live-title">Hôm nay, mình đồng hành cùng ai?</h2>
           <p>{query.data.length} hồ sơ trong gia đình</p>
         </div>
@@ -42,25 +41,37 @@ export default function FamilyProfilesLive() {
       <div className="family-profile-grid">
         {query.data.map((child, index) => (
           <Link
-            className="family-profile-card"
+            className="family-profile-card family-artist-card"
             key={child.id}
             to={`/parent/children/${encodeURIComponent(child.id)}`}
+            aria-label={`Mở không gian của ${child.nickName || "bé"}`}
           >
-            <ChildAvatar id={child.id} index={savedAvatar(user.id, child.id, index)} size={42} />
-            <h3>{child.nickName || "Bé của bạn"}</h3>
-            <p>{ageLabel(child.targetAgeGroup)}</p>
-            <span className="family-time">
-              <Clock size={16} />
+            <img className="family-palette-art" src="/images/library/child-palette.webp" alt="" width="768" height="768" />
+            <div className="family-palette-portrait" aria-hidden="true">
+              <ChildAvatar id={child.id} index={savedAvatar(user.id, child.id, index)} size={90} />
+            </div>
+            <h3
+              className="family-artist-name-tag"
+              title={child.nickName || "Bé của bạn"}
+            >
+              <span>{child.nickName || "Bé của bạn"}</span>
+              <span className="family-artist-name-sticker" aria-hidden="true">
+                {index % 2 === 0 ? (
+                  <Carrot size={19} weight="duotone" />
+                ) : (
+                  <Rabbit size={19} weight="duotone" />
+                )}
+              </span>
+            </h3>
+            <span className="family-time family-artist-time-tag">
+              <Clock size={14} aria-hidden="true" />
               {child.dailyTimeLimit == null
                 ? "Thiết lập giờ đọc"
                 : `${child.dailyTimeLimit} phút/ngày`}
             </span>
-            <span className="family-card-action">
-              Mở không gian của bé <ArrowRight size={18} />
-            </span>
           </Link>
         ))}
-        <Link className="family-add-card" to="/parent/children/new">
+        <Link className="family-add-card family-artist-add" to="/parent/children/new">
           <span>
             <Plus size={28} />
           </span>

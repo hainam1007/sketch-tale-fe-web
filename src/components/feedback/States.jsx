@@ -1,9 +1,9 @@
-import { ArrowClockwise, CheckCircle, Info, SpinnerGap, WarningCircle } from "@phosphor-icons/react";
+import { ArrowClockwise, CheckCircle, Info, WarningCircle } from "@phosphor-icons/react";
 
 export function LoadingState({ label = "Đang tải dữ liệu", fullPage = false }) {
   return (
     <div className={`workspace-state loading-state ${fullPage ? "workspace-state-full" : ""}`} role="status" aria-live="polite">
-      <SpinnerGap className="workspace-spinner" size={25} aria-hidden="true" />
+      <img className="workspace-loading-mascot" src="/images/SketchTale_Mascot_Loading.webp" alt="" />
       <span>{label}</span>
     </div>
   );

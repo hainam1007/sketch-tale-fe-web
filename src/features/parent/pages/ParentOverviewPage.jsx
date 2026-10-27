@@ -1,10 +1,4 @@
-import {
-  Plus,
-  BookOpen,
-  ChartBar,
-  Package,
-  ArrowRight,
-} from "@phosphor-icons/react";
+import { Plus, BookOpen, Package, ArrowRight } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import FamilyProfilesLive from "../components/FamilyProfilesLive";
@@ -52,12 +46,6 @@ export default function ParentOverviewPage() {
           <span>Chọn điều bé muốn khám phá hôm nay</span>
           <ArrowRight size={20} />
         </Link>
-        <Link to="/parent/reports">
-          <ChartBar size={28} weight="duotone" />
-          <strong>Nhìn lại bước tiến</strong>
-          <span>Thói quen đọc và những điều bé đã học</span>
-          <ArrowRight size={20} />
-        </Link>
         <Link to="/parent/plan">
           <Package size={28} weight="duotone" />
           <strong>Thêm không gian sáng tạo</strong>
@@ -65,14 +53,6 @@ export default function ParentOverviewPage() {
           <ArrowRight size={20} />
         </Link>
       </nav>
-      <aside className="family-daily-tip">
-        <img src="/images/seed.webp" alt="" />
-        <div>
-          <p className="workspace-eyebrow">10 PHÚT BÊN NHAU</p>
-          <h2>Một câu hỏi nhỏ, một cuộc trò chuyện hay.</h2>
-          <p>Sau khi đọc, thử hỏi bé: “Con thích nhân vật nào nhất? Vì sao?”</p>
-        </div>
-      </aside>
     </div>
   );
 }

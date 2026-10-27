@@ -154,29 +154,44 @@
 .plan-usage-progress span { display: block; height: 100%; border-radius: inherit; background: #c48b1d; }
 
 .plan-options-section { padding-top: 9px; }
-.plan-options-heading { align-items: flex-end; }
-.plan-options-heading p:not(.workspace-eyebrow) { max-width: 57ch; margin: 7px 0 0; color: #747b85; font-size: 13px; line-height: 1.5; }
 .plan-options-count { padding: 7px 10px; border: 1px solid #e2ddcf; border-radius: 8px; color: #777b80; background: #fffdf8; font-size: 11px; font-weight: 900; }
-.plan-option-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; align-items: stretch; }
-.plan-option-card { display: flex; flex-direction: column; min-width: 0; min-height: 435px; padding: 21px; border: 1px solid #e3e0d8; border-radius: 18px; background: #fff; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
-.plan-option-card:hover { border-color: #d9bd68; box-shadow: 0 10px 20px rgb(76 63 25 / 7%); transform: translateY(-2px); }
-.plan-option-card.is-current { border-color: #d0a83f; background: #fffaf0; box-shadow: inset 0 3px #d4a639; }
-.plan-option-card-pro { border-color: #ead59a; }
+.plan-options-intro-count { justify-self: end; align-self: center; padding: 9px 13px; border-color: #e7d9ae; border-radius: 10px; color: #806116; background: #fff9e8; font-size: 12px; }
+.plan-option-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+.plan-option-card { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 460px; padding: 24px 23px 22px; overflow: hidden; border: 1px solid #e6e1d7; border-radius: 22px; background: #fffefa; box-shadow: 0 10px 28px rgb(61 51 30 / 5%); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease, background-color .2s ease; }
+.plan-option-card:hover { border-color: #d9bd68; box-shadow: 0 16px 34px rgb(76 63 25 / 10%); transform: translateY(-3px); }
+.plan-option-card.is-current { border-color: #d0a83f; background: #fffaf0; box-shadow: inset 0 3px #d4a639, 0 12px 28px rgb(112 83 20 / 9%); }
+.plan-option-card-pro { border-color: #465d78; color: #f7f9fc; background: linear-gradient(155deg, #202938 0%, #26384e 55%, #304a67 100%); box-shadow: 0 16px 34px rgb(31 48 70 / 17%); }
+.plan-option-card-pro:hover { border-color: #7899bd; box-shadow: 0 20px 38px rgb(31 48 70 / 23%); }
+.plan-option-card-pro.is-current { border-color: #e9c55e; background: linear-gradient(155deg, #202938 0%, #26384e 55%, #304a67 100%); box-shadow: inset 0 3px #f4ca61, 0 16px 34px rgb(31 48 70 / 18%); }
+.plan-option-card-plus { z-index: 1; overflow: visible; border: 2px solid #d9bd68; background: linear-gradient(150deg, #fff9e8 0%, #fffefa 62%); box-shadow: 0 13px 30px rgb(141 100 8 / 10%), inset 0 0 0 1px rgb(255 255 255 / 82%); transform: translateY(-4px); }
+.plan-option-card-plus:hover { border-color: #c9a846; box-shadow: 0 17px 34px rgb(141 100 8 / 14%), inset 0 0 0 1px rgb(255 255 255 / 82%); transform: translateY(-6px); }
+.plan-option-card-plus.is-current { border-color: #d9bd68; background: linear-gradient(150deg, #fff9e8 0%, #fffefa 62%); box-shadow: inset 0 3px #d9bd68, 0 13px 30px rgb(141 100 8 / 10%); }
+.plan-option-highlight-badge { position: absolute; top: -14px; right: 20px; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 1px solid #ddc16c; border-radius: 10px; color: #775d1c; background: #fff4d2; box-shadow: 0 3px 8px rgb(106 75 10 / 12%); transform: rotate(8deg); }
 .plan-option-card-family { background: #f5f7f1; border-color: #dce4d5; }
-.plan-option-topline { display: flex; justify-content: space-between; gap: 8px; min-height: 28px; color: #8c7d54; font-size: 9px; letter-spacing: 1.1px; }
+.plan-option-topline { display: flex; justify-content: space-between; gap: 8px; min-height: 28px; color: #8c7d54; font-size: 10px; letter-spacing: 1.15px; }
+.plan-option-card-pro .plan-option-topline { color: #b7c5d5; }
 .plan-current-label { color: #6a8b70; }
-.plan-option-name { display: flex; align-items: center; gap: 7px; margin-top: 13px; }
-.plan-option-name h3 { margin: 0; color: #202b42; font-size: 24px; letter-spacing: -.7px; }
+.plan-option-card-pro .plan-current-label { color: #f4ca61; }
+.plan-option-name { display: flex; align-items: center; gap: 8px; margin-top: 11px; }
+.plan-option-name h3 { margin: 0; color: #202b42; font-size: 27px; letter-spacing: -.85px; }
+.plan-option-card-pro .plan-option-name h3 { color: #fff; }
 .plan-option-name svg { color: #678a6d; }
-.plan-option-audience { min-height: 56px; margin: 8px 0 0; color: #6f7680; font-size: 12px; line-height: 1.5; }
-.plan-option-price { margin: 16px 0 15px; color: #202b42; font-size: 30px; font-weight: 900; letter-spacing: -1.2px; font-variant-numeric: tabular-nums; }
-.plan-option-price small { margin-left: 4px; color: #7d838d; font-size: 11px; font-weight: 800; letter-spacing: 0; }
-.plan-option-limits { display: grid; gap: 9px; padding: 15px 0 0; margin: 0; border-top: 1px solid #ece9e1; list-style: none; color: #515963; font-size: 12px; line-height: 1.35; }
+.plan-option-card-pro .plan-option-name svg { color: #9bc8ff; }
+.plan-option-audience { min-height: 58px; margin: 9px 0 0; color: #6f7680; font-size: 13px; line-height: 1.55; }
+.plan-option-card-pro .plan-option-audience { color: #c6d0dc; }
+.plan-option-price { margin: 18px 0 18px; color: #202b42; font-size: 33px; font-weight: 900; letter-spacing: -1.2px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.plan-option-card-pro .plan-option-price { color: #fff; }
+.plan-option-price small { display: inline; margin-left: 6px; color: #7d838d; font-size: 14px; font-weight: 700; letter-spacing: 0; line-height: 1.45; }
+.plan-option-card-pro .plan-option-price small { color: #bdc9d7; }
+.plan-option-limits { display: grid; gap: 11px; padding: 17px 0 0; margin: 0; border-top: 1px solid #ece9e1; list-style: none; color: #515963; font-size: 13px; line-height: 1.45; }
+.plan-option-card-pro .plan-option-limits { border-color: rgb(255 255 255 / 18%); color: #e1e8f0; }
 .plan-option-limits li { display: flex; align-items: flex-start; gap: 7px; }
 .plan-option-limits svg { flex: 0 0 auto; margin-top: 1px; color: #6d9874; }
-.plan-option-action { display: flex; align-items: center; min-height: 43px; margin-top: auto; padding-top: 19px; }
-.plan-option-action .workspace-button { width: 100%; }
-.plan-option-disabled { display: inline-flex; align-items: center; gap: 7px; color: #6d8d73; font-size: 12px; font-weight: 900; }
+.plan-option-card-pro .plan-option-limits svg { color: #84baff; }
+.plan-option-action { display: flex; align-items: center; min-height: 48px; margin-top: auto; padding-top: 19px; }
+.plan-option-action .workspace-button { width: 100%; min-height: 48px; border-radius: 12px; }
+.plan-option-disabled { display: inline-flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 46px; padding: 10px; border: 1px solid #d7e5da; border-radius: 12px; color: #62836a; background: #f2f8f3; font-size: 12px; font-weight: 900; }
+.plan-option-card-pro .plan-option-disabled { border-color: rgb(255 255 255 / 20%); color: #d7e6f7; background: rgb(255 255 255 / 7%); }
 .plan-option-footnote { color: #898d91; font-size: 11px; font-weight: 800; }
 .plan-current-card-unavailable { border-color: #e5e1d4; background: #faf8f2; }
 .plan-current-card-unavailable h2 { margin: 8px 0; font-size: 24px; }
@@ -263,7 +278,7 @@
   .plan-section-heading h2 { font-size: 22px; }
   .plan-usage-grid { grid-template-columns: 1fr; }
   .plan-usage-card { min-height: 125px; }
-  .plan-options-count { align-self: flex-start; }
+  .plan-options-intro-count { justify-self: start; align-self: center; }
   .plan-option-card .plan-option-limits { grid-template-columns: 1fr; }
   .plan-benefits-card { padding: 20px; }
   .plan-benefits-list { overflow-x: auto; }
@@ -273,4 +288,6 @@
 @media (prefers-reduced-motion: reduce) {
   .parent-plan-page .workspace-button,
   .plan-option-card { transition: none; }
+  .plan-option-card-plus { transform: none; }
+  .plan-option-highlight-badge { transform: rotate(8deg); }
 }

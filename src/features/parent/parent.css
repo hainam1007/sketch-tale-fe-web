@@ -19,6 +19,7 @@
 .parent-stat-panel { background: #202938; color: #fff; }
 .parent-stat-panel .parent-panel-kicker { color: #f4ca61; }
 .parent-stat-panel .loading-state { padding: 25px 0; border: 0; background: transparent; color: #d9e0e8; }
+.parent-stat-panel .workspace-loading-mascot { width: 72px; height: 72px; }
 .parent-stat-panel .workspace-state-error { padding: 22px 0; border: 0; background: transparent; color: #f1cbd0; }
 .parent-stat-panel .workspace-state strong { color: #fff; }
 .parent-plan-line { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
@@ -1941,3 +1942,14 @@
   .parent-family-status { grid-template-columns: 1fr; gap: 14px; }
   .parent-family-status .workspace-button { grid-column: auto; width: 100%; justify-content: center; }
 }
+.library-publish-button { min-height: 38px; padding: 7px 10px; margin-right: auto; white-space: nowrap; }
+.library-download-button { min-height: 38px; padding: 7px 10px; white-space: nowrap; }
+.library-card-actions { flex-wrap: wrap; align-items: center; }
+.library-export-status { display: block; margin-top: 10px; color: #477057; font-size: 12px; }
+.library-publish-message { display: flex; align-items: center; gap: 8px; padding: 12px 15px; margin: 0 0 14px; border-radius: 10px; color: #315f49; background: #eaf4e9; }
+.library-publish-dialog { display: grid; gap: 14px; }
+.library-publish-dialog > p { margin: 0; }
+.library-publish-format { display: grid; gap: 8px; color: #374352; font-size: 14px; font-weight: 700; }
+.library-publish-format select { min-height: 44px; padding: 8px 12px; border: 1px solid #d8dedc; border-radius: 9px; background: #fff; color: inherit; font: inherit; }
+.library-publish-quota { color: #607367; }
+.library-publish-dialog .parent-dialog-actions { margin-top: 4px; }

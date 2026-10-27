@@ -1,35 +1,145 @@
 ﻿import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, Navigate, NavLink, useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Clock,
   Star,
   CheckCircle,
-  DownloadSimple,
   Heart,
+  ArrowLeft,
   ArrowRight,
   ChartBar,
   Gear,
   ShieldCheck,
+  PencilSimple,
+  Check,
+  X,
+  UploadSimple,
 } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/useAuth";
 import { parentProfileService } from "../services/parentProfileService";
 import { useParentDemo, demoBooks } from "../services/parentDemoState";
 import ChildAvatar from "../components/ChildAvatar";
+import { childAvatars } from "../services/childAvatarLibrary";
 import { ageLabel } from "../services/profilePresentation";
-import LiveChildProfilePage from "./LiveChildProfilePage";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import "../parent-experience.css";
 const tabs = [
   ["", "Tổng quan"],
   ["profile", "Hồ sơ"],
-  ["progress", "Báo cáo"],
   ["settings", "Cài đặt"],
   ["approvals", "Phê duyệt"],
   ["library", "Tủ truyện"],
-  ["exports", "Bản xuất"],
 ];
+
+function EditableChildName({ child, userId }) {
+  const client = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(child.nickName);
+  const mutation = useMutation({
+    mutationFn: (nickName) =>
+      parentProfileService.update({
+        childId: child.id,
+        nickName,
+        dailyTimeLimit: child.dailyTimeLimit ?? null,
+        dailyCharacterLimit: child.dailyCharacterLimit ?? null,
+      }),
+    onSuccess: async (_, nickName) => {
+      setName(nickName);
+      setEditing(false);
+      await Promise.all([
+        client.invalidateQueries({
+          queryKey: ["parent-live-profiles", userId],
+        }),
+        client.invalidateQueries({
+          queryKey: ["parent-live-profile", userId, child.id],
+        }),
+      ]);
+    },
+  });
+
+  if (!editing) {
+    return (
+      <div className="family-child-name">
+        <h1>{name}</h1>
+        <button
+          className="family-child-name-edit"
+          type="button"
+          aria-label={`Đổi tên ${name}`}
+          title="Sửa tên bé"
+          onClick={() => {
+            setName(child.nickName);
+            mutation.reset();
+            setEditing(true);
+          }}
+        >
+          <PencilSimple size={19} aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      className="family-child-name-editor"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const nextName = name.trim();
+        if (!nextName || nextName === child.nickName || mutation.isPending)
+          return;
+        mutation.mutate(nextName);
+      }}
+    >
+      <label className="sr-only" htmlFor={`child-name-${child.id}`}>
+        Tên bé
+      </label>
+      <input
+        id={`child-name-${child.id}`}
+        autoFocus
+        required
+        maxLength={60}
+        value={name}
+        disabled={mutation.isPending}
+        onChange={(event) => {
+          setName(event.target.value);
+          mutation.reset();
+        }}
+      />
+      <button
+        className="family-child-name-action family-child-name-save"
+        type="submit"
+        aria-label="Lưu tên bé"
+        title="Lưu tên"
+        disabled={
+          !name.trim() || name.trim() === child.nickName || mutation.isPending
+        }
+      >
+        <Check size={19} aria-hidden="true" />
+      </button>
+      <button
+        className="family-child-name-action"
+        type="button"
+        aria-label="Hủy sửa tên"
+        title="Hủy"
+        disabled={mutation.isPending}
+        onClick={() => {
+          setName(child.nickName);
+          mutation.reset();
+          setEditing(false);
+        }}
+      >
+        <X size={19} aria-hidden="true" />
+      </button>
+      {mutation.isError && (
+        <span className="family-child-name-error" role="alert">
+          {mutation.error.message}
+        </span>
+      )}
+    </form>
+  );
+}
+
 export default function ParentChildExperience({ childId, section = "" }) {
   const { user } = useAuth();
   const query = useQuery({
@@ -50,6 +160,13 @@ export default function ParentChildExperience({ childId, section = "" }) {
         onRetry={() => query.refetch()}
       />
     );
+  if (section === "progress" || section === "exports")
+    return (
+      <Navigate
+        to={`/parent/children/${encodeURIComponent(childId)}${section === "exports" ? "/library" : ""}`}
+        replace
+      />
+    );
   return (
     <ChildExperience
       key={childId}
@@ -67,6 +184,7 @@ function ChildExperience({ child, section, userId, family }) {
   const [range, setRange] = useState("7");
   const [notice, setNotice] = useState("");
   const [filter, setFilter] = useState("all");
+  const [publishingStoryId, setPublishingStoryId] = useState("");
   const base = `/parent/children/${encodeURIComponent(child.id)}`;
   const isOverview = !section || section === "dashboard";
   const decisions = demo.decisions || {};
@@ -91,21 +209,32 @@ function ChildExperience({ child, section, userId, family }) {
     });
     setNotice("Đã lưu lựa chọn demo cho riêng bé.");
   }
-  function exportReport() {
-    const body = `BÁO CÁO MINH HỌA — ${child.nickName}\n${range} ngày\nThời gian đọc: ${metrics[0]} phút\nTruyện hoàn thành: ${metrics[1]}\nTừ vựng: ${metrics[2]}\nKết quả câu hỏi: ${metrics[3]}%\nKhông phải dữ liệu học tập thật.`;
-    const url = URL.createObjectURL(
-      new Blob([body], { type: "text/plain;charset=utf-8" }),
+  function publishDemoStory(event, book) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    update({
+      exports: [
+        {
+          id: Date.now(),
+          storyId: book.id,
+          title: book.title,
+          format: form.get("format"),
+        },
+        ...(demo.exports || []).filter((item) => item.storyId !== book.id),
+      ],
+    });
+    setPublishingStoryId("");
+    setNotice(
+      `Đã tạo bản xuất ${form.get("format")} minh họa cho “${book.title}”.`,
     );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "bao-cao-minh-hoa.txt";
-    a.click();
-    URL.revokeObjectURL(url);
   }
   return (
     <div className="parent-page family-workspace">
-      <Link className="family-back" to="/parent/children">
-        ← Tất cả hồ sơ bé
+      <Link
+        className="workspace-button workspace-button-quiet family-back"
+        to="/parent/children"
+      >
+        <ArrowLeft size={17} aria-hidden="true" /> Tất cả hồ sơ bé
       </Link>
       <header className="family-child-heading">
         <ChildAvatar
@@ -121,7 +250,7 @@ function ChildExperience({ child, section, userId, family }) {
         />
         <div>
           <p className="workspace-eyebrow">KHÔNG GIAN CỦA BÉ</p>
-          <h1>{child.nickName}</h1>
+          <EditableChildName child={child} userId={userId} />
           <p>{ageLabel(child.targetAgeGroup)} · Mỗi ngày một điều mới</p>
         </div>
         <label className="family-switch">
@@ -157,32 +286,17 @@ function ChildExperience({ child, section, userId, family }) {
         <>
           <section className="family-panel">
             <h2>Cá tính và sở thích của bé</h2>
-            <p className="family-demo-note">
-              Các lựa chọn bổ sung dưới đây được lưu trong bản demo.
-            </p>
-            <form
-              className="family-settings"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const form = new FormData(event.currentTarget);
-                update({
-                  avatar: Number(form.get("avatar")),
-                  birthday: form.get("birthday"),
-                  readingLevel: form.get("readingLevel"),
-                });
-                setNotice("Đã lưu thông tin bổ sung trong bản demo.");
-              }}
-            >
+            <div className="family-settings">
               <fieldset>
                 <legend>Biểu tượng của bé</legend>
                 <div className="family-avatar-options">
-                  {[0, 1, 2, 3, 4, 5].map((index) => (
+                  {childAvatars.map((avatar, index) => (
                     <label key={index}>
                       <input
                         type="radio"
                         name="avatar"
                         value={index}
-                        defaultChecked={
+                        checked={
                           index ===
                           (demo.avatar ??
                             Math.max(
@@ -190,65 +304,45 @@ function ChildExperience({ child, section, userId, family }) {
                               family.findIndex((item) => item.id === child.id),
                             ))
                         }
+                        onChange={() => update({ avatar: index })}
                       />
                       <ChildAvatar index={index} size={28} />
-                      <span className="sr-only">Biểu tượng {index + 1}</span>
+                      <span className="sr-only">{avatar.label}</span>
                     </label>
                   ))}
                 </div>
               </fieldset>
-              <div className="family-learning">
+              <div className="family-learning family-profile-details">
                 <label>
                   Ngày sinh
                   <input
                     type="date"
                     name="birthday"
-                    defaultValue={demo.birthday || ""}
+                    value={demo.birthday || ""}
                     max={new Date().toLocaleDateString("en-CA")}
+                    onChange={(event) =>
+                      update({ birthday: event.target.value })
+                    }
                   />
                 </label>
-                <label>
-                  Nhịp đọc hiện tại
-                  <select
-                    name="readingLevel"
-                    defaultValue={demo.readingLevel || "together"}
-                  >
-                    <option value="together">Đọc cùng bố mẹ</option>
-                    <option value="beginner">Bắt đầu tự đọc</option>
-                    <option value="independent">Tự đọc và khám phá</option>
-                  </select>
-                </label>
               </div>
-              {notice && <p role="status">{notice}</p>}
-              <button className="workspace-button">Lưu thông tin demo</button>
-            </form>
+            </div>
           </section>
-          <LiveChildProfilePage childId={child.id} />
         </>
       ) : (
         <>
-          <p className="family-demo-note">
-            Dữ liệu minh họa · Các thao tác trong khu vực này được lưu riêng cho
-            bản demo.
-          </p>
           {notice && (
             <p className="family-notice" role="status">
               <CheckCircle size={19} />
               {notice}
             </p>
           )}
-          {(isOverview || section === "progress") && (
+          {isOverview && (
             <>
               <div className="family-section-heading">
                 <div>
-                  <p className="workspace-eyebrow">
-                    {isOverview ? "NHỮNG BƯỚC TIẾN NHỎ" : "BÁO CÁO CỦA BÉ"}
-                  </p>
-                  <h2>
-                    {isOverview
-                      ? `Một tuần khám phá của ${child.nickName}`
-                      : "Cùng nhìn lại hành trình đọc"}
-                  </h2>
+                  <p className="workspace-eyebrow">NHỮNG BƯỚC TIẾN NHỎ</p>
+                  <h2>Một tuần khám phá của {child.nickName}</h2>
                 </div>
                 <div className="family-range">
                   <button
@@ -325,71 +419,30 @@ function ChildExperience({ child, section, userId, family }) {
                   </Link>
                 </aside>
               </div>
-              {section === "progress" ? (
-                <section className="family-panel">
-                  <div className="family-section-heading">
-                    <div>
-                      <h2>Những điều bé đã học</h2>
-                      <p>Gợi ý để bố mẹ trò chuyện cùng bé</p>
-                    </div>
-                    <button
-                      className="workspace-button workspace-button-quiet"
-                      onClick={exportReport}
-                    >
-                      <DownloadSimple size={18} /> Tải báo cáo mẫu
-                    </button>
-                  </div>
-                  <div className="family-learning">
-                    <article>
-                      <h3>Từ vựng mới</h3>
-                      <p>Hạt giống · Khu vườn · Chia sẻ · Can đảm</p>
-                      <small>
-                        Thử dùng một từ mới trong câu chuyện của gia đình.
-                      </small>
-                    </article>
-                    <article>
-                      <h3>Điểm mạnh</h3>
-                      <p>Nhận biết cảm xúc và nhớ các nhân vật.</p>
-                      <small>
-                        Khuyến khích bé kể lại đoạn yêu thích bằng lời của mình.
-                      </small>
-                    </article>
-                    <article>
-                      <h3>Cùng luyện tập</h3>
-                      <p>Sắp xếp các sự kiện theo thứ tự.</p>
-                      <small>“Điều gì xảy ra đầu tiên? Sau đó thì sao?”</small>
-                    </article>
-                  </div>
-                </section>
-              ) : (
-                <section className="family-panel">
-                  <div className="family-section-heading">
-                    <h2>Bố mẹ có thể làm ngay</h2>
-                    <Link to={`${base}/progress`}>
-                      Xem báo cáo <ArrowRight size={17} />
-                    </Link>
-                  </div>
-                  <div className="family-action-grid">
-                    <Link to={`${base}/approvals`}>
-                      <ShieldCheck size={25} />
-                      <strong>Duyệt nhân vật</strong>
-                      <span>
-                        {2 - Object.keys(decisions).length} yêu cầu chờ bố mẹ
-                      </span>
-                    </Link>
-                    <Link to={`${base}/library`}>
-                      <BookOpen size={25} />
-                      <strong>Tiếp tục câu chuyện</strong>
-                      <span>Khu vườn của những người bạn</span>
-                    </Link>
-                    <Link to={`${base}/settings`}>
-                      <Gear size={25} />
-                      <strong>Nhịp đọc phù hợp</strong>
-                      <span>Mục tiêu, lịch nhắc và quyền riêng tư</span>
-                    </Link>
-                  </div>
-                </section>
-              )}
+              <section className="family-panel">
+                <div className="family-section-heading">
+                  <h2>Bố mẹ có thể làm ngay</h2>
+                </div>
+                <div className="family-action-grid">
+                  <Link to={`${base}/approvals`}>
+                    <ShieldCheck size={25} />
+                    <strong>Duyệt nhân vật</strong>
+                    <span>
+                      {2 - Object.keys(decisions).length} yêu cầu chờ bố mẹ
+                    </span>
+                  </Link>
+                  <Link to={`${base}/library`}>
+                    <BookOpen size={25} />
+                    <strong>Tiếp tục câu chuyện</strong>
+                    <span>Khu vườn của những người bạn</span>
+                  </Link>
+                  <Link to={`${base}/settings`}>
+                    <Gear size={25} />
+                    <strong>Nhịp đọc phù hợp</strong>
+                    <span>Mục tiêu, lịch nhắc và quyền riêng tư</span>
+                  </Link>
+                </div>
+              </section>
             </>
           )}
           {section === "settings" && (
@@ -398,10 +451,6 @@ function ChildExperience({ child, section, userId, family }) {
               onSubmit={saveSettings}
             >
               <h2>Một nhịp đọc phù hợp với bé</h2>
-              <p>
-                Mục tiêu và lựa chọn dưới đây dùng cho bản demo. Giới hạn tài
-                khoản thật được chỉnh tại tab Hồ sơ.
-              </p>
               <div className="family-learning">
                 <label>
                   Mục tiêu đọc mỗi ngày
@@ -649,26 +698,75 @@ function ChildExperience({ child, section, userId, family }) {
                           ? "Đã đọc xong"
                           : `Đã đọc ${book.progress}%`}
                       </p>
-                      <button
-                        className="workspace-button workspace-button-quiet"
-                        aria-pressed={favorites.includes(book.id)}
-                        onClick={() =>
-                          update({
-                            favorites: favorites.includes(book.id)
-                              ? favorites.filter((id) => id !== book.id)
-                              : [...favorites, book.id],
-                          })
-                        }
-                      >
-                        <Heart
-                          weight={
-                            favorites.includes(book.id) ? "fill" : "regular"
+                      <div className="family-book-actions">
+                        <button
+                          className="workspace-button workspace-button-quiet"
+                          type="button"
+                          aria-pressed={favorites.includes(book.id)}
+                          onClick={() =>
+                            update({
+                              favorites: favorites.includes(book.id)
+                                ? favorites.filter((id) => id !== book.id)
+                                : [...favorites, book.id],
+                            })
                           }
-                        />
-                        {favorites.includes(book.id)
-                          ? "Đã yêu thích"
-                          : "Yêu thích"}
-                      </button>
+                        >
+                          <Heart
+                            weight={
+                              favorites.includes(book.id) ? "fill" : "regular"
+                            }
+                          />
+                          {favorites.includes(book.id)
+                            ? "Đã yêu thích"
+                            : "Yêu thích"}
+                        </button>
+                        <button
+                          className="workspace-button workspace-button-quiet family-publish-button"
+                          type="button"
+                          onClick={() =>
+                            setPublishingStoryId((current) =>
+                              current === book.id ? "" : book.id,
+                            )
+                          }
+                        >
+                          <UploadSimple size={17} aria-hidden="true" />
+                          {demo.exports?.some(
+                            (item) => item.storyId === book.id,
+                          )
+                            ? "Xuất bản lại"
+                            : "Xuất bản"}
+                        </button>
+                      </div>
+                      {demo.exports?.some(
+                        (item) => item.storyId === book.id,
+                      ) && (
+                        <small className="family-publish-status">
+                          Bản xuất{" "}
+                          {
+                            demo.exports.find(
+                              (item) => item.storyId === book.id,
+                            )?.format
+                          }{" "}
+                          · bản demo
+                        </small>
+                      )}
+                      {publishingStoryId === book.id && (
+                        <form
+                          className="family-publish-form"
+                          onSubmit={(event) => publishDemoStory(event, book)}
+                        >
+                          <label>
+                            Định dạng
+                            <select name="format" defaultValue="PDF">
+                              <option>PDF</option>
+                              <option>Video</option>
+                            </select>
+                          </label>
+                          <button className="workspace-button" type="submit">
+                            Tạo bản xuất demo
+                          </button>
+                        </form>
+                      )}
                     </article>
                   ))}
               </div>
@@ -676,69 +774,6 @@ function ChildExperience({ child, section, userId, family }) {
                 <p className="family-empty">
                   Chạm trái tim ở một truyện để lưu vào danh sách yêu thích.
                 </p>
-              )}
-            </section>
-          )}
-          {section === "exports" && (
-            <section className="family-panel">
-              <h2>Lưu lại câu chuyện của bé</h2>
-              <p>Chọn tác phẩm và định dạng để thử luồng xuất truyện.</p>
-              <form
-                className="family-settings"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const form = new FormData(event.currentTarget);
-                  update({
-                    exports: [
-                      {
-                        id: Date.now(),
-                        title: form.get("story"),
-                        format: form.get("format"),
-                      },
-                      ...(demo.exports || []),
-                    ],
-                  });
-                  setNotice(
-                    "Đã tạo bản xuất minh họa. Chưa tạo file PDF/video thật.",
-                  );
-                }}
-              >
-                <label>
-                  Câu chuyện
-                  <select name="story">
-                    {demoBooks.map((book) => (
-                      <option key={book.id}>{book.title}</option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Định dạng
-                  <select name="format">
-                    <option>PDF</option>
-                    <option>Video</option>
-                  </select>
-                </label>
-                <button className="workspace-button">Tạo bản xuất demo</button>
-              </form>
-              <h3>Lịch sử bản xuất</h3>
-              {(demo.exports || []).length ? (
-                demo.exports.map((item) => (
-                  <div className="family-export-row" key={item.id}>
-                    <BookOpen size={22} />
-                    <span>
-                      <strong>{item.title}</strong>
-                      <small>{item.format} · Hoàn tất mô phỏng</small>
-                    </span>
-                    <button
-                      className="workspace-button workspace-button-quiet"
-                      onClick={exportReport}
-                    >
-                      Tải tệp mẫu TXT
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p>Chọn một câu chuyện để tạo bản xuất đầu tiên.</p>
               )}
             </section>
           )}
