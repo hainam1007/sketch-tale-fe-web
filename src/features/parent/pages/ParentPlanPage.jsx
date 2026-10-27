@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle, Package } from "@phosphor-icons/react";
+import { ArrowRight, CheckCircle, Crown, Package } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
@@ -22,10 +22,9 @@ export default function ParentPlanPage() {
       <header className="plan-page-heading">
         <div>
           <p className="workspace-eyebrow">
-            <Package size={15} aria-hidden="true" /> GÓI VÀ HẠN MỨC
+            <Package size={15} aria-hidden="true" /> PHỤ HUYNH / GÓI VÀ HẠN MỨC
           </p>
-          <h1>Gói đang đồng hành cùng gia đình</h1>
-          <p>Xem các gói và quyền lợi dành cho gia đình.</p>
+          <h1>Gói sử dụng</h1>
         </div>
         <span className="plan-heading-icon" aria-hidden="true">
           <Package size={27} />
@@ -34,16 +33,18 @@ export default function ParentPlanPage() {
 
       <section
         className="plan-current-card plan-summary-primary plan-current-card-unavailable"
-        aria-labelledby="current-plan-title"
+        aria-labelledby="plan-options-title"
       >
         <div className="plan-current-main">
-          <div className="plan-current-kicker">GÓI CỦA GIA ĐÌNH</div>
-          <h2 id="current-plan-title">Trải nghiệm đăng ký gói cho gia đình</h2>
-          <p>
-            Chọn một gói để thử luồng thanh toán demo. Không thu tiền hoặc thay
-            đổi gói thật.
-          </p>
+          <div className="plan-current-kicker">LỰA CHỌN CHO GIA ĐÌNH</div>
+          <h2 id="plan-options-title">Chọn gói phù hợp với nhịp đọc</h2>
+          <p>So sánh quyền lợi và hạn mức của từng gói dành cho gia đình.</p>
         </div>
+        {plansQuery.isSuccess && (
+          <span className="plan-options-count plan-options-intro-count">
+            {plans.length} gói
+          </span>
+        )}
       </section>
 
       <section
@@ -51,16 +52,6 @@ export default function ParentPlanPage() {
         id="plan-options"
         aria-labelledby="plan-options-title"
       >
-        <div className="plan-section-heading plan-options-heading">
-          <div>
-            <p className="workspace-eyebrow">LỰA CHỌN CHO GIA ĐÌNH</p>
-            <h2 id="plan-options-title">Chọn gói phù hợp với nhịp đọc</h2>
-            <p>So sánh quyền lợi và hạn mức của từng gói dành cho gia đình.</p>
-          </div>
-          {plansQuery.isSuccess && (
-            <span className="plan-options-count">{plans.length} gói</span>
-          )}
-        </div>
         {plansQuery.isLoading ? (
           <LoadingState label="Đang tải danh sách gói" />
         ) : plansQuery.isError ? (
@@ -92,17 +83,32 @@ export default function ParentPlanPage() {
 
 function PlanOptionCard({ plan, currentPlanId, canCheckout }) {
   const isCurrent = plan.id === currentPlanId;
-  const highlights = plan.highlights?.length
+  const isFeatured = String(plan.name || "").trim().toLowerCase() === "plus";
+  const configuredHighlights = plan.highlights?.length
     ? plan.highlights
     : plan.limits || [];
+  const highlights = configuredHighlights.filter(
+    (item) => {
+      const normalizedItem = item.trim().toLowerCase();
+      const isPlaceholderFreeDuration =
+        plan.price === 0 && normalizedItem === "thời hạn 9999 ngày";
+      const isSevenDayTrial = normalizedItem === "dùng thử 7 ngày";
+      return !isPlaceholderFreeDuration && !isSevenDayTrial;
+    },
+  );
   return (
     <article
-      className={`plan-option-card plan-option-card-${plan.styleKey || plan.id} ${isCurrent ? "is-current" : ""}`}
+      className={`plan-option-card plan-option-card-${plan.styleKey || plan.id} ${isFeatured ? "plan-option-card-plus" : ""} ${isCurrent ? "is-current" : ""}`}
     >
       <div className="plan-option-topline">
         <span>
           {plan.name === "Free" ? "BẮT ĐẦU CƠ BẢN" : "GÓI SKETCHTALE"}
         </span>
+        {isFeatured && (
+          <span className="plan-option-highlight-badge" title="Gói Plus">
+            <Crown size={16} weight="fill" aria-hidden="true" />
+          </span>
+        )}
         {isCurrent && <span className="plan-current-label">ĐANG SỬ DỤNG</span>}
       </div>
       <div className="plan-option-name">
@@ -112,7 +118,7 @@ function PlanOptionCard({ plan, currentPlanId, canCheckout }) {
         )}
       </div>
       <p className="plan-option-audience">
-        {plan.audience || "Xem các quyền lợi nổi bật của gói này."}
+        {getPlanDescription(plan)}
       </p>
       <p className="plan-option-price">
         {formatPlanPrice(plan)}
@@ -147,22 +153,46 @@ function PlanOptionCard({ plan, currentPlanId, canCheckout }) {
   );
 }
 
+function getPlanDescription(plan) {
+  const audience = plan.audience?.trim();
+  if (
+    audience &&
+    audience !== "Quyền lợi theo cấu hình hiện tại của gói."
+  ) {
+    return audience;
+  }
+  if (plan.price === 0) {
+    return "Bắt đầu miễn phí, cùng bé khám phá truyện.";
+  }
+  if (plan.profileLimit >= 5) {
+    return "Nhiều hồ sơ và credit hơn để cả gia đình cùng khám phá.";
+  }
+  if (plan.accessFullStories && plan.canExportStory) {
+    return "Đọc toàn bộ truyện và lưu lại những câu chuyện của bé.";
+  }
+  return "Thêm credit để bé đọc truyện và sáng tạo nhiều hơn.";
+}
+
 function formatPlanPrice(plan) {
   if (plan.price === null || plan.price === undefined)
     return "Giá đang cập nhật";
   if (plan.price === 0) return "Miễn phí";
-  const value = new Intl.NumberFormat("vi-VN").format(plan.price);
-  return plan.currency === "VND" ? `${value} ₫` : value;
+  const amount =
+    plan.currency === "VND" || plan.price >= 1000
+      ? plan.price
+      : plan.price * 1000;
+  const value = new Intl.NumberFormat("vi-VN", {
+    maximumFractionDigits: 0,
+  }).format(amount);
+  return `đ${value}`;
 }
 
 function getPlanPeriod(plan) {
   if (!plan.price) return "";
-  const period = Number.isInteger(plan.durationDays)
-    ? `${plan.durationDays} ngày`
-    : plan.cycle === "month"
-      ? "/ tháng"
-      : "";
-  return [!plan.currency ? "Giá đang được cập nhật" : "", period]
-    .filter(Boolean)
-    .join(" · ");
+  if (Number.isInteger(plan.durationDays)) {
+    return plan.durationDays === 30
+      ? "/tháng"
+      : `/${plan.durationDays} ngày`;
+  }
+  return plan.cycle === "month" ? "/tháng" : "";
 }

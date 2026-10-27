@@ -46,6 +46,10 @@
 .workspace-button-quiet:hover { background: #f5f6f6; }
 .workspace-button-danger { border-color: #f2c9cf; background: #fff4f5; color: #9b3144; box-shadow: none; }
 .workspace-state { display: flex; align-items: flex-start; gap: 13px; padding: 26px; border: 1px dashed #d5d7d6; border-radius: 14px; background: #fff; color: #737a86; }
+.workspace-state.loading-state { flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; }
+.workspace-loading-mascot { display: block; width: 104px; height: 104px; object-fit: contain; filter: drop-shadow(0 7px 8px rgb(54 51 37 / .08)); }
+.workspace-state-full .workspace-loading-mascot { width: 152px; height: 152px; }
+@media (prefers-reduced-motion: reduce) { .workspace-loading-mascot { display: none; } }
 .workspace-state-full { min-height: 100dvh; align-items: center; justify-content: center; border: 0; border-radius: 0; background: #f8f7f3; }
 .workspace-state strong { display: block; color: #27303d; }
 .workspace-state p { margin: 4px 0 13px; font-size: 14px; }

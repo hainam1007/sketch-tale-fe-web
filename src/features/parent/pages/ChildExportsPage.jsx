@@ -1,7 +1,11 @@
-import { useParams } from "react-router-dom";
-import ParentExportsPage from "./ParentExportsPage";
+import { Navigate, useParams } from "react-router-dom";
 
 export default function ChildExportsPage() {
   const { childId } = useParams();
-  return <ParentExportsPage fixedChildId={childId} key={childId} />;
+  return (
+    <Navigate
+      to={`/parent/children/${encodeURIComponent(childId)}/library`}
+      replace
+    />
+  );
 }

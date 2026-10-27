@@ -150,13 +150,18 @@
 
 .workspace-app-content .story-editor-loading-status > span {
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 54px;
+  height: 54px;
   place-items: center;
-  border-radius: 50%;
-  color: #8a6509;
-  background: #fff2cc;
-  animation: story-editor-loading-turn 1.25s linear infinite;
+  border-radius: 13px;
+  background: #fff7df;
+}
+
+.workspace-app-content .story-editor-loading-status > span img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 5px rgba(54, 51, 37, .08));
 }
 
 .workspace-app-content .story-editor-loading-status strong,
@@ -403,10 +408,6 @@
 @keyframes story-editor-loading-shimmer {
   0% { background-position: 100% 0; }
   100% { background-position: -120% 0; }
-}
-
-@keyframes story-editor-loading-turn {
-  to { transform: rotate(360deg); }
 }
 
 .workspace-app-content .workspace-page-heading {
@@ -2117,14 +2118,17 @@
 .workspace-app-content .story-studio-panel .editor-field textarea { min-height: 76px; }
 .workspace-app-content .story-studio-panel .asset-picker-results { display: none; }
 .workspace-app-content .story-studio-panel .story-page-save { position: sticky; bottom: -15px; z-index: 2; padding-block: 10px; background: var(--cm-accent); }
-.workspace-app-content .story-studio-panel .story-audio-track { grid-template-columns: 20px minmax(0, 1fr); }
-.workspace-app-content .story-studio-panel .story-audio-track-actions { grid-column: 2; justify-content: flex-end; }
+.workspace-app-content .story-studio-panel .story-audio-track-list { width: 100%; min-width: 0; }
+.workspace-app-content .story-studio-panel .story-audio-track { grid-template-columns: minmax(0, 1fr); }
+.workspace-app-content .story-studio-panel .story-audio-track-order { display: none; }
+.workspace-app-content .story-studio-panel .story-audio-track-main { width: 100%; min-width: 0; }
+.workspace-app-content .story-studio-panel .story-audio-track-actions { justify-content: flex-end; }
 .workspace-app-content .story-audio-track-heading { display: flex; min-width: 0; justify-content: space-between; gap: 8px; align-items: flex-start; }
 .workspace-app-content .story-audio-track-heading > strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-app-content .story-audio-track-actions .icon-button { width: 36px; height: 36px; min-height: 36px; flex: 0 0 36px; }
 .workspace-app-content .story-audio-track-actions .icon-button:hover:not(:disabled) { border-color: var(--cm-error); color: var(--cm-error); background: var(--cm-error-bg); }
-.workspace-app-content .story-audio-timing { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; padding-top: 4px; }
-.workspace-app-content .story-audio-timing label { display: grid; min-width: 0; gap: 4px; color: var(--cm-text-secondary); font-size: 11px; font-weight: 700; }
+.workspace-app-content .story-audio-timing { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 110px), 1fr)); gap: 7px; padding-top: 4px; }
+.workspace-app-content .story-audio-timing label { display: grid; min-width: 0; gap: 4px; color: var(--cm-text-secondary); font-size: 11px; font-weight: 700; white-space: nowrap; }
 .workspace-app-content .story-audio-timing input[type="number"] { width: 100%; min-width: 0; min-height: 34px; padding: 5px 7px; border: 1px solid var(--cm-control-border); border-radius: 7px; color: var(--cm-text); background: var(--cm-surface); font: inherit; font-size: 12px; font-variant-numeric: tabular-nums; }
 .workspace-app-content .story-audio-timing .story-audio-volume { grid-column: 1 / -1; grid-template-columns: 1fr auto; align-items: center; }
 .workspace-app-content .story-audio-timing .story-audio-volume input { grid-column: 1 / -1; width: 100%; accent-color: var(--cm-selected-border); }
@@ -3003,10 +3007,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .workspace-app-content .story-editor-loading-status > span,
   .workspace-app-content .story-editor-loading i {
     animation: none;
   }
+
+  .workspace-app-content .story-editor-loading-status > span { display: none; }
 }
 
 /* Editorial workspace: readable controls and reachable tools at every width. */
@@ -3108,7 +3113,7 @@
 .workspace-app-content .story-timeline-heading .story-timecode { font-size: 12px; font-variant-numeric: tabular-nums; }
 .workspace-app-content .story-audio-track { grid-template-columns: 1fr; padding: 12px; border-radius: 8px; background: var(--cm-surface); }
 .workspace-app-content .story-audio-track-order { display: none; }
-.workspace-app-content .story-audio-timing { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.workspace-app-content .story-audio-timing { grid-template-columns: repeat(auto-fit, minmax(min(100%, 110px), 1fr)); gap: 10px; }
 .workspace-app-content .story-audio-track audio { width: 100%; height: 32px; margin-block: 10px; }
 .workspace-app-content .story-audio-track-heading strong { font-size: 13px; }
 .workspace-app-content .story-preview-slot-visual { border: 0; border-radius: 0; background: transparent; }

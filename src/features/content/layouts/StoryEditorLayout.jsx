@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BookOpen, CheckCircle, EyeSlash, FloppyDisk, Rocket, SpinnerGap, WarningCircle } from "@phosphor-icons/react";
+import { ArrowLeft, BookOpen, CheckCircle, EyeSlash, FloppyDisk, Rocket, WarningCircle } from "@phosphor-icons/react";
 import { Link, NavLink, Outlet, useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../auth/useAuth";
@@ -159,7 +159,7 @@ function StoryEditorLoadingState({ isStudio, label }) {
         <h1>Đang mở không gian sáng tác</h1>
         <p>Đang tải bản thảo, trang truyện và công cụ chỉnh sửa.</p>
       </div>
-      <div className="story-editor-loading-status" aria-hidden="true"><span><SpinnerGap size={19} aria-hidden="true" /></span><div><strong>Đang tải truyện</strong><small>Chuẩn bị nội dung và tư liệu</small></div></div>
+      <div className="story-editor-loading-status" aria-hidden="true"><span><img src="/images/SketchTale_Mascot_Loading.webp" alt="" /></span><div><strong>Đang tải truyện</strong><small>Chuẩn bị nội dung và tư liệu</small></div></div>
     </header>
     <nav className="story-editor-loading-tabs" aria-hidden="true">
       {["Thông tin", "Dựng truyện", "Nhân vật", "Từ vựng", "Câu hỏi", "Xem trước"].map((tab, index) => <span className={(isStudio ? index === 1 : index === 0) ? "active" : ""} key={tab}>{tab}</span>)}

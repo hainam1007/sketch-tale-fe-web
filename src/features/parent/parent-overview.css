@@ -5,6 +5,15 @@
 .parent-entry-page .workspace-page-heading p:not(.workspace-eyebrow) { max-width: none; margin-top: 10px; line-height: 1.65; white-space: nowrap; }
 .parent-entry-page .workspace-button { flex-shrink: 0; }
 .parent-entry-page .parent-entry-add-button { justify-self: end; margin-inline-start: auto; }
+.parent-entry-page .family-section-heading h2 { color: #001050; font-size: clamp(25px, 2.4vw, 30px); font-weight: 900; letter-spacing: -.7px; line-height: 1.2; }
+.parent-entry-page .family-home-actions > a,
+.parent-entry-page .family-home-actions > a:nth-child(2),
+.parent-entry-page .family-home-actions > a:nth-child(3) { box-sizing: border-box; position: relative; border: 3px solid #b77900; border-radius: 17px; background: #fff2c9; color: var(--color-text-primary); box-shadow: 0 6px #b77900, inset 0 3px #fff9ec; transition: transform .14s ease, box-shadow .14s ease, background-color .14s ease; }
+.parent-entry-page .family-home-actions > a > svg { color: var(--color-text-primary); }
+.parent-entry-page .family-home-actions > a > strong { color: inherit; font-weight: 900; }
+.parent-entry-page .family-home-actions > a > span { color: #526077; font-weight: 600; }
+.parent-entry-page .family-home-actions > a:hover { background: #f4e6b5; transform: translateY(4px); box-shadow: 0 2px #b77900, inset 0 2px #fff2c9; }
+.parent-entry-page .family-home-actions > a:active { background: var(--color-primary-dark); transform: translateY(5px); box-shadow: 0 1px #b77900, inset 0 2px #fff2c9; }
 .parent-entry-section-label { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 14px; color: #64708a; font-size: 11px; letter-spacing: 0; }
 .parent-entry-section-label h2 { margin: 0; font: inherit; }
 .parent-entry-page .parent-entry-picker { padding: 26px; border: 1px solid #ececf0; border-radius: 20px; box-shadow: 0 6px 22px #00105008, 0 2px 3px #00105005; }

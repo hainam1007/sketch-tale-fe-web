@@ -20,7 +20,7 @@ export default function ContentStoriesPage() {
   const requestedStatus = searchParams.get("status") || "all";
   const filters = {
     search: searchParams.get("search") || "",
-    status: featureApiModes.content === "real" && requestedStatus === "pending" ? "draft" : requestedStatus,
+    status: ["all", "draft", "pending", "published", "hidden", "archived"].includes(requestedStatus) ? requestedStatus : "all",
     category: searchParams.get("category") || "all",
     sort: searchParams.get("sort") || "updated_desc",
     page: Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1,
@@ -50,13 +50,6 @@ export default function ContentStoriesPage() {
   }, [filters.search]);
 
   useEffect(() => {
-    if (featureApiModes.content !== "real" || requestedStatus !== "pending") return;
-    const next = new URLSearchParams(searchParams);
-    next.set("status", "draft");
-    setSearchParams(next, { replace: true });
-  }, [requestedStatus, searchParams, setSearchParams]);
-
-  useEffect(() => {
     if (searchDraft === filters.search) return undefined;
     const timeoutId = window.setTimeout(() => updateFilter("search", searchDraft), 300);
     return () => window.clearTimeout(timeoutId);
@@ -68,9 +61,9 @@ export default function ContentStoriesPage() {
       <div className="content-filter-heading"><div className="admin-filter-title"><MagnifyingGlass size={18} aria-hidden="true" /><strong id="story-filter-title">Tìm kiếm</strong></div>{hasActiveFilters && <Link className="content-filter-clear" to="/content/stories" replace><X size={15} aria-hidden="true" /> Xóa bộ lọc</Link>}</div>
       <div className="admin-filter-fields">
         <label className="admin-search"><span className="sr-only">Tìm truyện</span><MagnifyingGlass size={18} aria-hidden="true" /><input type="search" value={searchDraft} onChange={(event) => setSearchDraft(event.target.value)} placeholder="Tìm theo tên hoặc mô tả" /></label>
-        <label><span className="sr-only">Lọc trạng thái</span><select value={filters.status} onChange={(event) => updateFilter("status", event.target.value)}><option value="all">Tất cả trạng thái</option><option value="draft">Bản nháp</option>{featureApiModes.content !== "real" && <option value="pending">Chờ duyệt</option>}<option value="published">Đã xuất bản</option>{featureApiModes.content !== "real" && <option value="hidden">Đã ẩn</option>}<option value="archived">Đã lưu trữ</option>{featureApiModes.content === "real" && <option value="unknown">Chưa xác định</option>}</select></label>
+        <label><span className="sr-only">Lọc trạng thái</span><select value={filters.status} onChange={(event) => updateFilter("status", event.target.value)}><option value="all">Tất cả trạng thái</option><option value="draft">Bản nháp</option><option value="pending">Chờ duyệt</option><option value="published">Đã xuất bản</option><option value="hidden">Đã ẩn</option><option value="archived">Đã lưu trữ</option></select></label>
         <label><span className="sr-only">Lọc danh mục</span><select value={filters.category} onChange={(event) => updateFilter("category", event.target.value)} disabled={categoriesQuery.isLoading}><option value="all">Tất cả danh mục</option>{categories.map((category) => <option key={category.id || category} value={category.id || category}>{category.label || category}</option>)}</select></label>
-        <label><span className="sr-only">Sắp xếp</span><select value={filters.sort} onChange={(event) => updateFilter("sort", event.target.value)}><option value="updated_desc">Mới cập nhật</option><option value="title_asc">Tên A → Z</option><option value="title_desc">Tên Z → A</option><option value="status_asc">Trạng thái</option></select></label>
+        <label><span className="sr-only">Sắp xếp</span><select value={filters.sort} onChange={(event) => updateFilter("sort", event.target.value)}><option value="updated_desc">Mới cập nhật</option><option value="title_asc">Tên A → Z</option><option value="title_desc">Tên Z → A</option></select></label>
       </div>
     </section>
     {storiesQuery.isLoading ? <LoadingState label="Đang tải truyện" /> : storiesQuery.isError ? <ErrorState message={storiesQuery.error.message} onRetry={() => storiesQuery.refetch()} /> : pageData.items.length ? <><div className="content-results-bar" aria-live="polite"><span><strong>{new Intl.NumberFormat("vi-VN").format(pageData.total)}</strong> {resultLabel}</span>{hasActiveFilters && <span className="content-results-filtered">Đang hiển thị theo bộ lọc</span>}</div><div className="content-story-list" aria-label="Danh sách truyện">{pageData.items.map((story) => <StoryListItem key={story.id} story={story} category={categories.find((item) => item.id === story.categoryId)?.label} asset={assets.find((item) => item.id === story.coverAssetId)} />)}</div><StoryPagination page={pageData.page} totalPages={pageData.totalPages} total={pageData.total} onPageChange={(page) => updateFilter("page", String(page))} /></> : <EmptyState icon={BookOpen} title={hasActiveFilters ? "Không tìm thấy truyện" : "Chưa có truyện nào"} message={hasActiveFilters ? "Thử đổi từ khóa hoặc xóa bộ lọc để xem thêm truyện." : "Tạo một bản nháp để bắt đầu xây dựng nội dung."} action={hasActiveFilters ? <Link className="workspace-button workspace-button-quiet" to="/content/stories" replace><X size={17} aria-hidden="true" /> Xóa bộ lọc</Link> : <Link className="workspace-button" to="/content/stories/new"><Plus size={17} aria-hidden="true" /> Tạo truyện</Link>} />}

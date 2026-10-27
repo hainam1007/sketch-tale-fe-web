@@ -30,7 +30,6 @@ import ChildDashboardPage from "../features/parent/pages/ChildDashboardPage";
 import ParentPlanPage from "../features/parent/pages/ParentPlanPage";
 import ParentCheckoutPage from "../features/parent/pages/ParentCheckoutPage";
 import ChildWorkspaceLayout from "../features/parent/layouts/ChildWorkspaceLayout";
-import ParentExportsPage from "../features/parent/pages/ParentExportsPage";
 import ChildExportsPage from "../features/parent/pages/ChildExportsPage";
 import ParentLibraryPage from "../features/parent/pages/ParentLibraryPage";
 import ProfilePage from "../features/profile/pages/ProfilePage";
@@ -76,7 +75,6 @@ function titleForPath(pathname) {
   if (titles[pathname]) return titles[pathname];
   if (pathname === "/parent") return "Tổng quan Parent";
   if (pathname === "/parent/library") return "Thư viện truyện";
-  if (pathname === "/parent/exports") return "Xuất truyện và báo cáo";
   if (pathname.includes("/parent/children") && pathname.includes("/dashboard")) return "Tổng quan hồ sơ bé";
   if (pathname.includes("/parent/children")) return "Hồ sơ bé";
   if (pathname.startsWith("/parent")) return "Parent Portal";
@@ -147,7 +145,7 @@ const router = createBrowserRouter(createRoutesFromElements(
           </Route>
           <Route path="parent/plan" element={<ParentPlanPage />} />
           <Route path="parent/checkout" element={<ParentCheckoutPage />} />
-          <Route path="parent/exports" element={<ParentExportsPage />} />
+          <Route path="parent/exports" element={<Navigate to="/parent/library" replace />} />
           <Route path="parent/library" element={<ParentLibraryPage />} />
           <Route path="parent/reports" element={<Navigate to="/parent/library" replace />} />
           </Route>

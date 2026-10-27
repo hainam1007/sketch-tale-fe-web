@@ -1,7 +1,9 @@
+import { CHILD_AVATAR_COUNT } from "./childAvatarLibrary";
+
 export function profileIndex(id = "") {
   return (
     [...String(id)].reduce((sum, char) => sum + char.charCodeAt(0), 0) %
-    6
+    CHILD_AVATAR_COUNT
   );
 }
 export function ageLabel(value) {
@@ -12,5 +14,5 @@ export function ageLabel(value) {
 }
 
 export function savedAvatar(userId, childId, fallback) {
- try { const index = JSON.parse(sessionStorage.getItem(`sketchtale.parent-demo.v2:${userId}:${childId}`))?.avatar; return Number.isInteger(index) && index >= 0 && index < 6 ? index : fallback; } catch { return fallback; }
+ try { const index = JSON.parse(sessionStorage.getItem(`sketchtale.parent-demo.v2:${userId}:${childId}`))?.avatar; return Number.isInteger(index) && index >= 0 && index < CHILD_AVATAR_COUNT ? index : fallback; } catch { return fallback; }
 }

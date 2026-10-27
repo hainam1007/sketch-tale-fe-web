@@ -29,11 +29,8 @@ function requireBackendUserId() {
 }
 
 function normalizeBackendStory(story) {
-  // The backend creates unsubmitted stories as Pending. In the authoring UI,
-  // that state is still a draft; keep the original value in backendStatus for
-  // updates so the API status is preserved.
-  const status = ({ 0: "draft", 1: "draft", 2: "published", 3: "hidden", 4: "archived" })[story.status]
-    || ({ draft: "draft", pending: "draft", active: "published", published: "published", inactive: "hidden", hidden: "hidden", archived: "archived" })[String(story.status).toLowerCase()]
+  const status = ({ 0: "draft", 1: "pending", 2: "published", 3: "hidden", 4: "archived" })[story.status]
+    || ({ draft: "draft", pending: "pending", active: "published", published: "published", inactive: "hidden", hidden: "hidden", archived: "archived" })[String(story.status).toLowerCase()]
     || "unknown";
 
   return mergeMockStoryDraft({
