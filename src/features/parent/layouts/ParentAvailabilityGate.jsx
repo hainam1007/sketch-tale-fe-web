@@ -1,5 +1,4 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
-import ParentChildExperience from "../pages/ParentChildExperience";
+import { Outlet, useLocation } from "react-router-dom";
 import {
   getFamilyProfilePreview,
   showFamilyProfilePreview,
@@ -28,26 +27,6 @@ export default function ParentAvailabilityGate() {
     normalizedPath === "/parent/library" &&
     moduleApiModes.parentCatalog === "real";
 
-  const childMatch = normalizedPath.match(
-    /^\/parent\/children\/([^/]+)(?:\/([^/]+))?$/,
-  );
-  if (
-    childMatch &&
-    childMatch[1] !== "new" &&
-    moduleApiModes.parentProfile === "real"
-  ) {
-    const childId = decodeURIComponent(childMatch[1]);
-    return (
-      <ParentChildExperience
-        key={childId}
-        childId={childId}
-        section={childMatch[2] || ""}
-      />
-    );
-  }
-  if (["/parent/reports", "/parent/exports"].includes(normalizedPath)) {
-    return <Navigate to="/parent/library" replace />;
-  }
   if (
     availableParentRoutes.has(normalizedPath) ||
     isPreviewDetail ||

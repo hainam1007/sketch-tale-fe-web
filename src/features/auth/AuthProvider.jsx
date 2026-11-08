@@ -155,9 +155,20 @@ export default function AuthProvider({ children }) {
     if (restoreSessionRef.current) void restoreSessionRef.current();
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const pair = getTokenPair();
+    const identity = pair?.sessionId || pair?.accessToken;
+    const user = await authService.restore({ persist: false });
+    const currentPair = getTokenPair();
+    if (isRealApi && (!identity || identity !== (currentPair?.sessionId || currentPair?.accessToken))) return;
+    setSession((current) => current.status === "authenticated" && current.user?.id === user.id
+      ? { ...current, user }
+      : current);
+  }, []);
+
   const value = useMemo(
-    () => ({ ...session, login, loginChild, logout, retryRestore }),
-    [login, loginChild, logout, retryRestore, session],
+    () => ({ ...session, login, loginChild, logout, retryRestore, refreshUser }),
+    [login, loginChild, logout, retryRestore, refreshUser, session],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

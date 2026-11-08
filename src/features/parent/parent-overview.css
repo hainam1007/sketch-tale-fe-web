@@ -14,6 +14,9 @@
 .parent-entry-page .family-home-actions > a > span { color: #526077; font-weight: 600; }
 .parent-entry-page .family-home-actions > a:hover { background: #f4e6b5; transform: translateY(4px); box-shadow: 0 2px #b77900, inset 0 2px #fff2c9; }
 .parent-entry-page .family-home-actions > a:active { background: var(--color-primary-dark); transform: translateY(5px); box-shadow: 0 1px #b77900, inset 0 2px #fff2c9; }
+.parent-entry-page .family-home-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .parent-entry-page .family-home-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .parent-entry-page .family-home-actions { grid-template-columns: 1fr; } }
 .parent-entry-section-label { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 14px; color: #64708a; font-size: 11px; letter-spacing: 0; }
 .parent-entry-section-label h2 { margin: 0; font: inherit; }
 .parent-entry-page .parent-entry-picker { padding: 26px; border: 1px solid #ececf0; border-radius: 20px; box-shadow: 0 6px 22px #00105008, 0 2px 3px #00105005; }

@@ -9,101 +9,14 @@ function normalizeAudit(item) {
   return item && typeof item === "object" ? { ...item, action: item.auditAction ?? item.action ?? null } : item;
 }
 
-const USER_MODS_STORAGE_KEY = "sketchtale.admin.user_overrides.v1";
-
-function getUserMods() {
-  try {
-    return JSON.parse(localStorage.getItem(USER_MODS_STORAGE_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function saveUserMod(userId, patch) {
-  try {
-    const current = getUserMods();
-    current[userId] = { ...current[userId], ...patch };
-    localStorage.setItem(USER_MODS_STORAGE_KEY, JSON.stringify(current));
-    return current[userId];
-  } catch {
-    return patch;
-  }
-}
-
-const seedUserFallbacks = {
-  "00000000-0000-0000-0000-000000000000": {
-    userName: "Hệ thống",
-    email: "system@sketchtale.io",
-    status: "active",
-    role: "system",
-  },
-  "51d68f92-299b-4c57-b07a-ef6f57146b8b": {
-    userName: "Quản trị viên",
-    email: "admin@sketchtale.io",
-    status: "active",
-    role: "admin",
-  },
-  "ef145375-da03-4d86-a685-26afbb211cfe": {
-    userName: "Biên tập viên",
-    email: "editor@sketchtale.io",
-    status: "active",
-    role: "editor",
-  },
-  "5c7c010b-d573-4798-b194-e21149ba9755": {
-    userName: "Hải Nam",
-    email: "hainambl996@gmail.com",
-    status: "active",
-    role: "admin",
-  },
-  "11111111-1111-1111-1111-111111111111": {
-    userName: "Hà Phương",
-    email: "haphuong.parent@gmail.com",
-    status: "active",
-    role: "parent",
-  },
-  "f43c2550-2462-43e0-8ee7-509832ed12d5": {
-    userName: "Linh Nguyễn",
-    email: "parent@sketchtale.io",
-    status: "active",
-    role: "parent",
-  },
-  "4d5b0f46-4fbc-434e-bab2-5206549c9ce5": {
-    userName: "Minh Trần",
-    email: "artist.parent@sketchtale.io",
-    status: "active",
-    role: "parent",
-  },
-  "55bde4d5-3c79-44d0-954a-872c08b30024": {
-    userName: "Hải Nam",
-    email: "hainambl997@gmail.com",
-    status: "active",
-    role: "parent",
-  },
-  "cb9a0b7d-5bde-4b7e-8eb1-8a55d8725a95": {
-    userName: "Hải Nam",
-    email: "hainambl999@gmail.com",
-    status: "active",
-    role: "parent",
-  },
-  "dbcf0208-ec20-4b4c-b836-c78794527258": {
-    userName: "Oanh Nguyễn",
-    email: "oanh311007@gmail.com",
-    status: "active",
-    role: "parent",
-  },
-};
-
-export function resolveUserFromDirectory(userId, usersMap = {}, mods = {}) {
+export function resolveUserFromDirectory(userId, usersMap = {}) {
   if (!userId || userId === "00000000-0000-0000-0000-000000000000") {
     return { name: "Hệ thống", email: "system@sketchtale.io", role: "system" };
   }
   const auditInfo = usersMap[userId] || {};
-  const seedInfo = seedUserFallbacks[userId] || {};
-  const modInfo = mods[userId] || {};
-  const email = modInfo.email || auditInfo.email || seedInfo.email || "";
-  const name = modInfo.name || auditInfo.userName || seedInfo.userName || (email ? email.split("@")[0] : `Người dùng ${userId.slice(0, 8)}`);
-  const role = modInfo.role || auditInfo.role || seedInfo.role || "parent";
-  return { name, email: email || "—", role };
+  const email = auditInfo.email || "";
+  const name = auditInfo.userName || (email ? email.split("@")[0] : `Người dùng ${userId.slice(0, 8)}`);
+  return { name, email: email || "—", role: auditInfo.role || "" };
 }
 
 function extractUsersFromAudit(auditLogs) {
@@ -137,67 +50,90 @@ function extractUsersFromAudit(auditLogs) {
   return usersMap;
 }
 
-function mapParentProfile(profile, usersMap = {}, mods = {}) {
-  const userId = profile.userId || profile.id;
-  const auditInfo = usersMap[userId] || {};
-  const seedInfo = seedUserFallbacks[userId] || seedUserFallbacks[profile.id] || {};
-  const modInfo = mods[userId] || mods[profile.id] || {};
+function collectionItems(response, label) {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.items)) return response.items;
+  throw new Error(`Backend trả danh sách ${label} không đúng định dạng.`);
+}
 
-  const rawEmail = modInfo.email || profile.email || auditInfo.email || seedInfo.email || "";
-  const rawName = modInfo.name || profile.name || auditInfo.userName || seedInfo.userName || (rawEmail ? rawEmail.split("@")[0] : `Người dùng ${profile.id?.slice(0, 6) || ""}`);
-  const status = modInfo.status || auditInfo.status || seedInfo.status || profile.status || "active";
-  const role = modInfo.role || profile.role || auditInfo.role || seedInfo.role || "parent";
-
+function mapAdminUser(user, profile = null) {
+  if (!user || typeof user !== "object" || Array.isArray(user) || typeof user.id !== "string") {
+    throw new Error("Backend trả tài khoản không có ID hợp lệ.");
+  }
+  const firstName = typeof user.firstName === "string" ? user.firstName.trim() : "";
+  const lastName = typeof user.lastName === "string" ? user.lastName.trim() : "";
+  const name = [firstName, lastName].filter(Boolean).join(" ") || user.username || user.email || `Người dùng ${user.id.slice(0, 8)}`;
+  const locked = typeof user.isLocked === "boolean" ? user.isLocked : null;
+  const status = locked === null
+    ? (user.status === "active" || user.status === "locked" ? user.status : "unknown")
+    : locked ? "locked" : "active";
   return {
-    id: profile.id,
-    userId: profile.userId,
-    name: rawName,
-    email: rawEmail,
-    role,
-    plan: profile.currentPlan || profile.subscriptionPlan?.name || "Free",
-    subscriptionPlanId: profile.subscriptionPlanId,
-    subscriptionPlan: profile.subscriptionPlan,
-    remainingMonthlyCredit: profile.remainingMonthlyCredit ?? 0,
-    remainingChildProfile: profile.remainingChildProfile ?? 0,
-    trialPlusPlan: Boolean(profile.trialPlusPlan),
+    ...user,
+    id: user.id,
+    userId: user.id,
+    profileId: profile?.id || null,
+    name,
+    email: typeof user.email === "string" ? user.email : "",
+    role: typeof user.role === "string" ? user.role : "",
     status,
-    createdAt: profile.createdAt,
-    updatedAt: profile.updatedAt,
+    plan: profile ? (profile.currentPlan || profile.subscriptionPlan?.name || "Free") : null,
+    subscriptionPlanId: profile?.subscriptionPlanId || null,
+    subscriptionPlan: profile?.subscriptionPlan || null,
+    remainingMonthlyCredit: profile?.remainingMonthlyCredit ?? null,
+    remainingChildProfile: profile?.remainingChildProfile ?? null,
+    trialPlusPlan: profile ? Boolean(profile.trialPlusPlan) : false,
+    profileCreatedAt: profile?.createdAt || null,
+    updatedAt: user.updatedAt || profile?.updatedAt || null,
   };
 }
 
+async function listParentProfiles(signal) {
+  const response = await apiRequest({ path: "/parent-profiles", signal, forceReal: true });
+  return collectionItems(response, "hồ sơ phụ huynh");
+}
+
+function indexParentProfiles(profiles) {
+  return new Map(profiles.filter((profile) => typeof profile?.userId === "string").map((profile) => [profile.userId, profile]));
+}
+
+async function findParentProfile(userId, signal) {
+  try {
+    return { profile: indexParentProfiles(await listParentProfiles(signal)).get(userId) || null, error: null };
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return { profile: null, error: error.message || "Không tải được hồ sơ Parent." };
+  }
+}
+
 export const adminService = {
-  // 1. Quản lý hồ sơ người dùng (Real API /parent-profiles liên kết thông tin User từ Audit Logs)
+  // 1. Quản lý tài khoản (users endpoint); hồ sơ Parent được ghép theo userId khi có.
   listUsers: async ({ search = "", plan = "all", page = 1, pageSize = 50, sort = "createdAt_desc", signal } = {}) => {
-    const [profilesRes, auditRes] = await Promise.allSettled([
-      apiRequest({ path: "/parent-profiles", signal, forceReal: true }),
-      apiRequest({ path: "/audit-logs", signal, forceReal: true }),
+    const [usersRes, profilesRes] = await Promise.allSettled([
+      apiRequest({ path: "/users", signal, forceReal: true }),
+      listParentProfiles(signal),
     ]);
-
-    const profiles = profilesRes.status === "fulfilled"
-      ? (Array.isArray(profilesRes.value) ? profilesRes.value : profilesRes.value?.items || [])
-      : [];
-    const auditLogs = auditRes.status === "fulfilled"
-      ? (Array.isArray(auditRes.value) ? auditRes.value : auditRes.value?.items || [])
-      : [];
-
-    const usersMap = extractUsersFromAudit(auditLogs);
-    const mods = getUserMods();
-    let items = profiles.map((p) => mapParentProfile(p, usersMap, mods));
+    if (usersRes.status === "rejected") throw usersRes.reason;
+    if (profilesRes.status === "rejected" && plan !== "all") {
+      throw new Error("Không thể lọc theo gói vì chưa tải được hồ sơ Parent.");
+    }
+    const users = collectionItems(usersRes.value, "tài khoản");
+    const profiles = profilesRes.status === "fulfilled" ? profilesRes.value : [];
+    const profileMap = indexParentProfiles(profiles);
+    let items = users.map((item) => mapAdminUser(item, profileMap.get(item?.id)));
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       items = items.filter((item) =>
         item.name.toLowerCase().includes(q) ||
         item.id.toLowerCase().includes(q) ||
-        item.userId?.toLowerCase().includes(q) ||
         item.email.toLowerCase().includes(q) ||
-        item.plan.toLowerCase().includes(q)
+        String(item.username || "").toLowerCase().includes(q) ||
+        String(item.plan || "").toLowerCase().includes(q)
       );
     }
 
     if (plan && plan !== "all") {
-      items = items.filter((item) => item.plan.toLowerCase() === plan.toLowerCase());
+      items = items.filter((item) => String(item.plan || "").toLowerCase() === plan.toLowerCase());
     }
 
     if (sort === "credit_desc") {
@@ -213,49 +149,39 @@ export const adminService = {
     const total = items.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const paginated = items.slice((page - 1) * pageSize, page * pageSize);
-    return { items: paginated, total, page, pageSize, totalPages };
+    return {
+      items: paginated,
+      total,
+      page,
+      pageSize,
+      totalPages,
+      warnings: profilesRes.status === "rejected" ? ["Chưa tải được dữ liệu gói Parent."] : [],
+    };
   },
 
   getUser: async ({ userId, signal }) => {
-    const [profileRes, auditRes] = await Promise.allSettled([
-      apiRequest({ path: `/parent-profiles/${encodeURIComponent(userId)}`, signal, forceReal: true }),
-      apiRequest({ path: "/audit-logs", signal, forceReal: true }),
+    const [userRes, profileRes] = await Promise.all([
+      apiRequest({ path: `/users/${encodeURIComponent(userId)}`, signal, forceReal: true }),
+      findParentProfile(userId, signal),
     ]);
-
-    if (profileRes.status === "fulfilled" && profileRes.value && typeof profileRes.value === "object") {
-      const auditLogs = auditRes.status === "fulfilled"
-        ? (Array.isArray(auditRes.value) ? auditRes.value : auditRes.value?.items || [])
-        : [];
-      const usersMap = extractUsersFromAudit(auditLogs);
-      const mods = getUserMods();
-      const mapped = mapParentProfile(profileRes.value, usersMap, mods);
-      return {
-        ...mapped,
-        revision: profileRes.value.revision || 1,
-        allowedActions: ["change_plan"],
-      };
-    }
-    throw new Error("Không tìm thấy hồ sơ người dùng.");
+    const mapped = mapAdminUser(userRes, profileRes.profile);
+    return { ...mapped, parentProfile: profileRes.profile, profileLookupError: profileRes.error, allowedActions: profileRes.profile ? ["change_plan"] : [] };
   },
 
-  toggleUserStatus: async ({ userId, profileId }) => {
-    const mods = getUserMods();
-    const current = mods[userId] || (profileId ? mods[profileId] : {}) || {};
-    const nextStatus = current.status === "locked" ? "active" : "locked";
-    saveUserMod(userId, { status: nextStatus });
-    if (profileId && profileId !== userId) {
-      saveUserMod(profileId, { status: nextStatus });
-    }
-    return { status: nextStatus };
-  },
+  createUser: ({ payload, signal }) =>
+    apiRequest({ path: "/users", method: "POST", body: payload, signal, forceReal: true }),
 
-  updateUserRole: async ({ userId, profileId, role }) => {
-    saveUserMod(userId, { role });
-    if (profileId && profileId !== userId) {
-      saveUserMod(profileId, { role });
-    }
-    return { role };
-  },
+  updateUser: ({ userId, payload, signal }) =>
+    apiRequest({ path: "/users/" + encodeURIComponent(userId), method: "PUT", body: mutationBody(payload), signal, forceReal: true }),
+
+  toggleUserStatus: ({ userId, isLocked, reason = "", signal }) =>
+    apiRequest({
+      path: `/users/${encodeURIComponent(userId)}/status`,
+      method: "PATCH",
+      body: { isLocked: Boolean(isLocked), reason },
+      signal,
+      forceReal: true,
+    }),
 
   updateParentProfilePlan: async ({ profileId, subscriptionPlanId, signal }) => {
     return apiRequest({
@@ -282,8 +208,8 @@ export const adminService = {
       moduleApiRequest("adminReports", { path: "/content-reports", signal }),
       apiRequest({ path: "/audit-logs", signal, forceReal: true }),
     ]);
-    const response = reportsRes.status === "fulfilled" ? reportsRes.value : [];
-    const items = Array.isArray(response) ? response : response?.items;
+    if (reportsRes.status === "rejected") throw reportsRes.reason;
+    const items = Array.isArray(reportsRes.value) ? reportsRes.value : reportsRes.value?.items;
     if (!Array.isArray(items) || items.some((item) => !item || typeof item !== "object" || Array.isArray(item) || typeof item.id !== "string")) {
       throw new Error("Backend trả danh sách báo cáo nội dung không đúng định dạng.");
     }
@@ -291,10 +217,8 @@ export const adminService = {
       ? (Array.isArray(auditRes.value) ? auditRes.value : auditRes.value?.items || [])
       : [];
     const usersMap = extractUsersFromAudit(auditLogs);
-    const mods = getUserMods();
-
     return items.map((item) => {
-      const userInfo = resolveUserFromDirectory(item.createBy, usersMap, mods);
+      const userInfo = resolveUserFromDirectory(item.createBy, usersMap);
       return {
         ...item,
         reporterName: userInfo.name,
@@ -316,8 +240,7 @@ export const adminService = {
       ? (Array.isArray(auditRes.value) ? auditRes.value : auditRes.value?.items || [])
       : [];
     const usersMap = extractUsersFromAudit(auditLogs);
-    const mods = getUserMods();
-    const userInfo = resolveUserFromDirectory(item.createBy, usersMap, mods);
+    const userInfo = resolveUserFromDirectory(item.createBy, usersMap);
 
     return {
       ...item,
@@ -360,11 +283,9 @@ export const adminService = {
     else throw new Error("Backend trả nhật ký thao tác không đúng định dạng.");
 
     const usersMap = extractUsersFromAudit(rawItems);
-    const mods = getUserMods();
-
     return rawItems.map((item) => {
       const normalized = normalizeAudit(item);
-      const userInfo = resolveUserFromDirectory(normalized.createBy, usersMap, mods);
+      const userInfo = resolveUserFromDirectory(normalized.createBy, usersMap);
       return {
         ...normalized,
         actorName: userInfo.name,
@@ -376,8 +297,7 @@ export const adminService = {
   getAudit: async ({ auditId, signal }) => {
     const raw = await apiRequest({ path: `/audit-logs/${encodeURIComponent(auditId)}`, signal, forceReal: true });
     const normalized = normalizeAudit(raw);
-    const mods = getUserMods();
-    const userInfo = resolveUserFromDirectory(normalized.createBy, {}, mods);
+    const userInfo = resolveUserFromDirectory(normalized.createBy);
     return {
       ...normalized,
       actorName: userInfo.name,
@@ -426,216 +346,57 @@ export const adminService = {
     return [];
   },
 
-  // 6. Tổng quan Admin - Tích hợp Real API trực tiếp từ Backend
+  // Admin overview counts; revenue and credit aggregates are not in the API yet.
   getOverview: async ({ signal } = {}) => {
-    const [reportsRes, profilesRes, plansRes, auditRes, subscriptionsRes] = await Promise.allSettled([
+    const [reportsResult, usersResult, plansResult, auditResult] = await Promise.allSettled([
       apiRequest({ path: "/content-reports", signal, forceReal: true }),
-      apiRequest({ path: "/parent-profiles", signal, forceReal: true }),
+      apiRequest({ path: "/users", signal, forceReal: true }),
       apiRequest({ path: "/subscription-plans", signal, forceReal: true }),
       apiRequest({ path: "/audit-logs", signal, forceReal: true }),
-      apiRequest({ path: "/subscriptions", signal, forceReal: true }),
     ]);
-
-    const reports = reportsRes.status === "fulfilled"
-      ? (Array.isArray(reportsRes.value) ? reportsRes.value : reportsRes.value?.items || [])
-      : [];
-    const profiles = profilesRes.status === "fulfilled"
-      ? (Array.isArray(profilesRes.value) ? profilesRes.value : profilesRes.value?.items || [])
-      : [];
-    const plans = plansRes.status === "fulfilled"
-      ? (Array.isArray(plansRes.value) ? plansRes.value : plansRes.value?.items || [])
-      : [];
-    const auditLogs = auditRes.status === "fulfilled"
-      ? (Array.isArray(auditRes.value) ? auditRes.value : auditRes.value?.items || []).map(normalizeAudit)
-      : [];
-    const subscriptions = subscriptionsRes.status === "fulfilled"
-      ? (Array.isArray(subscriptionsRes.value) ? subscriptionsRes.value : subscriptionsRes.value?.items || [])
-      : [];
-
-    const usersMap = extractUsersFromAudit(auditLogs);
-    const mods = getUserMods();
-
-    const toVND = (price) => {
-      if (!price) return 0;
-      // Backend lưu giá 49, 99 thay vì 49000, 99000 (VND); nếu < 1000 thì nhân 1000
-      return price < 1000 ? price * 1000 : price;
+    const readItems = (result, label) => {
+      if (result.status === "rejected") return { items: null, error: result.reason?.message || "Không tải được: " + label };
+      try { return { items: collectionItems(result.value, label), error: null }; }
+      catch (error) { return { items: null, error: error.message }; }
     };
-
-    const planMap = {};
-    plans.forEach((p) => {
-      if (p?.id) planMap[p.id] = p;
-    });
-
-    // Tính toán doanh thu thực tế từ live /subscriptions
-    let subRevenue = 0;
-    const packageStatsMap = {};
-    plans.forEach((p) => {
-      packageStatsMap[p.id] = {
-        name: p.name || p.code || "Gói",
-        count: 0,
-        revenue: 0,
-        price: toVND(p.price),
-      };
-    });
-
-    const activeSubs = subscriptions.filter((s) => Number(s.status) === 1);
-    subscriptions.forEach((s) => {
-      const plan = s.plan || planMap[s.subscriptionPlanId] || {};
-      const priceVND = toVND(plan.price);
-      subRevenue += priceVND;
-      const planId = s.subscriptionPlanId || plan.id;
-      if (planId && packageStatsMap[planId]) {
-        packageStatsMap[planId].count++;
-        packageStatsMap[planId].revenue += priceVND;
-      } else {
-        const key = plan.name || s.id;
-        if (!packageStatsMap[key]) {
-          packageStatsMap[key] = { name: plan.name || "Gói khác", count: 0, revenue: 0, price: priceVND };
-        }
-        packageStatsMap[key].count++;
-        packageStatsMap[key].revenue += priceVND;
-      }
-    });
-
-    // Tính số lượng credit AI đã sử dụng của toàn bộ hồ sơ phụ huynh
-    let totalCreditUsed = 0;
-    profiles.forEach((p) => {
-      const limit = p.subscriptionPlan?.monthlyCreditLimit || 500;
-      const remaining = p.remainingMonthlyCredit ?? limit;
-      if (remaining < limit) {
-        totalCreditUsed += (limit - remaining);
-      }
-    });
-    if (totalCreditUsed === 0) {
-      totalCreditUsed = profiles.reduce((sum, p) => sum + (p.remainingMonthlyCredit || 0), 0) || 6190;
-    }
-
-    // Doanh thu tính từ gói thuê bao thực tế
-    const displaySubRevenue = subRevenue;
-    const totalRevenue = displaySubRevenue;
-
-    const packageList = Object.values(packageStatsMap)
-      .map((pkg) => {
-        const isBought = pkg.count > 0;
-        const revenue = isBought ? pkg.revenue : 0;
-        const share = totalRevenue > 0 && isBought ? Math.round((revenue / totalRevenue) * 100) : 0;
-        return {
-          id: pkg.id,
-          name: `Gói ${pkg.name}`,
-          rawName: pkg.name,
-          amount: revenue,
-          unitPrice: pkg.price,
-          count: `${pkg.count} lượt`,
-          rawCount: pkg.count,
-          share,
-          isPopular: pkg.count > 0,
-        };
-      })
-      .sort((a, b) => b.rawCount - a.rawCount || b.unitPrice - a.unitPrice);
-
-    // Tính biểu đồ 6 tháng gần nhất theo đúng ngày thực tế từ API /subscriptions
-    const now = new Date();
-    const monthsMap = {};
-    const monthlyTrend = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const year = d.getFullYear();
-      const month = d.getMonth() + 1;
-      const key = `${year}-${String(month).padStart(2, "0")}`;
-      const label = `Thg ${month}`;
-      monthsMap[key] = { label, key, sub: 0, credit: 0, total: 0 };
-      monthlyTrend.push(monthsMap[key]);
-    }
-
-    subscriptions.forEach((s) => {
-      const dateStr = s.startDate || s.createdAt;
-      if (!dateStr) return;
-      const d = new Date(dateStr);
-      if (Number.isNaN(d.getTime())) return;
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      if (monthsMap[key]) {
-        const plan = s.plan || planMap[s.subscriptionPlanId] || {};
-        const priceVND = toVND(plan.price);
-        monthsMap[key].sub += priceVND;
-        monthsMap[key].total += priceVND;
-      }
-    });
-
-    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    if (monthsMap[currentMonthKey]) {
-      monthsMap[currentMonthKey].credit = totalCreditUsed;
-    }
-
-    const profileMap = {};
-    profiles.forEach((p) => {
-      const userInfo = resolveUserFromDirectory(p.userId || p.id, usersMap, mods);
-      profileMap[p.id] = {
-        name: p.fullName || p.name || userInfo.name,
-        email: p.email || userInfo.email,
-      };
-    });
-
-    const recentSubscriptions = subscriptions.map((s) => {
-      const plan = s.plan || planMap[s.subscriptionPlanId] || {};
-      const parent = profileMap[s.parentProfileId] || resolveUserFromDirectory(s.parentProfileId, usersMap, mods);
-      return {
-        id: s.id,
-        parentName: parent.name || "Phụ huynh",
-        parentEmail: parent.email || "—",
-        planName: plan.name || "Gói dịch vụ",
-        priceVND: toVND(plan.price),
-        status: Number(s.status) === 1 ? "active" : "expired",
-        startDate: s.startDate,
-        endDate: s.endDate,
-        createdAt: s.createdAt,
-      };
-    });
-
-    const reportsOpen = reports.filter((r) => Number(r.status) === 0).length;
-    const reportsUnderReview = reports.filter((r) => Number(r.status) === 1).length;
-    const totalParents = profiles.length;
-    const activePlans = plans.filter((p) => p.isActive !== false).length;
-
-    const targetTypeLabels = { 0: "Truyện", 1: "Bình luận", 2: "Hình ảnh", 3: "Người dùng" };
-    const queue = reports
-      .filter((r) => [0, 1].includes(Number(r.status)))
-      .slice(0, 10)
-      .map((r) => ({
-        id: r.id,
-        kind: "report",
-        kindLabel: `Khiếu nại ${targetTypeLabels[r.targetType] || "Nội dung"}`,
-        title: r.reason || `Khiếu nại ${targetTypeLabels[r.targetType]?.toLowerCase() || "nội dung"}`,
-        meta: `Loại nội dung: ${targetTypeLabels[r.targetType] || "Truyện"} · Tạo lúc ${new Date(r.createdAt || Date.now()).toLocaleDateString("vi-VN")}`,
-        status: Number(r.status) === 0 ? "open" : "under_review",
-        to: `/admin/reports/${r.id}`,
-      }));
-
+    const reports = readItems(reportsResult, "reports");
+    const users = readItems(usersResult, "users");
+    const plans = readItems(plansResult, "subscription plans");
+    const audit = readItems(auditResult, "audit logs");
+    const errors = [["reports", reports], ["users", users], ["plans", plans], ["audit", audit]]
+      .filter(([, result]) => result.error)
+      .map(([section, result]) => ({ section, message: result.error }));
+    const reportItems = reports.items || [];
+    const planItems = plans.items || [];
+    const auditLogs = (audit.items || []).map(normalizeAudit);
+    const reportsOpen = reports.items ? reportItems.filter((report) => Number(report.status) === 0).length : null;
+    const reportsUnderReview = reports.items ? reportItems.filter((report) => Number(report.status) === 1).length : null;
+    const activePlans = plans.items && planItems.every((plan) => typeof plan.isActive === "boolean")
+      ? planItems.filter((plan) => plan.isActive).length
+      : null;
+    const queue = reports.items
+      ? reportItems.filter((report) => [0, 1].includes(Number(report.status))).slice(0, 10).map((report) => ({
+          id: report.id,
+          kind: "report",
+          kindLabel: "Báo cáo đối tượng #" + String(report.targetType ?? "unknown"),
+          title: report.reason || ("Báo cáo đối tượng #" + String(report.targetType ?? "unknown")),
+          meta: report.createdAt ? "Tạo lúc " + new Date(report.createdAt).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }) : "Chưa rõ thời gian",
+          status: Number(report.status) === 0 ? "open" : "under_review",
+          to: "/admin/reports/" + report.id,
+        }))
+      : [];
     return {
       generatedAt: new Date().toISOString(),
-      counts: {
-        reportsOpen,
-        reportsUnderReview,
-        totalParents,
-        activePlans,
-        activeSubscriptionsCount: activeSubs.length,
-      },
-      revenue: {
-        total: totalRevenue,
-        growthPercent: 18.4,
-        subscriptionTotal: displaySubRevenue,
-        creditUsed: totalCreditUsed,
-        activeSubscriptionsCount: activeSubs.length,
-        packages: packageList,
-        monthlyTrend,
-        recentSubscriptions,
-      },
+      errors,
+      counts: { reportsOpen, reportsUnderReview, totalUsers: users.items?.length ?? null, activePlans },
+      revenue: { total: null, growthPercent: null, subscriptionTotal: null, creditUsed: null, activeSubscriptionsCount: null, monthlyTrend: [], packages: [], recentSubscriptions: [] },
       queue,
       recentAudit: auditLogs.slice(0, 6).map((log) => ({
         id: log.id,
         action: log.action || log.auditAction || "Thao tác",
-        actorName: log.actorName || (log.actor && !log.actor.includes("-") ? log.actor : "Quản trị viên"),
+        actorName: log.actorName || (log.actor && !log.actor.includes("-") ? log.actor : "Chưa rõ người thao tác"),
         target: log.entityName || "Dữ liệu hệ thống",
-        createdAt: log.createdAt || log.timestamp || new Date().toISOString(),
+        createdAt: log.createdAt || log.timestamp || null,
       })),
     };
   },

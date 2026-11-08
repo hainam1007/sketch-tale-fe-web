@@ -1,6 +1,7 @@
 import { ApiError } from "../lib/api/errors";
 import { multiRoleStoryFixture } from "../features/content/data/contentFixtures";
 import { bobbyAssetFixtures, bobbyStoryFixture } from "../features/content/data/bobbyStoryFixture";
+import { gardenGiftAudio, gardenGiftStoryFixture } from "../features/content/data/gardenGiftStoryFixture";
 
 const DATABASE_KEY = "sketchtale.mock.database.v1";
 const SESSION_KEY = "sketchtale.session.v1";
@@ -360,6 +361,7 @@ const seedDatabase = {
       createdAt: "2026-09-06T08:00:00.000Z",
     },
     ...bobbyAssetFixtures,
+    gardenGiftAudio,
   ],
   stories: [
     {
@@ -411,6 +413,7 @@ const seedDatabase = {
       versions: [{ id: "version-seed-1", version: 1, publishedAt: "2026-09-10T08:00:00.000Z", revision: 2 }],
     },
     bobbyStoryFixture,
+    gardenGiftStoryFixture,
     multiRoleStoryFixture,
   ],
 };
@@ -421,7 +424,8 @@ function clone(value) {
 
 function readDatabase() {
   try {
-    const stored = sessionStorage.getItem(DATABASE_KEY);
+    const storage = import.meta.env.VITE_LOCAL_STORY_LIBRARY === "true" ? localStorage : sessionStorage;
+    const stored = storage.getItem(DATABASE_KEY);
     if (stored) return JSON.parse(stored);
   } catch {
     // Storage can be disabled in privacy mode; the in-memory seed is enough.
@@ -431,7 +435,8 @@ function readDatabase() {
 
 function writeDatabase(database) {
   try {
-    sessionStorage.setItem(DATABASE_KEY, JSON.stringify(database));
+    const storage = import.meta.env.VITE_LOCAL_STORY_LIBRARY === "true" ? localStorage : sessionStorage;
+    storage.setItem(DATABASE_KEY, JSON.stringify(database));
   } catch {
     // Keep the mock usable when storage is unavailable.
   }
@@ -551,11 +556,14 @@ function ensureContentCollections(database) {
   if (!database.stories.some((story) => story.id === multiRoleStoryFixture.id)) {
     database.stories.push(clone(multiRoleStoryFixture));
   }
-  bobbyAssetFixtures.forEach((asset) => {
+  [...bobbyAssetFixtures, gardenGiftAudio].forEach((asset) => {
     if (!database.assets.some((item) => item.id === asset.id)) database.assets.push(clone(asset));
   });
   if (!database.stories.some((story) => story.id === bobbyStoryFixture.id)) {
     database.stories.push(clone(bobbyStoryFixture));
+  }
+  if (!database.stories.some((story) => story.id === gardenGiftStoryFixture.id)) {
+    database.stories.push(clone(gardenGiftStoryFixture));
   }
   Object.values(database.children).flat().forEach((child) => {
     database.childSettings[child.id] ||= { readingTimeLimitMinutes: null, allowedCategories: [], revision: 1, updatedAt: new Date().toISOString() };

@@ -413,6 +413,12 @@
 .parent-settings-card { padding: 22px 24px; box-shadow: 0 3px 14px rgba(46, 42, 27, .045); }
 .settings-section { padding-top: 2px; }
 .settings-select-label { max-width: 330px; justify-self: end; width: 100%; }
+.approval-list-placeholder { display: grid; flex: 0 0 52px; place-items: center; width: 52px; height: 52px; border-radius: 8px; color: #755a18; background: #fff0bf; font-size: 20px; font-weight: 900; }
+.approval-image-placeholder { display: grid; place-items: center; min-height: 155px; padding: 16px; border: 1px dashed #d8d0bc; border-radius: 9px; color: #7d8188; background: #faf8f2; font-size: 13px; text-align: center; }
+.approval-image-warning { margin: 6px 0; color: #905c16; font-size: 12px; line-height: 1.5; }
+.approval-image-retry { margin-left: 8px; border: 0; color: #765500; background: transparent; font: inherit; font-weight: 900; text-decoration: underline; cursor: pointer; }
+.approval-live-error { display: flex; align-items: center; gap: 7px; margin: 12px 0; padding: 11px 13px; border-radius: 9px; color: #8c433c; background: #fff0ec; font-size: 12px; line-height: 1.5; }
+.approval-live-pagination { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 18px; color: #737a85; font-size: 12px; }
 .settings-select-label select { min-height: 46px; }
 .settings-category-option { min-height: 50px; padding: 12px 13px; }
 .library-toolbar { margin-bottom: 18px; border-color: #e1ddd1; box-shadow: 0 2px 8px rgba(46, 42, 27, .025); }

@@ -19,8 +19,13 @@ import {
 } from "@phosphor-icons/react";
 import { useAuth } from "../../auth/useAuth";
 import { parentProfileService } from "../services/parentProfileService";
+import { previewProfiles } from "../services/familyProfilePreview";
+import { moduleApiModes } from "../../../lib/api/featureApi";
 import { useParentDemo, demoBooks } from "../services/parentDemoState";
 import ChildAvatar from "../components/ChildAvatar";
+import ParentApprovalsLive from "../components/ParentApprovalsLive";
+import LiveChildProfilePage from "./LiveChildProfilePage";
+import LiveChildSection from "../components/LiveChildSection";
 import { childAvatars } from "../services/childAvatarLibrary";
 import { ageLabel } from "../services/profilePresentation";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
@@ -45,8 +50,8 @@ function EditableChildName({ child, userId }) {
         dailyTimeLimit: child.dailyTimeLimit ?? null,
         dailyCharacterLimit: child.dailyCharacterLimit ?? null,
       }),
-    onSuccess: async (_, nickName) => {
-      setName(nickName);
+    onSuccess: async (updated) => {
+      setName(updated.nickName);
       setEditing(false);
       await Promise.all([
         client.invalidateQueries({
@@ -62,11 +67,11 @@ function EditableChildName({ child, userId }) {
   if (!editing) {
     return (
       <div className="family-child-name">
-        <h1>{name}</h1>
+        <h1>{child.nickName}</h1>
         <button
           className="family-child-name-edit"
           type="button"
-          aria-label={`Đổi tên ${name}`}
+          aria-label={`Đổi tên ${child.nickName}`}
           title="Sửa tên bé"
           onClick={() => {
             setName(child.nickName);
@@ -140,19 +145,21 @@ function EditableChildName({ child, userId }) {
   );
 }
 
-export default function ParentChildExperience({ childId, section = "" }) {
+export default function ParentChildExperience({ childId, section = "", previewChild = null }) {
   const { user } = useAuth();
   const query = useQuery({
     queryKey: ["parent-live-profile", user.id, childId],
     queryFn: ({ signal }) => parentProfileService.get({ childId, signal }),
+    enabled: !previewChild,
   });
   const family = useQuery({
     queryKey: ["parent-live-profiles", user.id],
-    queryFn: parentProfileService.list,
+    queryFn: ({ signal }) => parentProfileService.list({ user, signal }),
+    enabled: !previewChild,
   });
-  if (query.isPending)
+  if (!previewChild && query.isPending)
     return <LoadingState label="Đang mở không gian của bé" />;
-  if (query.isError)
+  if (!previewChild && query.isError)
     return (
       <ErrorState
         title="Chưa mở được hồ sơ"
@@ -167,17 +174,33 @@ export default function ParentChildExperience({ childId, section = "" }) {
         replace
       />
     );
+  const resolvedChild = previewChild
+    ? {
+        id: previewChild.id,
+        nickName: previewChild.name,
+        displayAge: previewChild.age,
+        targetAgeGroup: "",
+      }
+    : query.data;
+  const familyRows = previewChild
+    ? previewProfiles.map((profile) => ({
+        id: profile.id,
+        nickName: profile.name,
+        displayAge: profile.age,
+      }))
+    : family.data || [];
   return (
     <ChildExperience
-      key={childId}
-      child={query.data}
+      key={`${user.id}:${childId}:${previewChild ? "preview" : "real"}`}
+      child={resolvedChild}
       section={section}
       userId={user.id}
-      family={family.data || []}
+      family={familyRows}
+      isPreview={Boolean(previewChild)}
     />
   );
 }
-function ChildExperience({ child, section, userId, family }) {
+function ChildExperience({ child, section, userId, family, isPreview }) {
   const [demo, update] = useParentDemo(userId, child.id);
   const [recommendations] = useParentDemo(userId, "recommendations");
   const navigate = useNavigate();
@@ -187,6 +210,10 @@ function ChildExperience({ child, section, userId, family }) {
   const [publishingStoryId, setPublishingStoryId] = useState("");
   const base = `/parent/children/${encodeURIComponent(child.id)}`;
   const isOverview = !section || section === "dashboard";
+  const hasLiveApprovals =
+    !isPreview &&
+    moduleApiModes.parentProfile === "real" &&
+    moduleApiModes.parentApprovals === "real";
   const decisions = demo.decisions || {};
   const favorites = demo.favorites || [];
   const metrics = range === "7" ? [96, 4, 18, 85] : [382, 16, 64, 88];
@@ -250,8 +277,8 @@ function ChildExperience({ child, section, userId, family }) {
         />
         <div>
           <p className="workspace-eyebrow">KHÔNG GIAN CỦA BÉ</p>
-          <EditableChildName child={child} userId={userId} />
-          <p>{ageLabel(child.targetAgeGroup)} · Mỗi ngày một điều mới</p>
+          {isPreview ? <h1>{child.nickName}</h1> : <EditableChildName child={child} userId={userId} />}
+          <p>{child.displayAge || ageLabel(child.targetAgeGroup)} · Mỗi ngày một điều mới</p>
         </div>
         <label className="family-switch">
           Đổi hồ sơ
@@ -282,7 +309,18 @@ function ChildExperience({ child, section, userId, family }) {
           </NavLink>
         ))}
       </nav>
-      {section === "profile" ? (
+      {isPreview && (
+        <p className="family-demo-note" role="note">
+          {isPreview
+            ? "Dữ liệu minh họa · Các thao tác trong không gian này được lưu riêng cho bản demo."
+            : "Hồ sơ bé lấy từ API · Báo cáo đọc, cài đặt mở rộng và thư viện riêng vẫn là dữ liệu minh họa."}
+        </p>
+      )}
+      {!isPreview && section !== "profile" ? (
+        <LiveChildSection child={child} userId={userId} section={section} />
+      ) : section === "profile" && moduleApiModes.parentProfile === "real" ? (
+        <LiveChildProfilePage childId={child.id} />
+      ) : section === "profile" ? (
         <>
           <section className="family-panel">
             <h2>Cá tính và sở thích của bé</h2>
@@ -539,7 +577,10 @@ function ChildExperience({ child, section, userId, family }) {
               </div>
             </form>
           )}
-          {section === "approvals" && (
+          {section === "approvals" && hasLiveApprovals && (
+            <ParentApprovalsLive child={child} userId={userId} />
+          )}
+          {section === "approvals" && !hasLiveApprovals && (
             <section className="family-panel">
               <h2>Những sáng tạo chờ bố mẹ</h2>
               <p>

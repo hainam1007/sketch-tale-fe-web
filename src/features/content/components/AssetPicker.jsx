@@ -8,7 +8,7 @@ import { assetCategory, validateAssetFile } from "../services/assetService";
 import { useContentAssets } from "../hooks/useStoryEditor";
 
 /** Shared asset picker with dialog and inline gallery presentations. */
-export default function AssetPicker({ assets: providedAssets, value = "", onChange, label = "Tư liệu", id = "asset-picker", kind = "image", allowEmpty = true, disabled = false, showUploadHint = true, allowUpload = true, emptyLabel = "Chưa chọn tư liệu.", presentation = "dialog", category = "background" }) {
+export default function AssetPicker({ assets: providedAssets, value = "", onChange, label = "Tư liệu", id = "asset-picker", kind = "image", allowEmpty = true, disabled = false, showUploadHint = true, allowUpload = true, allowLocalAssets = true, emptyLabel = "Chưa chọn tư liệu.", presentation = "dialog", category = "background" }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
@@ -24,7 +24,7 @@ export default function AssetPicker({ assets: providedAssets, value = "", onChan
   const selectedAsset = assets.find((asset) => asset.id === value);
   useEffect(() => setPreviewErrorCount(0), [selectedAsset?.id, selectedAsset?.url, selectedAsset?.fallbackUrl]);
   const previewUrl = previewErrorCount === 0 ? selectedAsset?.url : previewErrorCount === 1 ? selectedAsset?.fallbackUrl : "";
-  const canSelect = (asset) => Boolean(asset?.url) && (kind === "all" || asset.kind === kind) && asset.processingStatus !== "failed" && asset.processingStatus !== "processing";
+  const canSelect = (asset) => Boolean(asset?.url) && (allowLocalAssets || asset?.source !== "mock") && (kind === "all" || asset.kind === kind) && asset.processingStatus !== "failed" && asset.processingStatus !== "processing";
   const uploadMutation = useMutation({
     mutationFn: (file) => contentService.uploadAsset({ file, category }),
     onSuccess: async (asset) => {
@@ -83,7 +83,7 @@ export default function AssetPicker({ assets: providedAssets, value = "", onChan
         {visibleAssets.map((asset) => {
           const selectable = canSelect(asset);
           return <button className={`asset-picker-gallery-item${asset.id === value ? " selected" : ""}`} type="button" key={asset.id} onClick={() => onChange(asset.id, asset)} disabled={disabled || !selectable} aria-pressed={asset.id === value} title={asset.name}>
-            <span className="asset-picker-gallery-thumb">{asset.url || asset.fallbackUrl ? <img src={asset.url || asset.fallbackUrl} alt="" loading="lazy" onError={(event) => { const image = event.currentTarget; if (asset.fallbackUrl && image.dataset.fallbackApplied !== "true") { image.dataset.fallbackApplied = "true"; image.src = asset.fallbackUrl; } else { image.style.visibility = "hidden"; } }} /> : <span aria-hidden="true">Ảnh</span>}{!selectable && <span className="asset-picker-gallery-status">{asset.processingStatus === "processing" ? "Đang xử lý" : "Không khả dụng"}</span>}</span>
+            <span className="asset-picker-gallery-thumb">{asset.url || asset.fallbackUrl ? <img src={asset.url || asset.fallbackUrl} alt="" loading="lazy" onError={(event) => { const image = event.currentTarget; if (asset.fallbackUrl && image.dataset.fallbackApplied !== "true") { image.dataset.fallbackApplied = "true"; image.src = asset.fallbackUrl; } else { image.style.visibility = "hidden"; } }} /> : <span aria-hidden="true">Ảnh</span>}{!selectable && <span className="asset-picker-gallery-status">{asset.source === "mock" && !allowLocalAssets ? "Chỉ lưu trên thiết bị" : asset.processingStatus === "processing" ? "Đang xử lý" : "Không khả dụng"}</span>}</span>
             <span className="asset-picker-gallery-name"><strong>{asset.name}</strong>{asset.id === value && <Check size={15} aria-label="Đang dùng" />}</span>
           </button>;
         })}
@@ -113,7 +113,7 @@ export default function AssetPicker({ assets: providedAssets, value = "", onChan
         {allowUpload && (uploadError || uploadMutation.isError) && <p className="asset-message asset-message-error" role="alert">{uploadError || uploadMutation.error.message}</p>}
         {visibleAssets.length ? <div className="asset-picker-dialog-grid">{visibleAssets.map((asset) => <button className={`asset-picker-dialog-option${asset.id === draftValue ? " selected" : ""}`} type="button" key={asset.id} onClick={() => setDraftValue(asset.id)} disabled={!canSelect(asset)}>
           <span className="asset-picker-dialog-thumb">{asset.kind === "audio" ? <SpeakerHigh size={24} aria-hidden="true" /> : asset.url ? <img src={asset.url} alt="" /> : <span aria-hidden="true">!</span>}</span>
-          <span><strong>{asset.name}</strong><small>{asset.mimeType || asset.kind}{!canSelect(asset) ? " · chưa sẵn sàng" : ""}</small></span>{asset.id === draftValue && <Check size={17} aria-label="Đang chọn" />}
+          <span><strong>{asset.name}</strong><small>{asset.mimeType || asset.kind}{!canSelect(asset) ? asset.source === "mock" && !allowLocalAssets ? " · chỉ lưu trên thiết bị" : " · chưa sẵn sàng" : ""}</small></span>{asset.id === draftValue && <Check size={17} aria-label="Đang chọn" />}
         </button>)}</div> : <p className="asset-picker-dialog-empty">Không tìm thấy tư liệu phù hợp.</p>}
         <div className="asset-picker-dialog-actions"><button className="workspace-button workspace-button-quiet" type="button" onClick={closeDialog}>Hủy</button><button className="workspace-button" type="button" onClick={confirmSelection} disabled={!draftValue && !allowEmpty}>Chọn tư liệu</button></div>
       </section>

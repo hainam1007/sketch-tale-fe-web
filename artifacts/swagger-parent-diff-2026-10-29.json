@@ -1,0 +1,22 @@
+{
+  "old": 118,
+  "current": 124,
+  "added": [
+    "GET /api/users",
+    "POST /api/users",
+    "GET /api/users/{id}",
+    "PUT /api/users/{id}",
+    "PATCH /api/users/{id}/status",
+    "PUT /api/users/{id}/status"
+  ],
+  "removed": [],
+  "changed": [],
+  "schemasChanged": [
+    "AdminCreateUserDto",
+    "AdminUpdateUserDto",
+    "CreateSubscriptionPlanDto",
+    "SubscriptionPlanDto",
+    "UpdateSubscriptionPlanDto",
+    "UpdateUserStatusDto"
+  ]
+}

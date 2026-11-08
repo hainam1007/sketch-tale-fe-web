@@ -1,6 +1,7 @@
 import { mockPublicService } from "./mockPublicService";
 import { apiRequest } from "../../../lib/api/httpClient";
 import { ApiError } from "../../../lib/api/errors";
+import { moduleApiModes } from "../../../lib/api/featureApi";
 
 function normalizeBackendPlan(plan) {
   const price = typeof plan.price === "number" && Number.isFinite(plan.price) ? plan.price : null;
@@ -15,16 +16,28 @@ function normalizeBackendPlan(plan) {
   if (!highlights.length) highlights.push("Quyền lợi chưa có thông tin từ danh mục gói.");
 
   return {
+    // Keep the display key used by the existing plan routes separate from the
+    // backend UUID needed for subscription/profile relationships.
     id: String(plan.code || plan.id || styleKey),
+    code: typeof plan.code === "string" ? plan.code : null,
+    backendId: typeof plan.id === "string" ? plan.id : null,
     styleKey: styleKey || "plan",
     name: plan.name || "Gói SketchTale",
     price,
-    currency: null,
+    // SubscriptionPlanDto has no currency field. SketchTale's current VN
+    // catalog stores prices in VND (the mock catalog uses the same currency).
+    currency: typeof plan.currency === "string" && plan.currency.trim()
+      ? plan.currency
+      : "VND",
     durationDays: Number.isInteger(plan.durationDays) ? plan.durationDays : null,
     profileLimit: Number.isInteger(plan.childProfileLimit) ? plan.childProfileLimit : null,
     monthlyCreditLimit: Number.isInteger(plan.monthlyCreditLimit) ? plan.monthlyCreditLimit : null,
     accessFullStories: typeof plan.accessFullStories === "boolean" ? plan.accessFullStories : null,
     canExportStory: typeof plan.canExportStory === "boolean" ? plan.canExportStory : null,
+    // null means the API response did not provide this capability yet.
+    haveParentProfileSub: typeof plan.haveParentProfileSub === "boolean"
+      ? plan.haveParentProfileSub
+      : null,
     freeTrialDays: Number.isInteger(plan.freeTrialDays) ? plan.freeTrialDays : null,
     highlights,
     limits: highlights,
@@ -50,12 +63,17 @@ async function getPlanAvailability({ signal } = {}) {
     if (right.price === null) return -1;
     return left.price - right.price;
   });
+  const checkoutEnabled =
+    import.meta.env.VITE_API_MODE === "real" &&
+    moduleApiModes.parentPayment === "real";
   return {
     source: "backend",
     published: plans.length > 0,
-    checkoutEnabled: false,
+    checkoutEnabled,
     plans,
-    message: "Quyền lợi và thời hạn được đọc từ cấu hình backend. Đơn vị giá chưa được công bố; thanh toán chưa được kết nối.",
+    message: checkoutEnabled
+      ? "Quyền lợi, giá và thời hạn được đọc từ Backend; thanh toán qua PayOS đã được bật."
+      : "Quyền lợi, giá và thời hạn được đọc từ Backend; thanh toán qua PayOS chưa được bật trong cấu hình này.",
   };
 }
 

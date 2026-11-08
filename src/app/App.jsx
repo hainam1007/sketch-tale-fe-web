@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, RouterProvider, useLocation } from "react-router-dom";
+import { createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, RouterProvider, useLocation, useParams } from "react-router-dom";
 import PublicLayout from "../features/public/layouts/PublicLayout";
 import HomePage from "../features/public/pages/HomePage";
 import ContactPage from "../features/public/pages/ContactPage";
@@ -22,6 +22,7 @@ import ParentAvailabilityGate from "../features/parent/layouts/ParentAvailabilit
 import ChildrenPage from "../features/parent/pages/ChildrenPage";
 import NewChildPage from "../features/parent/pages/NewChildPage";
 import ChildDetailPage from "../features/parent/pages/ChildDetailPage";
+import LiveChildProfilePage from "../features/parent/pages/LiveChildProfilePage";
 import ChildSettingsPage from "../features/parent/pages/ChildSettingsPage";
 import ChildApprovalsPage from "../features/parent/pages/ChildApprovalsPage";
 import ChildLibraryPage from "../features/parent/pages/ChildLibraryPage";
@@ -29,9 +30,12 @@ import ChildProgressPage from "../features/parent/pages/ChildProgressPage";
 import ChildDashboardPage from "../features/parent/pages/ChildDashboardPage";
 import ParentPlanPage from "../features/parent/pages/ParentPlanPage";
 import ParentCheckoutPage from "../features/parent/pages/ParentCheckoutPage";
+import ParentPaymentReturnPage from "../features/parent/pages/ParentPaymentReturnPage";
+import ParentUnavailableFeature from "../features/parent/components/ParentUnavailableFeature";
 import ChildWorkspaceLayout from "../features/parent/layouts/ChildWorkspaceLayout";
 import ChildExportsPage from "../features/parent/pages/ChildExportsPage";
 import ParentLibraryPage from "../features/parent/pages/ParentLibraryPage";
+import ParentStoryReaderPage from "../features/parent/pages/ParentStoryReaderPage";
 import ProfilePage from "../features/profile/pages/ProfilePage";
 import AdminUsersPage from "../features/admin/pages/AdminUsersPage";
 import AdminOverviewPage from "../features/admin/pages/AdminOverviewPage";
@@ -54,6 +58,7 @@ import AdminCatalogPage from "../features/admin/pages/AdminCatalogPage";
 import AdminModerationCatalogPage from "../features/admin/pages/AdminModerationCatalogPage";
 import AdminContentReportsPage, { AdminContentReportDetailPage } from "../features/admin/pages/AdminContentReportsPage";
 import { ROLES } from "../lib/permissions/roles";
+import { moduleApiModes } from "../lib/api/featureApi";
 
 const titles = {
   "/": "Mỗi nét vẽ, một câu chuyện",
@@ -62,6 +67,8 @@ const titles = {
   "/about": "Về SketchTale",
   "/privacy": "Quyền riêng tư - Bản nháp",
   "/terms": "Điều khoản - Bản nháp",
+  "/payment/success": "Đang chờ xác nhận thanh toán",
+  "/payment/cancel": "Quay lại từ PayOS",
   "/child-safety": "Đồng hành cùng bé",
   "/auth/login": "Đăng nhập minh họa",
   "/auth/register": "Đăng ký minh họa",
@@ -110,6 +117,13 @@ function AppRouterLayout() {
   return <><RouteEffects /><Outlet /></>;
 }
 
+function ChildProfileRoute() {
+  const { childId } = useParams();
+  return moduleApiModes.parentProfile === "real"
+    ? <LiveChildProfilePage childId={childId} />
+    : <ChildDetailPage />;
+}
+
 const router = createBrowserRouter(createRoutesFromElements(
   <Route element={<AppRouterLayout />}>
     <Route element={<PublicLayout />}>
@@ -119,6 +133,8 @@ const router = createBrowserRouter(createRoutesFromElements(
       <Route path="contact" element={<ContactPage />} />
       <Route path="403" element={<ForbiddenPage />} />
       <Route path="confirm-email" element={<ConfirmEmailPage />} />
+      <Route path="payment/success" element={<ParentPaymentReturnPage />} />
+      <Route path="payment/cancel" element={<ParentPaymentReturnPage />} />
       <Route path="auth/reset-password" element={<ResetPasswordPage />} />
       {["privacy", "terms", "child-safety"].map((path) => <Route key={path} path={path} element={<PolicyPage path={`/${path}`} />} />)}
       {["login", "register", "forgot-password"].map((mode) => <Route key={mode} path={`auth/${mode}`} element={<AuthPage key={mode} mode={mode} />} />)}
@@ -134,8 +150,8 @@ const router = createBrowserRouter(createRoutesFromElements(
           <Route path="parent/children" element={<ChildrenPage />} />
           <Route path="parent/children/new" element={<NewChildPage />} />
           <Route path="parent/children/:childId" element={<ChildWorkspaceLayout />}>
-          <Route path="profile" element={<ChildDetailPage />} />
-            <Route index element={<ChildDetailPage />} />
+          <Route path="profile" element={<ChildProfileRoute />} />
+            <Route index element={<ChildProfileRoute />} />
             <Route path="dashboard" element={<ChildDashboardPage />} />
             <Route path="settings" element={<ChildSettingsPage />} />
             <Route path="approvals" element={<ChildApprovalsPage />} />
@@ -145,9 +161,10 @@ const router = createBrowserRouter(createRoutesFromElements(
           </Route>
           <Route path="parent/plan" element={<ParentPlanPage />} />
           <Route path="parent/checkout" element={<ParentCheckoutPage />} />
-          <Route path="parent/exports" element={<Navigate to="/parent/library" replace />} />
+          <Route path="parent/exports" element={<ParentUnavailableFeature title="Xuất truyện" />} />
           <Route path="parent/library" element={<ParentLibraryPage />} />
-          <Route path="parent/reports" element={<Navigate to="/parent/library" replace />} />
+          <Route path="parent/library/:storyId/read" element={<ParentStoryReaderPage />} />
+          <Route path="parent/reports" element={<ParentUnavailableFeature title="Báo cáo gia đình" />} />
           </Route>
         </Route>
         <Route element={<RequireRole roles={[ROLES.CONTENT]} />}>

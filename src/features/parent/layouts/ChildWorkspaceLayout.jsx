@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
-import { BookOpen, CaretDown, Clock } from "@phosphor-icons/react";
+import { CaretDown } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useConfirmToast } from "../../../components/feedback/useConfirmToast";
@@ -8,6 +8,8 @@ import { useAuth } from "../../auth/useAuth";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState, ForbiddenState, LoadingState } from "../../../components/feedback/States";
 import { getFamilyProfilePreview } from "../services/familyProfilePreview";
+import { moduleApiModes } from "../../../lib/api/featureApi";
+import ParentChildExperience from "../pages/ParentChildExperience";
 
 const tabs = [
   { suffix: "/dashboard", label: "Tổng quan" },
@@ -20,37 +22,21 @@ const tabs = [
 
 export default function ChildWorkspaceLayout() {
   const { childId } = useParams();
-  const previewChild = getFamilyProfilePreview(childId);
+  const location = useLocation();
+  const previewChild = moduleApiModes.parentProfile === "real" ? null : getFamilyProfilePreview(childId);
+  const currentPath = `/parent/children/${childId}`;
+  const routeSection = location.pathname.startsWith(currentPath)
+    ? location.pathname.slice(currentPath.length).split("/").filter(Boolean)[0] || ""
+    : "";
+  const section = routeSection === "dashboard" ? "" : routeSection;
 
-  if (previewChild) return <FamilyPreviewWorkspace child={previewChild} />;
+  if (previewChild || moduleApiModes.parentProfile === "real") {
+    return <ParentChildExperience key={childId} childId={childId} section={section} previewChild={previewChild} />;
+  }
+  if (import.meta.env.VITE_API_MODE === "real") {
+    return <section className="parent-page"><h1>Hồ sơ bé chưa khả dụng</h1><p>Chưa thể tải hồ sơ bé lúc này. Vui lòng quay lại danh sách hồ sơ.</p><Link className="workspace-button" to="/parent/children">Về hồ sơ bé</Link></section>;
+  }
   return <LinkedChildWorkspaceLayout />;
-}
-
-function FamilyPreviewWorkspace({ child }) {
-  return (
-    <section className="child-workspace">
-      <div className="child-workspace-topline"><Link to="/parent/children">← Quay lại hồ sơ bé</Link></div>
-      <div className="child-heading">
-        <div className="child-heading-person">
-          <img src={child.avatar} alt="" width="64" height="64" />
-          <div><p className="workspace-eyebrow">HỒ SƠ BÉ</p><h1>{child.name}</h1><span>{child.age}</span></div>
-        </div>
-      </div>
-      <section className="parent-preview-detail" aria-labelledby="parent-preview-detail-title">
-        <div className="parent-preview-detail-card">
-          <div className="parent-preview-detail-heading">
-            <p className="workspace-eyebrow">HÀNH TRÌNH ĐỌC</p>
-            <h2 id="parent-preview-detail-title">Hoạt động trong tuần này</h2>
-            <p>{child.name} gần đây đã đọc <strong>{child.recentStory}</strong>.</p>
-          </div>
-          <div className="parent-preview-detail-stats">
-            <article><span>Thời gian đọc</span><strong><Clock size={18} aria-hidden="true" />{child.readingMinutes} phút</strong></article>
-            <article><span>Truyện đã đọc</span><strong><BookOpen size={18} aria-hidden="true" />{child.storiesCompleted} truyện</strong></article>
-          </div>
-        </div>
-      </section>
-    </section>
-  );
 }
 
 function LinkedChildWorkspaceLayout() {

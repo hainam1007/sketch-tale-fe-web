@@ -10,15 +10,22 @@ export const featureApiModes = Object.freeze({
   content: import.meta.env.VITE_CONTENT_API_MODE || (import.meta.env.VITE_API_MODE === "real" ? "real" : "mock"),
 });
 
-// Catalog routes documented by the backend can be used independently from the
-// Admin core API, whose users/reports/monitoring endpoints are not available.
+// Catalog routes and the users/reports operations documented by the backend
+// can be used independently from Admin aggregates and monitoring APIs.
 // Catalogs default to the configured backend; an explicit mock mode is available.
 export const adminCatalogApiMode = import.meta.env.VITE_ADMIN_CATALOG_API_MODE || "real";
 
 export const moduleApiModes = Object.freeze({
-  parentProfile: import.meta.env.VITE_PARENT_PROFILE_API_MODE || (import.meta.env.VITE_API_MODE === "real" ? "real" : featureApiModes.parent),
+  // Parent profile data has its own owner-scoped API gate. Do not inherit the
+  // global auth/content mode; opt in explicitly after the backend is deployed.
+  parentProfile: import.meta.env.VITE_PARENT_PROFILE_API_MODE || featureApiModes.parent,
   parentCatalog: import.meta.env.VITE_PARENT_CATALOG_API_MODE || featureApiModes.parent,
   parentSubscription: import.meta.env.VITE_PARENT_SUBSCRIPTION_API_MODE || featureApiModes.parent,
+  // Payment links can charge real money. Keep checkout off until the runtime
+  // has verified PayOS callbacks and a Parent-scoped payment status endpoint.
+  parentPayment: import.meta.env.VITE_PARENT_PAYMENT_API_MODE || "mock",
+  // Also requires parentProfile=real so the inbox receives a backend ChildProfile ID.
+  parentApprovals: import.meta.env.VITE_PARENT_APPROVALS_API_MODE || featureApiModes.parent,
   // Swagger documents list/detail ContentReport operations; keep this module
   // read-only in the UI until status-transition semantics are confirmed.
   adminReports: import.meta.env.VITE_ADMIN_REPORTS_API_MODE || "real",
@@ -32,6 +39,8 @@ const featureLabels = {
   parentProfile: "hồ sơ Parent",
   parentCatalog: "thư viện Parent",
   parentSubscription: "gói Parent",
+  parentPayment: "thanh toán Parent",
+  parentApprovals: "phê duyệt Parent",
   adminReports: "báo cáo Admin",
   adminModerationCatalog: "danh mục kiểm duyệt Admin",
 };

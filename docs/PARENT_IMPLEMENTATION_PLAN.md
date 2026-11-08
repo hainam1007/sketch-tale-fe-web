@@ -1,10 +1,12 @@
 # Kế hoạch triển khai Parent Portal
 
-> Trạng thái 19/10/2026: Parent/Child profile, settings, approvals, library, progress và exports vẫn cần API an toàn; profile endpoints hiện bị chặn bởi lỗi ownership backend. Tài khoản Child có thể được tạo qua `/auth/register/child`, nhưng response chưa trả child ID. API chưa có tiếp tục dùng mock cả local và bản deploy, có nhãn “Dữ liệu mô phỏng”. Xem [tổng quan dự án](PROJECT_SUMMARY.md) và [runbook API](LUNA_EXTRAMAX_API_RUNBOOK_2026-10-19.md) để biết trạng thái hiện hành. Tài liệu này giữ yêu cầu Parent và các backlog chưa đóng.
+> **Plan thực thi được tối ưu lại ngày 01/11:** [Parent integration plan](api-integration/PARENT_INTEGRATION_PLAN_2026-11-01.md) là nguồn hiện hành về thứ tự, điều kiện nghiệm thu và mode. [Câu hỏi Backend](api-integration/PARENT_BACKEND_QUESTIONS_2026-11-01.md) chỉ hỏi các điểm chưa chốt. Giữ UI theo source hiện tại và yêu cầu gần nhất bỏ palette; không dùng đặc tả UI lịch sử bên dưới để tự thay lại giao diện.
 
-Ngày lập: 18/09/2026. Các mốc scope 29/09 và thiết kế Parent 01/10 là lịch sử. Trạng thái API hiện hành được cập nhật ngày 19/10/2026 ở đầu tài liệu và trong [tổng quan dự án](PROJECT_SUMMARY.md); các phần thiết kế bên dưới giữ yêu cầu/backlog, không phải báo cáo code hiện tại.
+> **Trạng thái source ngày 01/11/2026:** commit Backend [`fb3075e`](https://github.com/iamhyyyy/sketch-tale-backend/tree/fb3075e33d584abbb185fcc860aeec206f8af9a0) là baseline trước các sửa đổi local. Backend working tree hiện đã thêm ChildProfile owner scope, trả ChildProfile ID sau register, lọc story/published pages, bảo vệ mapping approvals và scoped approval inbox. Frontend có profile/catalog adapters và approval live list/decision component theo mode opt-in; production profile/catalog/approvals vẫn mock tới khi Backend mới build/deploy và xác minh. `/auth/profile` vẫn không có danh sách Child. `nickName` lưu ở `ChildProfile.NickName`, không map sang `User.FirstName/LastName`. Revision, lý do từ chối và quyền vai nhạy cảm chưa có contract; dashboard/progress, settings mở rộng, library, exports/reports còn mock hoặc thiếu contract. Xem [Parent integration plan](api-integration/PARENT_INTEGRATION_PLAN_2026-11-01.md), [Parent source audit](api-integration/PARENT_API_SOURCE_AUDIT_2026-11-01.md) và [Parent API gaps](api-integration/PARENT_API_GAPS_2026-10-29.md). Chưa xác nhận local source đang chạy trên Render.
 
-**Cách đọc:** mục 1–8 giữ nền tảng nghiệp vụ và milestone; **mục 9–15 là đặc tả thiết kế từng trang và backlog UI/UX**. Nhiều màn Parent đã có trong source. Profile API chưa được bật do lỗi ownership backend; tích hợp thật và nghiệm thu staging còn mở.
+Ngày lập: 18/09/2026. Các mốc scope 29/09 và thiết kế Parent 01/10 là lịch sử. Các phần thiết kế bên dưới giữ yêu cầu/backlog, không phải báo cáo code hiện tại. Trạng thái Backend/Frontend phải theo [source audit ngày 01/11](api-integration/PARENT_API_SOURCE_AUDIT_2026-11-01.md), không theo các ghi chú trạng thái cũ trong milestone.
+
+**Cách đọc:** mục 1–8 giữ nền tảng nghiệp vụ và milestone; **mục 9–15 là đặc tả thiết kế từng trang và backlog UI/UX**. Một số màn Parent hiện dùng demo; profile list/detail/update đã có adapter và owner-scope fix trong local source, nhưng mode production vẫn mock đến khi Backend được phát hành. Việc có route/component không đồng nghĩa API đã live-verified.
 
 Nguồn: `docs/PROJECT_SUMMARY.md`, router, auth và dependencies hiện có trong repository. Đây là kế hoạch đề xuất; endpoint, payload và các quyết định còn mở cần thống nhất với Backend trước khi tích hợp thật.
 
@@ -34,7 +36,7 @@ Các điểm tối ưu so với kế hoạch ban đầu:
 - Mock bằng MSW tại biên HTTP theo kế hoạch tổng thể; không duy trì thêm một bộ mock service nghiệp vụ song song.
 - Mỗi milestone có task, API đầu vào và điều kiện nghiệm thu; phần export/email chưa có contract được theo dõi riêng.
 
-Rà soát mã nguồn ngày 26/09/2026 là baseline lịch sử về stack và màn Parent. Sau đó đã nối `POST /auth/register/child` từ Parent để tạo tài khoản bé theo username/password; bé dùng tài khoản đó trên mobile. Response chưa có child ID. Login/hydration thật và API profile có trạng thái riêng trong [báo cáo tích hợp](api-integration/luna-extramax/implementation-report-2026-10-19.md). Việc có code/mock không chứng minh API thật hoặc nghiệp vụ đã được nghiệm thu.
+Rà soát mã nguồn ngày 26/09/2026 là baseline lịch sử về stack và màn Parent. Sau đó đã nối `POST /auth/register/child` từ Parent; Backend local hiện trả `childProfileId` sau khi tạo tài khoản theo Parent JWT. Login/hydration thật và trạng thái Parent hiện hành xem [source audit 01/11](api-integration/PARENT_API_SOURCE_AUDIT_2026-11-01.md). Việc có code/mock không chứng minh API runtime hoặc nghiệp vụ đã được nghiệm thu.
 
 Kế hoạch giữ một SPA và convention JavaScript/JSX hiện tại. Không triển khai luồng vẽ, tạo nhân vật AI, đọc truyện tương tác hay làm quiz của trẻ trên Parent Portal; các luồng đó thuộc Mobile App.
 
@@ -69,7 +71,7 @@ Thanh toán thật, bulk action và biểu đồ nâng cao chưa nằm trong đ�
 | `/profile` | Hồ sơ người dùng đã đăng nhập |
 | `/parent` | Entry: chờ session/danh sách, một bé thì vào dashboard bé đó; nhiều hoặc chưa có bé thì về danh sách |
 | `/parent/children` | Danh sách Child đã liên kết |
-| `/parent/children/new` | Parent tạo tài khoản bé bằng username/password qua `/auth/register/child`; response thiếu child ID nên chưa thể mở detail. Link tài khoản có sẵn vẫn chờ API riêng. |
+| `/parent/children/new` | Parent tạo tài khoản bé bằng username/password qua `/auth/register/child`; local source trả `childProfileId` và FE có thể hiện link mở hồ sơ khi profile mode real. Link tài khoản có sẵn vẫn chờ API riêng. |
 | `/parent/children/:childId` | Chi tiết/sửa hồ sơ Child đã liên kết |
 | `/parent/children/:childId/dashboard` | Dashboard riêng của bé; điểm vào mặc định khi chọn hồ sơ |
 | `/parent/children/:childId/settings` | Thời gian và nội dung được phép |
@@ -184,7 +186,7 @@ M1–M5: **14–19 ngày công riêng Parent**, tăng một ngày so với 13–
 - Tạo cấu hình menu Parent trên shell chung; ChildWorkspaceLayout kiểm tra quan hệ liên kết và cung cấp selector/tabs.
 - Đưa dashboard cơ bản vào child workspace ngay M1: tên bé, lối vào module đã sẵn sàng, trạng thái chưa có hoạt động. Module chưa triển khai không có nút dẫn vào placeholder; không tạo số liệu mẫu để lấp khung. Entry xử lý rõ 0/1/nhiều bé.
 - `ChildForm` dùng chung view/edit: tên hiển thị, ngày sinh date-only, avatar có sẵn là đề xuất tối thiểu. Chưa làm upload avatar riêng trước khi có nhu cầu/contract.
-- List/detail/update Child đã liên kết. Tạo tài khoản bé mới đã nối `POST /auth/register/child` từ Parent UI; do response chưa có child ID, không chuyển sang detail bằng ID đoán. Link tài khoản Child đã tồn tại, invite hoặc unlink vẫn chờ relationship contract/API riêng.
+- List/detail/update Child đã liên kết có source fix owner-scoped và FE adapter local, chờ release/verify. Tạo tài khoản bé mới đã nối `POST /auth/register/child`; Backend local trả ChildProfile ID. Link tài khoản Child đã tồn tại, invite hoặc unlink vẫn chờ relationship contract/API riêng.
 - Entitlement/quyền quản lý lấy từ server, không suy ra chỉ từ tên gói. Nếu chưa tải được entitlement hoặc link capability, hiện lỗi/retry thay vì mặc định cho phép thao tác.
 - Nếu gói vẫn giới hạn số Child do Parent quản lý, Free 1, Pro 3, Family 5 chỉ là fixture theo cấu hình nguồn; server vẫn là nguồn quyết định.
 
@@ -255,12 +257,12 @@ Mỗi ticket khoảng 0,5–2 ngày; tổng thời gian nằm trong milestone, k
 
 ## 6. API cần phối hợp với Backend
 
-Các route mock bên dưới mô tả nhu cầu nghiệp vụ, không phải contract Backend. API có sẵn và trạng thái tích hợp hiện hành được liệt kê ở [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) và [API runbook](LUNA_EXTRAMAX_API_RUNBOOK_2026-10-19.md).
+Các route mock bên dưới mô tả nhu cầu nghiệp vụ, không phải contract Backend. Trạng thái tích hợp và blocker hiện hành được liệt kê ở [API integration master](api-integration/API_INTEGRATION_MASTER_2026-11-01.md), [Parent source audit](api-integration/PARENT_API_SOURCE_AUDIT_2026-11-01.md) và [Parent API gaps](api-integration/PARENT_API_GAPS_2026-10-29.md).
 
 | Miền | Contract tối thiểu |
 | --- | --- |
 | Auth | Login/logout/refresh, `/me`, register/verify/forgot/reset; role enum, session expiry, error envelope |
-| Children | `POST /auth/register/child` đã tạo tài khoản bé và liên kết theo Parent JWT nhưng thiếu ID trong response; list/detail/update bị chặn bởi ownership backend. Link tài khoản có sẵn/invite/consent/unlink vẫn cần API riêng. |
+| Children | `POST /auth/register/child` tạo và liên kết theo Parent JWT, local source trả ID. ChildProfile list/detail/update đã có owner-scoped fix local và FE adapter, chờ build/deploy/verify. Link tài khoản có sẵn/invite/consent/unlink vẫn cần API riêng. |
 | Settings | Read/update settings; category catalog; ý nghĩa danh sách category rỗng, giới hạn min/max, timezone |
 | Approvals | List/detail nhân vật và tranh gốc; approve/reject theo version, conflict response |
 | Sensitive roles | Read/update quyền theo nhân vật; xác định quyền này được kế thừa thế nào khi có version mới |
@@ -271,7 +273,7 @@ Các route mock bên dưới mô tả nhu cầu nghiệp vụ, không phải con
 | Exports | Create/list/detail job, status enum, file URL và thời hạn, retry/idempotency |
 | Family report | Nội dung/lịch tháng, trạng thái gửi, cấu hình nếu có, quyền truy cập và xử lý lỗi |
 
-Khoảng trống: ownership an toàn cho profile list/detail/update; link/unlink tài khoản Child đã tồn tại; entitlement/usage, settings không có trong profile DTO, approvals, library, dữ liệu dashboard và danh sách export. Đăng ký tài khoản Child đã có endpoint nhưng response cần ID hoặc một đường refetch được scope an toàn. Cần bổ sung hoặc thống nhất tái sử dụng endpoint, không tự giả định đã có.
+Khoảng trống theo thiết kế: link/unlink tài khoản Child đã tồn tại; entitlement/usage; settings mở rộng không có trong profile DTO; revision/lý do từ chối/quyền vai nhạy cảm cho approval; library, dữ liệu dashboard và danh sách export. Backend local có mapping security và inbox API; Parent FE đã có adapter/live view opt-in. Cần build/deploy/runtime verify, không tạo API trùng. Xem source audit và API gaps để phân biệt phần đã làm với contract còn thiếu.
 
 Fixtures nên gồm: Parent chưa có bé, nhiều bé, đạt quota; approval pending/approved/rejected và version mới; thư viện trống/ẩn; chưa có tiến độ; session hết hạn, 403, 404, conflict và lỗi mạng. Dùng dữ liệu mẫu cố định, có thể reset để test lặp lại.
 
@@ -316,7 +318,7 @@ Không viết lại test shared auth cho từng màn Parent; dùng session fixtu
 
 | Mốc | Happy path | Trường hợp bắt buộc bổ sung |
 | --- | --- | --- |
-| M1 | Parent login → tạo tài khoản bé → Child đăng nhập Mobile; sau khi có ID an toàn, chọn Child → dashboard → refresh/đổi bé/logout | Entry 0/1/nhiều bé, create response thiếu ID, ownership, request cũ về sau khi đổi Child |
+| M1 | Parent login → tạo tài khoản bé → Child đăng nhập Mobile; sau khi có ID an toàn, chọn Child → dashboard → refresh/đổi bé/logout | Entry 0/1/nhiều bé, register read-after-write, owner scope, request cũ về sau khi đổi Child |
 | M2 | Lưu settings → approve version → duyệt quyền vai | Save lỗi giữ form, conflict bản mới, nhấn gửi hai lần, đổi bé khi dirty |
 | M3 | Favorite → hide/unhide → delete | Hai bé độc lập, mutation lỗi, xóa item cuối trang |
 | M4 | Xem entitlement và usage | Hết quota, unlimited, lỗi tải, reset date/timezone |
@@ -385,7 +387,7 @@ Các kích thước là đề xuất triển khai, kiểm chứng lại tại 36
 - Tên dài được xuống dòng trong heading; list có thể rút gọn nhưng vẫn truy cập được tên đầy đủ. Không dùng avatar làm định danh duy nhất.
 - Đổi bé giữ module; chỉ giữ `range` hợp lệ, reset selection/resource/page của bé trước. Filter nào được giữ phải khai báo theo module; mặc định reset filter nghiệp vụ để tránh danh sách trống khó hiểu.
 - Không hiển thị đồng thời tên bé B với dữ liệu bé A. Sau chuyển route, focus đến heading khu vực; không giật focus khi background refetch.
-- URL query đề xuất: approvals `status`, `approvalId`; library `type`, `q`, `visibility`, `favorite`, `page`, `itemId`; dashboard `range`; progress `range`, `section`; exports `status`, `page`, `jobId`, `storyId`. `childId` c?a dashboard/export n?m trong path, kh?ng c? query th? hai c? th? xung ??t. Chuẩn hóa tham số sai về mặc định, không phát sinh request với enum lạ.
+- URL query đề xuất: approvals `status`, `approvalId`; library `type`, `q`, `visibility`, `favorite`, `page`, `itemId`; dashboard `range`; progress `range`, `section`; exports `status`, `page`, `jobId`, `storyId`. `childId` của dashboard/export nằm trong path, không có query thứ hai có thể xung đột. Chuẩn hóa tham số sai về mặc định, không phát sinh request với enum lạ.
 - Search debounce khoảng 300ms, dùng replace history khi gõ; đổi tab/mở detail dùng history phù hợp để Back quay lại danh sách và bộ lọc trước đó.
 
 ### 10.3. Quy tắc phản hồi và bảo vệ thao tác
@@ -456,8 +458,8 @@ Range chỉ điều khiển học tập và hoạt động trong kỳ. Chờ duy
 
 - Title “Tạo tài khoản cho bé”; giải thích Parent đặt username và password để bé đăng nhập ứng dụng mobile.
 - Form gửi `username`, `password`, `nickName` qua `POST /auth/register/child`. Không yêu cầu ngày sinh/avatar vì endpoint không lưu hai field này.
-- Hiện pending, lỗi và thành công theo response. Backend success hiện chỉ trả message, không có child ID; không mở detail và không truy vấn danh sách không scope để tìm bé mới.
-- Sau success giữ người dùng ở màn tạo và giải thích rằng tài khoản đã được tạo nhưng chưa thể hiện trong danh sách cho đến khi có ID/đường đọc an toàn.
+- Hiện pending, lỗi và thành công theo response. Backend local hiện trả `childProfileId`; FE success view chỉ hiện link mở hồ sơ khi Parent profile mode là real.
+- Production profile mode đang mock đến khi Backend mới được phát hành; khi đó success vẫn cho biết tài khoản đã được tạo, không dùng ID giả hoặc list không scope để tìm bé.
 - Link tài khoản Child đã có sẵn, invite/consent và unlink chỉ xuất hiện sau khi có API và contract riêng.
 - CTA “Tạo tài khoản bé”. Lỗi giữ giá trị hợp lệ; không retry POST tự động nếu kết quả trước chưa xác định.
 

@@ -1,4 +1,10 @@
-# Các API còn thiếu cho Parent — yêu cầu gửi Backend
+# Lưu trữ — đề xuất API còn thiếu cho Parent (21/10/2026)
+
+> **Payment cập nhật 04/11:** Swagger live + source remote `9927acf` đã có create-checkout, webhook và cancel-paymentlink qua PayOS. P22/P24 bên dưới là đề xuất lịch sử, không còn là API hoàn toàn chưa có. Chưa thấy GET status theo orderCode/lịch sử Parent được expose; webhook còn cần nối đầy đủ bước cấp quyền lợi. Xem [kế hoạch nối Payment 04/11](api-integration/PARENT_PAYMENT_INTEGRATION_PLAN_2026-11-04.md) để dùng contract thật và câu hỏi Backend hiện hành.
+
+> **Để gửi Backend hiện tại:** dùng [8 nhóm câu hỏi đã đối chiếu source ngày 01/11](api-integration/PARENT_BACKEND_QUESTIONS_2026-11-01.md), ưu tiên Q1–Q4. Danh sách endpoint lịch sử bên dưới không phải yêu cầu triển khai tất cả trước core Parent.
+
+> Đây là snapshot lịch sử gồm endpoint **đề xuất**, không phải contract Backend đã có. Không gửi nguyên danh sách này như yêu cầu triển khai hiện hành. Bản phân loại mới dựa trên backend source commit `fb3075e`, Swagger và frontend: [Parent API gaps/source status](api-integration/PARENT_API_GAPS_2026-10-29.md), [Parent source audit 01/11](api-integration/PARENT_API_SOURCE_AUDIT_2026-11-01.md), [API integration master](api-integration/API_INTEGRATION_MASTER_2026-11-01.md). Source commit chưa được xác nhận là runtime trên Render.
 
 Ngày đối chiếu: **21/10/2026**.
 

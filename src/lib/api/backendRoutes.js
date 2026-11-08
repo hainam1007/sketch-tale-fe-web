@@ -1,7 +1,7 @@
 import { ApiError } from "./errors";
 
-// Routes from the SketchTale OpenAPI snapshot dated 2026-10-19.
-// Swagger includes the /api base path; apiRequest paths do not.
+// Routes from the SketchTale OpenAPI snapshot dated 2026-10-31 plus local source additions.
+// Swagger includes the /api base path; apiRequest paths do not. Local additions are pending release.
 // Keep this allowlist in sync so stale or mock-only paths are stopped early.
 const documentedRoutes = [
   "GET /audit-logs",
@@ -39,6 +39,9 @@ const documentedRoutes = [
   "GET /child-profiles/:id/target-age-group",
   "GET /child-profiles/:id/daily-time-limit",
   "GET /child-profiles/:id/daily-character-limit",
+  // Local Backend addition; not present in the 2026-10-31 deployed Swagger snapshot.
+  "GET /user-story-character-mappings/child/:childProfileId",
+  "PATCH /user-story-character-mappings/:id",
   "GET /credit-costs",
   "POST /credit-costs",
   "GET /credit-costs/:id",
@@ -69,8 +72,11 @@ const documentedRoutes = [
   "GET /prohibited-themes/:id",
   "PATCH /prohibited-themes/:id",
   "DELETE /prohibited-themes/:id",
+  // Parent reader endpoint confirmed in live Swagger 2026-11-05.
   "GET /storypage-template/pages/:storyId",
-  "GET /storypage-template/pages/:id",
+  "GET /storypage-template/pages/by-story/:storyId",
+  "GET /storypage-template/page/:pageId",
+  "GET /storypage-template/published/:storyId",
   "GET /storypage-template/all-pages/:storyId",
   "POST /storypage-template/:storyId/page",
   "PUT /storypage-template/:id",
@@ -102,6 +108,13 @@ const documentedRoutes = [
   "DELETE /subscriptions/:id",
   "GET /subscriptions/parent-profile/:parentProfileId",
   "GET /subscriptions/subscription-plan/:subscriptionPlanId",
+  "POST /payments/create-checkout",
+  "GET /users",
+  "POST /users",
+  "GET /users/:id",
+  "PUT /users/:id",
+  "PATCH /users/:id/status",
+  "PUT /users/:id/status",
   "GET /subscription-plans",
   "POST /subscription-plans",
   "GET /subscription-plans/:id",

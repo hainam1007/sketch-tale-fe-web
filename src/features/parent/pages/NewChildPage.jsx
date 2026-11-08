@@ -3,24 +3,51 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authService } from "../../auth/authService";
+import { useAuth } from "../../auth/useAuth";
+import { parentProfileService } from "../services/parentProfileService";
+import { moduleApiModes } from "../../../lib/api/featureApi";
 import "../parent.css";
 
 const emptyCredentials = { username: "", password: "", nickName: "" };
 
 export default function NewChildPage() {
+  const { user, refreshUser } = useAuth();
   const queryClient = useQueryClient();
+  const [syncWarning, setSyncWarning] = useState("");
+  const [isSyncing, setIsSyncing] = useState(false);
+  async function syncFamily() {
+    setIsSyncing(true);
+    setSyncWarning("");
+    const results = await Promise.allSettled([
+      refreshUser(),
+      ...(moduleApiModes.parentProfile === "real"
+        ? [queryClient.invalidateQueries({ queryKey: ["parent-live-profiles", user.id], refetchType: "none" }).then(() => queryClient.fetchQuery({
+          queryKey: ["parent-live-profiles", user.id],
+          queryFn: ({ signal }) => parentProfileService.list({ user, signal }),
+          retry: false,
+          staleTime: 0,
+        }))]
+        : []),
+    ]);
+    if (results.some((result) => result.status === "rejected")) {
+      setSyncWarning("Tài khoản bé đã được tạo. Chưa cập nhật được hồ sơ gia đình hoặc hạn mức; hãy tải lại dữ liệu, không cần tạo lại tài khoản.");
+    }
+    setIsSyncing(false);
+  }
   const [credentials, setCredentials] = useState(emptyCredentials);
   const [createdAccount, setCreatedAccount] = useState(null);
   const accountMutation = useMutation({
     mutationFn: authService.registerChildAccount,
     retry: false,
-    onSuccess: (_response, submitted) => {
-      queryClient.invalidateQueries({ queryKey: ["parent-live-profiles"] });
+    onSuccess: async (response, submitted) => {
+      const childProfileId = response?.childProfileId ?? response?.ChildProfileId ?? null;
       setCreatedAccount({
         displayName: submitted.nickName.trim(),
         username: submitted.username.trim(),
+        childProfileId: typeof childProfileId === "string" ? childProfileId : null,
       });
       setCredentials((current) => ({ ...current, password: "" }));
+      await syncFamily();
     },
   });
 
@@ -34,6 +61,7 @@ export default function NewChildPage() {
     setCreatedAccount(null);
     setCredentials(emptyCredentials);
     accountMutation.reset();
+    setSyncWarning("");
   }
 
   return (
@@ -57,9 +85,13 @@ export default function NewChildPage() {
           </div>
           <div className="parent-account-username"><span>Tên đăng nhập</span><strong>{createdAccount.username}</strong></div>
           <div className="parent-form-actions">
+            {createdAccount.childProfileId && moduleApiModes.parentProfile === "real" && <Link className="workspace-button" to={`/parent/children/${encodeURIComponent(createdAccount.childProfileId)}`}>Mở hồ sơ bé</Link>}
             <Link className="workspace-button workspace-button-quiet" to="/parent">Về tổng quan</Link>
-            <button className="workspace-button" type="button" onClick={startAnotherAccount}><Plus size={17} aria-hidden="true" /> Thêm tài khoản bé khác</button>
+            <button className="workspace-button" type="button" disabled={isSyncing} onClick={startAnotherAccount}><Plus size={17} aria-hidden="true" /> Thêm tài khoản bé khác</button>
           </div>
+          {isSyncing && <p role="status">Đang cập nhật hồ sơ gia đình và hạn mức…</p>}
+          {syncWarning && <div role="status"><p>{syncWarning}</p><button className="workspace-button" type="button" disabled={isSyncing} onClick={syncFamily}>Tải lại dữ liệu gia đình</button></div>}
+          {!createdAccount.childProfileId && <p>Tài khoản đã được tạo. Mở danh sách hồ sơ để tìm bé vừa thêm.</p>}
         </section>
       ) : (
         <section className="parent-account-create-card" aria-labelledby="child-account-title">
