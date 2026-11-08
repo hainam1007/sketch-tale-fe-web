@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BookOpen, CheckCircle, EyeSlash, FloppyDisk, Rocket, WarningCircle } from "@phosphor-icons/react";
+import { ArrowLeft, BookOpen, CheckCircle, DotsThree, EyeSlash, FloppyDisk, Rocket, WarningCircle } from "@phosphor-icons/react";
 import { Link, NavLink, Outlet, useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../auth/useAuth";
 import { contentService } from "../services/contentService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState } from "../../../components/feedback/States";
+import DismissButton from "../../../components/feedback/DismissButton";
 import { consumeApprovedContentEditorNavigation, isContentEditorDirty } from "../hooks/useEditorSaveState";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import PublishIssues from "../components/PublishIssues";
 import { useConfirmToast } from "../../../components/feedback/useConfirmToast";
+import { clearContentMockOverlay, readContentMockOverlay } from "../services/contentMockOverlay";
+import { featureApiModes } from "../../../lib/api/featureApi";
+import "../editor-usability.css";
 
 const tabs = [["", "Thông tin"], ["/pages", "Dựng truyện"], ["/roles", "Nhân vật"], ["/vocabulary", "Từ vựng"], ["/quizzes", "Câu hỏi"], ["/preview", "Xem trước"]];
 
@@ -101,6 +105,8 @@ export default function StoryEditorLayout() {
   if (storyQuery.isError) return <ErrorState title="Không thể mở truyện" message={storyQuery.error.message} onRetry={() => storyQuery.refetch()} />;
 
   const story = storyQuery.data;
+  const localOnlyChanges = featureApiModes.content === "real" ? story.localOnlyChanges : null;
+  const hasLocalOnlyChanges = Boolean(localOnlyChanges?.hasChanges);
   const visibleValidation = validation?.revision !== undefined && validation.revision !== story.revision ? null : validation;
   const actionError = validateMutation.error || publishMutation.error || hideMutation.error;
   const mutationOutcomeBlocked = [validateMutation, publishMutation, hideMutation].some(({ error }) => error?.mutationAccepted || error?.mutationOutcomeUnknown);
@@ -108,46 +114,84 @@ export default function StoryEditorLayout() {
 
   function validate() {
     if (mutationOutcomeBlocked) return;
+    if (hasLocalOnlyChanges) return setValidation({ type: "error", message: "Truyện còn thay đổi chỉ lưu trên thiết bị. Chưa thể kiểm tra hoặc xuất bản bản đầy đủ bằng API hiện tại." });
     if (editorDirty) return setValidation({ type: "error", message: "Hãy lưu thay đổi thông tin truyện trước khi kiểm tra." });
     validateMutation.mutate();
   }
 
   async function publish() {
     if (mutationOutcomeBlocked) return;
+    if (hasLocalOnlyChanges) return setValidation({ type: "error", message: "Truyện còn thay đổi chỉ lưu trên thiết bị. Chưa thể xuất bản bản đầy đủ bằng API hiện tại." });
     if (editorDirty) return setValidation({ type: "error", message: "Hãy lưu thay đổi trước khi xuất bản." });
     if (storyQuery.data?.status === "unknown") return setValidation({ type: "error", message: "Chưa thể xuất bản truyện này lúc này. Vui lòng thử lại sau." });
     if (await confirmToast({ title: "Xuất bản truyện?", message: "Truyện sẽ hiển thị với người đọc sau khi xuất bản.", confirmLabel: "Xuất bản" })) publishMutation.mutate();
   }
 
   async function hide() {
+    if (hasLocalOnlyChanges) return setValidation({ type: "error", message: "Hãy đồng bộ hoặc bỏ thay đổi chỉ lưu trên thiết bị trước khi ẩn truyện." });
     if (editorDirty) return setValidation({ type: "error", message: "Hãy lưu thay đổi trước khi ẩn truyện." });
     if (await confirmToast({ title: "Ẩn truyện?", message: `Ẩn “${story.title}” khỏi danh mục truyện?`, confirmLabel: "Ẩn truyện", tone: "danger" })) hideMutation.mutate();
+  }
+
+  function downloadLocalBackup() {
+    const backup = {
+      exportedAt: new Date().toISOString(),
+      storyId,
+      note: "Bản sao chỉ chứa dữ liệu chỉnh sửa local và ID asset. File nhị phân asset lưu trong IndexedDB không được đính kèm.",
+      overlay: readContentMockOverlay(user.id, storyId),
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `story-${storyId}-local-changes.json`;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  async function discardLocalChanges() {
+    if (!await confirmToast({
+      title: "Bỏ thay đổi chỉ lưu trên thiết bị?",
+      message: "Thao tác này xóa overlay chỉnh sửa local của truyện khỏi trình duyệt. File asset trong thư viện không bị xóa.",
+      confirmLabel: "Bỏ thay đổi local",
+      tone: "danger",
+    })) return;
+    try {
+      clearContentMockOverlay(user.id, storyId);
+      setValidation({ type: "success", message: "Đã bỏ các thay đổi chỉ lưu trên thiết bị. Dữ liệu backend đang được tải lại." });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.story(user.id, storyId) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.storyPreview(user.id, storyId) });
+    } catch {
+      setValidation({ type: "error", message: "Không thể xóa thay đổi local khỏi trình duyệt. Dữ liệu chưa bị thay đổi." });
+    }
   }
 
   return <section className={`story-editor-shell${isStudio ? " story-editor-shell-studio" : ""}`}>
     <div className="story-editor-back"><Link to="/content/stories"><ArrowLeft size={17} aria-hidden="true" /> Quay lại kho truyện</Link></div>
     <header className="story-editor-header">
       <div>
-        <p className="workspace-eyebrow">NỘI DUNG / CHỈNH SỬA TRUYỆN</p>
+        <p className="workspace-eyebrow">CHỈNH SỬA TRUYỆN</p>
         <div className="story-editor-title-row"><h1>{story.title}</h1><StatusBadge value={story.status} tone={story.status === "published" ? "success" : story.status === "hidden" ? "danger" : story.status === "unknown" ? "neutral" : "gold"} /></div>
-        <p>{story.pages.length} trang · {story.roles.length} nhân vật.</p>
         <div className="story-editor-meta">
+          <span>{story.pages.length} trang · {story.roles.length} nhân vật</span>
           {story.versionHistoryAvailable !== false && <span>{story.versions.length} phiên bản đã xuất bản</span>}
           {story.draftDirty && !editorDirty && <span className="story-draft-chip">Bản nháp có thay đổi chưa xuất bản</span>}
-          <span className={`story-editor-save-status${actionError ? " story-editor-save-status-error" : editorDirty ? " story-editor-save-status-dirty" : ""}`} role="status" aria-live="polite"><FloppyDisk size={15} aria-hidden="true" /> {busy ? "Đang xử lý..." : actionError ? "Cần xử lý lỗi" : editorDirty ? "Chưa lưu thay đổi" : "Bản nháp đã lưu"}</span>
+          <span className={`story-editor-save-status${actionError ? " story-editor-save-status-error" : editorDirty || hasLocalOnlyChanges ? " story-editor-save-status-dirty" : ""}`} role="status" aria-live="polite"><FloppyDisk size={15} aria-hidden="true" /> {busy ? "Đang xử lý..." : actionError ? "Cần xử lý lỗi" : editorDirty ? "Chưa lưu thay đổi" : hasLocalOnlyChanges ? "Có thay đổi chỉ lưu trên thiết bị" : "Bản nháp đã lưu"}</span>
         </div>
       </div>
       <div className="story-editor-actions">
-        <button className="workspace-button workspace-button-quiet" type="button" onClick={validate} disabled={busy || mutationOutcomeBlocked || editorDirty}><CheckCircle size={17} aria-hidden="true" /> Kiểm tra</button>
-        <button className="workspace-button" type="button" onClick={publish} disabled={busy || mutationOutcomeBlocked || editorDirty || story.status === "unknown"} title={mutationOutcomeBlocked ? "Tải lại truyện để kiểm tra trạng thái thao tác trước khi tiếp tục." : story.status === "unknown" ? "Truyện chưa thể xuất bản lúc này." : undefined}><Rocket size={17} aria-hidden="true" /> {publishMutation.isPending ? "Đang xuất bản..." : "Xuất bản"}</button>
-        {story.status === "published" && <button className="workspace-button workspace-button-danger" type="button" onClick={hide} disabled={busy || editorDirty}><EyeSlash size={17} aria-hidden="true" /> Ẩn truyện</button>}
+        <button className="workspace-button workspace-button-quiet" type="button" onClick={validate} disabled={busy || mutationOutcomeBlocked || editorDirty || hasLocalOnlyChanges}><CheckCircle size={17} aria-hidden="true" /> Kiểm tra</button>
+        <button className="workspace-button" type="button" onClick={publish} disabled={busy || mutationOutcomeBlocked || editorDirty || hasLocalOnlyChanges || story.status === "unknown"} title={hasLocalOnlyChanges ? "Có thay đổi chưa được lưu vào máy chủ." : mutationOutcomeBlocked ? "Tải lại truyện để kiểm tra trạng thái thao tác trước khi tiếp tục." : story.status === "unknown" ? "Truyện chưa thể xuất bản lúc này." : undefined}><Rocket size={17} aria-hidden="true" /> {publishMutation.isPending ? "Đang xuất bản..." : "Xuất bản"}</button>
+        {(story.status === "published" || hasLocalOnlyChanges) && <details className="story-editor-more"><summary aria-label="Thao tác khác" title="Thao tác khác"><DotsThree size={23} aria-hidden="true" /></summary><div>{story.status === "published" && <><button className="workspace-button workspace-button-danger" type="button" onClick={hide} disabled={busy || editorDirty || hasLocalOnlyChanges || mutationOutcomeBlocked}><EyeSlash size={17} aria-hidden="true" /> Ẩn truyện</button><small>Gỡ truyện khỏi danh mục của người đọc.</small></>}{hasLocalOnlyChanges && <><button className="workspace-button workspace-button-quiet" type="button" onClick={downloadLocalBackup}>Tải bản sao JSON</button><button className="workspace-button workspace-button-danger" type="button" onClick={discardLocalChanges}>Bỏ thay đổi local</button><small>Bản sao JSON không đính kèm file ảnh hoặc âm thanh.</small></>}</div></details>}
       </div>
     </header>
     {story.status === "unknown" && <p className="editor-help" role="status">Truyện chưa thể xuất bản lúc này. Vui lòng thử lại sau.</p>}
-    <nav className="story-editor-tabs" aria-label="Các phần chỉnh sửa truyện">{tabs.map(([suffix, label]) => <NavLink key={suffix} to={`/content/stories/${storyId}${suffix}`} end={!suffix}>{label}</NavLink>)}</nav>
-    {visibleValidation && <div className={`story-action-message ${visibleValidation.type === "error" ? "story-action-error" : "story-action-success"}`} role="status">{visibleValidation.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />} {visibleValidation.message}</div>}
+    <nav className="story-editor-tabs" aria-label="Các phần chỉnh sửa truyện">{tabs.map(([suffix, label]) => {
+      const count = ({ "/pages": story.pages.length, "/roles": story.roles.length, "/vocabulary": story.vocabulary?.length, "/quizzes": story.quizzes?.length })[suffix];
+      return <NavLink key={suffix} to={`/content/stories/${storyId}${suffix}`} end={!suffix}>{label}{count !== undefined && <span className="story-tab-count" aria-label={`${count} mục`}>{count}</span>}</NavLink>;
+    })}</nav>
+    {visibleValidation && <div className={`story-action-message ${visibleValidation.type === "error" ? "story-action-error" : "story-action-success"}`} role="status">{visibleValidation.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />} {visibleValidation.message}{visibleValidation.type === "error" && <DismissButton onClick={() => setValidation(null)} />}</div>}
     <PublishIssues error={actionError} />
-    <Outlet context={{ story, assets: [], queryKey: queryKeys.story(user.id, storyId), setEditorDirty, onPublish: publish, onValidate: validate, isPublishing: publishMutation.isPending, isValidating: validateMutation.isPending, publishError: actionError, validation: visibleValidation }} />
+    <Outlet context={{ story, assets: [], queryKey: queryKeys.story(user.id, storyId), setEditorDirty, refetchStory: storyQuery.refetch, onPublish: publish, onValidate: validate, isPublishing: publishMutation.isPending, isValidating: validateMutation.isPending, publishError: actionError, validation: visibleValidation }} />
   </section>;
 }
 

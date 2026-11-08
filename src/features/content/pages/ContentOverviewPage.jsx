@@ -59,7 +59,7 @@ export default function ContentOverviewPage() {
 
       <div className="cm-home-columns">
         <section className="cm-home-recent" aria-labelledby="cm-recent-title">
-          <div className="cm-home-section-heading"><div><h2 id="cm-recent-title">Truyện gần đây</h2><p>Cập nhật mới nhất</p></div><Link className="workspace-text-link" to={libraryPath}>Xem tất cả <ArrowRight size={16} aria-hidden="true" /></Link></div>
+          <div className="cm-home-section-heading"><div><h2 id="cm-recent-title">Truyện gần đây</h2><p>Cập nhật mới nhất</p></div><Link className="workspace-button workspace-button-quiet cm-home-compact-button" to={libraryPath}>Xem tất cả <ArrowRight size={16} aria-hidden="true" /></Link></div>
           <form className="cm-home-search" role="search" onSubmit={findStory}>
             <MagnifyingGlass size={20} aria-hidden="true" /><label className="sr-only" htmlFor="cm-find-story">Tìm truyện trong kho</label>
             <input id="cm-find-story" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm truyện theo tên hoặc mô tả…" />
@@ -71,7 +71,7 @@ export default function ContentOverviewPage() {
           <div className="cm-home-rows" aria-live="polite" aria-busy={selectedQuery.isLoading}>
             {selectedQuery.isLoading ? <p className="cm-home-empty">Đang tải truyện…</p> : selectedQuery.isError ? <QueryError onRetry={() => selectedQuery.refetch()} /> : stories.length ? stories.map((story) => <RecentStory key={story.id} story={story} category={categories.find((item) => item.id === story.categoryId)?.label} />) : <div className="cm-home-empty"><BookOpen size={32} aria-hidden="true" /><h3>{view === "draft" ? "Chưa có bản nháp" : view === "published" ? "Chưa có truyện xuất bản" : "Câu chuyện đầu tiên bắt đầu từ đây"}</h3><p>{view === "published" ? "Hoàn thiện bản nháp để sẵn sàng xuất bản." : "Bắt đầu một câu chuyện mới khi bạn có ý tưởng."}</p><Link className="workspace-button workspace-button-quiet" to={view === "published" ? "/content/stories?status=draft" : "/content/stories/new"}>{view === "published" ? "Mở bản nháp" : "Tạo truyện"}<ArrowRight size={16} aria-hidden="true" /></Link></div>}
           </div>
-          {stories.length > 0 && !selectedQuery.isError && <div className="cm-home-list-footer">{stories.length} truyện cập nhật gần nhất <Link to={libraryPath}>Mở kho truyện <ArrowRight size={14} aria-hidden="true" /></Link></div>}
+          {stories.length > 0 && !selectedQuery.isError && <div className="cm-home-list-footer">{stories.length} truyện cập nhật gần nhất <Link className="workspace-button workspace-button-quiet cm-home-compact-button" to={libraryPath}>Mở kho truyện <ArrowRight size={14} aria-hidden="true" /></Link></div>}
         </section>
 
         <aside className="cm-home-aside" aria-label="Công việc và hiệu quả">
@@ -82,8 +82,8 @@ export default function ContentOverviewPage() {
               <p>{activeDraft.pagesCount || 0} trang · {formatDate(activeDraft.updatedAt)}</p>
               {activeDraft.draftDirty && <p className="cm-home-dirty">Có thay đổi chưa xuất bản</p>}
               <Link className="workspace-button" to={storyContinuePath(activeDraft.id)}>Tiếp tục biên tập <ArrowRight size={17} aria-hidden="true" /></Link>
-              <Link className="cm-home-secondary" to={`/content/stories/${activeDraft.id}`}>Quản lý nội dung truyện</Link>
-            </> : <><h3>Không có bản nháp đang làm</h3><p>Bạn có thể bắt đầu truyện mới hoặc chỉnh sửa truyện trong kho.</p><Link className="workspace-text-link" to="/content/stories/new">Tạo bản nháp <ArrowRight size={16} aria-hidden="true" /></Link></>}
+              <Link className="workspace-button workspace-button-quiet cm-home-secondary" to={`/content/stories/${activeDraft.id}`}>Quản lý nội dung truyện</Link>
+            </> : <><h3>Không có bản nháp đang làm</h3><p>Bạn có thể bắt đầu truyện mới hoặc chỉnh sửa truyện trong kho.</p><Link className="workspace-button" to="/content/stories/new">Tạo bản nháp <ArrowRight size={16} aria-hidden="true" /></Link></>}
           </section>
           <Performance query={statisticsQuery} />
           <Link className="cm-home-assets" to="/content/assets"><Package size={25} aria-hidden="true" /><span><strong>Kho tài sản</strong><small>Nhân vật, ảnh nền và hình ảnh phụ</small></span><ArrowRight size={18} aria-hidden="true" /></Link>
@@ -120,12 +120,12 @@ function Performance({ query }) {
       {(!hasReads || !hasRate || query.data?.errors?.length > 0) && <p className="cm-home-analytics-note">{!hasReads && !hasRate ? "Số liệu đọc và hoàn thành hiện chưa khả dụng." : "Một số số liệu hiện chưa khả dụng."}</p>}
       {topStory && <Link className="cm-home-top-story" to={`/content/stories/${topStory.id}`}><small>Được đọc nhiều nhất</small><strong>{topStory.title}</strong><span>{metric(topStory.reads)} lượt đọc <ArrowRight size={14} aria-hidden="true" /></span></Link>}
     </>}
-    <Link className="workspace-text-link" to="/content/statistics?range=7d">Xem hiệu quả <ArrowRight size={16} aria-hidden="true" /></Link>
+    <Link className="workspace-button workspace-button-quiet cm-home-compact-button cm-home-performance-link" to="/content/statistics?range=7d">Xem hiệu quả <ArrowRight size={16} aria-hidden="true" /></Link>
   </section>;
 }
 
 function QueryError({ onRetry }) {
-  return <div className="cm-home-query-error" role="status"><p>Chưa tải được dữ liệu.</p><button type="button" className="workspace-text-link" onClick={onRetry}>Thử lại</button></div>;
+  return <div className="cm-home-query-error" role="status"><p>Chưa tải được dữ liệu.</p><button type="button" className="workspace-button workspace-button-quiet cm-home-compact-button" onClick={onRetry}>Thử lại</button></div>;
 }
 
 function metric(value) {

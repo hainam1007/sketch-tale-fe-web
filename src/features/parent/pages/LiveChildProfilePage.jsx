@@ -52,16 +52,16 @@ function ProfileEditor({ child, userId }) {
   }, [dirty]);
   const mutation = useMutation({
     mutationFn: parentProfileService.update,
-    onSuccess: async (_, submitted) => {
+    onSuccess: async (updated) => {
       setSaved({
-        nickName: submitted.nickName,
-        dailyTimeLimit: submitted.dailyTimeLimit ?? "",
-        dailyCharacterLimit: submitted.dailyCharacterLimit ?? "",
+        nickName: updated.nickName,
+        dailyTimeLimit: updated.dailyTimeLimit ?? "",
+        dailyCharacterLimit: updated.dailyCharacterLimit ?? "",
       });
       setValues({
-        nickName: submitted.nickName,
-        dailyTimeLimit: submitted.dailyTimeLimit ?? "",
-        dailyCharacterLimit: submitted.dailyCharacterLimit ?? "",
+        nickName: updated.nickName,
+        dailyTimeLimit: updated.dailyTimeLimit ?? "",
+        dailyCharacterLimit: updated.dailyCharacterLimit ?? "",
       });
       setMessage("Đã lưu hồ sơ và giới hạn sử dụng của bé.");
       await Promise.all([

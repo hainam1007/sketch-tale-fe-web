@@ -72,7 +72,7 @@ export default function ParentLibraryPage() {
   const [savedOnly, setSavedOnly] = useState(false);
   const [view, setView] = useState("grid");
   const catalog = useQuery({
-    queryKey: ["parent-stories", user.id],
+    queryKey: ["parent-stories", user.id, moduleApiModes.parentCatalog],
     queryFn: ({ signal }) => childrenService.storyCatalog({ signal }),
   });
   const search = params.get("q") || "";
@@ -136,6 +136,8 @@ export default function ParentLibraryPage() {
           key={selected.id}
           story={selected}
           userId={user.id}
+          user={user}
+          returnTo={`/parent/library?${params.toString()}`}
           onBack={() => update("story", "")}
         />
       ) : (
@@ -401,20 +403,21 @@ export default function ParentLibraryPage() {
     </div>
   );
 }
-function StoryDetail({ story, userId, onBack }) {
+function StoryDetail({ story, userId, user, returnTo, onBack }) {
   const [pageIndex, setPageIndex] = useState(0);
   const [recipient, setRecipient] = useState("");
   const [sent, setSent] = useState(false);
   const [demo, update] = useParentDemo(userId, "recommendations");
   const detail = useQuery({
-    queryKey: ["parent-catalog-story", userId, story.id],
+    queryKey: ["parent-catalog-story", userId, story.id, moduleApiModes.parentCatalog],
     queryFn: ({ signal }) =>
       childrenService.catalogStory({ storyId: story.id, signal }),
     enabled: moduleApiModes.parentCatalog === "real",
   });
   const family = useQuery({
     queryKey: ["parent-live-profiles", userId],
-    queryFn: parentProfileService.list,
+    queryFn: ({ signal }) => parentProfileService.list({ user, signal }),
+    enabled: moduleApiModes.parentProfile === "real",
   });
   const current = detail.data || story;
   const page = current.pages?.[pageIndex];
@@ -437,6 +440,15 @@ function StoryDetail({ story, userId, onBack }) {
               <p className="catalog-category">{topicLabel(current.category)}</p>
               <h2>{current.title}</h2>
               <p>{current.description}</p>
+                  {current.pages?.length > 0 && (
+                    <Link
+                      className="workspace-button parent-reader-start"
+                      to={`/parent/library/${encodeURIComponent(current.id)}/read`}
+                      state={{ returnTo }}
+                    >
+                      <BookOpen size={18} aria-hidden="true" /> Đọc truyện
+                    </Link>
+                  )}
             </div>
             {page ? (
               <>
@@ -485,8 +497,10 @@ function StoryDetail({ story, userId, onBack }) {
           <aside className="catalog-recommend">
             <PaperPlaneTilt size={30} />
             <h2>Để dành cho bé</h2>
-            <p>Gửi câu chuyện vào danh sách gợi ý của một bạn nhỏ.</p>
-            {family.isPending ? (
+            <p>Lưu lựa chọn đọc cùng bé trên thiết bị này.</p>
+            {moduleApiModes.parentProfile !== "real" ? (
+              <p>Chưa thể tải danh sách hồ sơ bé để chọn người nhận.</p>
+            ) : family.isPending ? (
               <LoadingState />
             ) : family.isError ? (
               <ErrorState
@@ -538,7 +552,7 @@ function StoryDetail({ story, userId, onBack }) {
                   className="workspace-button"
                   disabled={!recipient || sent}
                 >
-                  {sent ? "Đã gửi gợi ý" : "Gợi ý cho bé"}
+                  {sent ? "Đã lưu trên thiết bị" : "Lưu lựa chọn trên thiết bị"}
                 </button>
                 {sent && <p role="status">Đã lưu gợi ý trong phiên demo.</p>}
               </form>

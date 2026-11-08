@@ -491,6 +491,12 @@
 .story-action-success { color: #237653; background: #e7f7ee; }
 .story-action-success svg { color: #299366; }
 .story-action-error { color: #9b3144; background: #fff0f2; }
+.workspace-alert-dismiss { display: inline-grid; place-items: center; width: 26px; height: 26px; flex: 0 0 26px; padding: 0; margin: -4px -4px 0 auto; border: 0; border-radius: 6px; color: currentColor; background: transparent; cursor: pointer; opacity: .72; }
+.workspace-alert-dismiss:hover { background: rgb(0 0 0 / .06); opacity: 1; }
+.workspace-alert-dismiss:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; opacity: 1; }
+.story-slot-load-warning .workspace-alert-dismiss { margin: -2px -3px -2px 0; }
+.story-animation-error { display: flex; align-items: flex-start; gap: 8px; }
+.story-animation-error > span { flex: 1 1 auto; }
 .story-editor-panel { padding: 25px; border: 1px solid #e4e3df; border-radius: 16px; background: #fff; }
 .story-editor-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 20px; margin-bottom: 19px; border-bottom: 1px solid #efefeb; }
 .story-editor-panel-heading h2 { margin: 0; color: #28313f; font-size: 24px; letter-spacing: -0.7px; }

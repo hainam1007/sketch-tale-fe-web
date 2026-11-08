@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState } from "react";
 import { BezierCurve, Clock, Diamond, Minus, Pause, Play, Plus, Trash } from "@phosphor-icons/react";
+import DismissButton from "../../../components/feedback/DismissButton";
 import { evaluateSlotAnimation, clipsConflict, createId } from "../utils/storyAnimation";
+import { ANIMATION_PRESETS } from "../utils/storyAnimationPresets";
 import { compactAudioFilename } from "../utils/storyAudio";
 
-const presetOptions = [["appear", "Xuất hiện", "Mờ dần và phóng nhẹ"], ["move", "Di chuyển", "Lướt ngang qua cảnh"], ["jump", "Nhảy", "Bật lên rồi hạ xuống"], ["spin", "Xoay", "Quay một vòng"], ["walk", "Nhún bước", "Chuyển động tại chỗ"]];
+const presetOptions = ANIMATION_PRESETS.map(({ id, label, description, glyph }) => [id, label, description, glyph]);
 const propertyLabels = { x: "Vị trí ngang", y: "Vị trí dọc", scale: "Kích thước", rotation: "Góc xoay", opacity: "Độ trong suốt" };
 const propertyUnits = { x: "%", y: "%", scale: "×", rotation: "°", opacity: "%" };
 
@@ -61,6 +63,9 @@ function TimelineClip({ clip, width, onSelect, onMove, onResize, selected }) {
 
 export default function StoryAnimationEditor({ page, slots, imageObjects = [], assets, audioDurations, clips, onChange, onAudioChange, selectedMedia, onMediaSelect, onSubtitleChange, selectedSlotId, onSlotSelect, playheadMs, onPlayheadChange, isPlaying, onTogglePlayback, selectedClipId, onClipSelect, onPathStart, selectedPathPointIndex = -1, onPathPointChange, onPathPointAdd, pageDurationMs, showPanel = true, showTimeline = true, recording = false, onRecordingChange, property = "x", onPropertyChange, tab = "effects", onTabChange, animationError = "", onAnimationErrorChange }) {
   const [zoom, setZoom] = useState(100);
+  const [effectSearch, setEffectSearch] = useState("");
+  const normalizeSearch = (value) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").toLowerCase();
+  const visiblePresets = presetOptions.filter(([, label, description]) => normalizeSearch(`${label} ${description}`).includes(normalizeSearch(effectSearch.trim())));
   const timelineRef = useRef(null);
   const target = slots.find(({ slot }) => slot.id === selectedSlotId);
   const selectedClip = clips.find((clip) => clip.id === selectedClipId);
@@ -140,7 +145,10 @@ export default function StoryAnimationEditor({ page, slots, imageObjects = [], a
       </div>
       <div className="story-animation-tabpanel" id="story-animation-tabpanel" role="tabpanel" aria-labelledby={`story-animation-tab-${tab}`}>
         {tab === "effects" && <>
-          <div className="story-preset-grid">{presetOptions.map(([id, label]) => <button type="button" key={id} onClick={() => addPreset(id)} disabled={!target} aria-label={`Thêm hiệu ứng ${label}`}><span className={`story-preset-glyph preset-${id}`} aria-hidden="true">✦</span><strong>{label}</strong></button>)}</div>
+          <label className="story-effect-search">Tìm hiệu ứng<input type="search" value={effectSearch} onChange={(event) => setEffectSearch(event.target.value)} placeholder="Ví dụ: trượt, rung, xoay…" /></label>
+          {!target && <p className="editor-help">Chọn nhân vật trên khung truyện hoặc dòng thời gian để thêm hiệu ứng.</p>}
+          <div className="story-preset-grid">{visiblePresets.map(([id, label, description, glyph]) => <button type="button" key={id} title={description} onClick={() => addPreset(id)} disabled={!target} aria-label={`Thêm hiệu ứng ${label}`}><span className={`story-preset-glyph preset-${id}`} aria-hidden="true">{glyph}</span><strong>{label}</strong><small>{description}</small></button>)}</div>
+          {!visiblePresets.length && <p className="editor-help" role="status">Không tìm thấy hiệu ứng. Thử từ khóa khác.</p>}
           {selectedClip?.kind === "preset" && <div className="story-animation-fields"><label>Thời điểm (giây)<input type="number" min="0" step="0.1" value={seconds(selectedClip.startMs)} onChange={(event) => moveClip(selectedClip.id, Math.max(0, Number(event.target.value) * 1000 || 0))} /></label><label>Thời lượng (giây)<input type="number" min="0.1" step="0.1" value={seconds(selectedClip.durationMs)} onChange={(event) => updateClip(selectedClip.id, { durationMs: Math.max(100, Number(event.target.value) * 1000 || 100) })} /></label><label>Nhân vật<select value={selectedClip.targetId} onChange={(event) => updateClip(selectedClip.id, { targetId: event.target.value })}>{slots.map(({ role, slot }) => <option value={slot.id} key={slot.id}>{role.name}</option>)}</select></label><label>Chuyển động<select value={selectedClip.easing || "ease-in-out"} onChange={(event) => updateClip(selectedClip.id, { easing: event.target.value })}><option value="linear">Đều</option><option value="ease-in">Nhanh dần</option><option value="ease-out">Chậm dần</option><option value="ease-in-out">Nhanh rồi chậm</option></select></label></div>}
         </>}
         {tab === "keyframes" && <>
@@ -153,7 +161,7 @@ export default function StoryAnimationEditor({ page, slots, imageObjects = [], a
           <button type="button" className="workspace-button story-draw-path-button" disabled={!target} onClick={onPathStart}><BezierCurve size={17} aria-hidden="true" /> Vẽ đường trên canvas</button>
           {selectedClip?.kind === "path" && <div className="story-animation-fields"><label>Thời điểm (giây)<input type="number" min="0" step="0.1" value={seconds(selectedClip.startMs)} onChange={(event) => moveClip(selectedClip.id, Math.max(0, Number(event.target.value) * 1000 || 0))} /></label><label>Thời lượng (giây)<input type="number" min="0.1" step="0.1" value={seconds(selectedClip.durationMs)} onChange={(event) => updateClip(selectedClip.id, { durationMs: Math.max(100, Number(event.target.value) * 1000 || 100) })} /></label><label>Chuyển động<select value={selectedClip.easing || "ease-in-out"} onChange={(event) => updateClip(selectedClip.id, { easing: event.target.value })}><option value="linear">Đều</option><option value="ease-in">Nhanh dần</option><option value="ease-out">Chậm dần</option><option value="ease-in-out">Nhanh rồi chậm</option></select></label>{selectedPathPoint && <div className="story-path-point-fields"><strong>Điểm {selectedPathPointIndex + 1}</strong><label>X (%)<input type="number" min="0" max="100" step="0.1" value={Number(selectedPathPoint.x).toFixed(1)} onChange={(event) => onPathPointChange?.(selectedClip.id, selectedPathPointIndex, { x: event.target.value })} /></label><label>Y (%)<input type="number" min="0" max="100" step="0.1" value={Number(selectedPathPoint.y).toFixed(1)} onChange={(event) => onPathPointChange?.(selectedClip.id, selectedPathPointIndex, { y: event.target.value })} /></label></div>}<button type="button" className="workspace-button workspace-button-quiet" disabled={selectedClip.points.length >= 160} onClick={() => onPathPointAdd?.(selectedClip.id)}><Plus size={15} aria-hidden="true" /> Thêm điểm trên đường</button><button type="button" className="workspace-button workspace-button-quiet" onClick={() => updateClip(selectedClip.id, { points: [...selectedClip.points].reverse() })}>Đảo chiều đường đi</button></div>}
         </>}
-        {animationError && <p className="story-animation-error" role="alert">{animationError}</p>}
+        {animationError && <p className="story-animation-error" role="alert"><span>{animationError}</span><DismissButton onClick={() => onAnimationErrorChange?.("")} /></p>}
       </div>
     </div>}
     {showTimeline && <div className="story-timeline">

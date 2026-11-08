@@ -15,6 +15,7 @@ export const ASSET_CATEGORIES = Object.freeze({ CHARACTER: "character", BACKGROU
 export function assetCategory(asset) {
   if (asset?.category === ASSET_CATEGORIES.CHARACTER || asset?.category === ASSET_CATEGORIES.BACKGROUND) return asset.category;
   const identity = `${asset?.id || ""} ${asset?.name || ""}`.toLocaleLowerCase();
+  if (/^asset-bobby-(garden|hallway|living-room)$/.test(asset?.id || "")) return ASSET_CATEGORIES.BACKGROUND;
   return /role-default|asset-bobby|bobby|nhan-vat|nhân vật|character|pose/.test(identity) ? ASSET_CATEGORIES.CHARACTER : ASSET_CATEGORIES.BACKGROUND;
 }
 

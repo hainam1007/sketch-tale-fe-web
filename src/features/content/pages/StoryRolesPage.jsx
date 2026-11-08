@@ -66,6 +66,7 @@ export default function StoryRolesPage() {
   const mutation = useStoryEditorMutation(({ action, roleId, slotId, payload, revision }) => {
     if (action === "add-role") return contentService.addRole({ storyId, revision, ...payload });
     if (action === "update-role") return contentService.updateRole({ storyId, roleId, revision, ...payload });
+    if (action === "delete-role") return contentService.deleteRole({ storyId, roleId, revision });
     if (action === "add-slot") return contentService.addSlot({ storyId, roleId, revision, ...payload });
     if (action === "delete-slot") return contentService.deleteSlot({ storyId, roleId, slotId, revision });
     throw new Error("Thao tác nhân vật không được hỗ trợ.");
@@ -143,6 +144,21 @@ export default function StoryRolesPage() {
     mutation.mutate({ action: "delete-slot", roleId: role.id, slotId: slot.id });
   }
 
+  async function deleteRole(role) {
+    if (role.slots?.length) return setLocalError("Gỡ các vị trí của nhân vật khỏi từng trang trước khi xóa nhân vật.");
+    const editingThisRole = editingRoleId === role.id;
+    const dirtyWarning = editingThisRole && dirty ? " Các thay đổi chưa lưu trong biểu mẫu nhân vật này sẽ bị bỏ." : "";
+    if (!await confirmToast({ title: "Xóa nhân vật?", message: `Xóa “${role.name}” khỏi truyện? Thao tác này không xóa các tệp ảnh trong thư viện.${dirtyWarning}`, confirmLabel: "Xóa nhân vật", tone: "danger" })) return;
+    setLocalError("");
+    mutation.mutate({ action: "delete-role", roleId: role.id }, { onSuccess: () => {
+      if (!editingThisRole) return;
+      setRoleDraft(emptyRole);
+      setRoleInitial(emptyRole);
+      setRoleFile(null);
+      setEditingRoleId(null);
+    } });
+  }
+
   return (
     <EditorPanel eyebrow="NHÂN VẬT / VỊ TRÍ" title="Nhân vật trong truyện" description="Tạo nhân vật dùng xuyên suốt truyện, rồi đặt từng tư thế lên trang và chỉnh vị trí, kích thước, hướng nhìn cùng lớp hiển thị." action={<span className="story-editor-count"><UserCircle size={17} aria-hidden="true" /> {story.roles.length} nhân vật</span>}>
       <div className="editor-form-card">
@@ -150,7 +166,7 @@ export default function StoryRolesPage() {
         <div className="editor-form-grid">
           <EditorField label="Tên nhân vật" name="role-name" value={roleDraft.name} onChange={(value) => updateRole("name", value)} placeholder="Ví dụ: Bobby" />
           {featureApiModes.content === "real" && <label className="editor-field"><span>Loại nhân vật <b>*</b></span><select value={roleDraft.storyRoleType ?? ""} onChange={(event) => updateRole("storyRoleType", event.target.value === "" ? undefined : Number(event.target.value))}><option value="">Chọn loại</option>{roleTypes.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>}
-          <div className="editor-field"><AssetPicker assets={assets} id="story-editor-role-asset" label="Tư thế mặc định" category="character" value={roleDraft.defaultAssetId} onChange={(value) => updateRole("defaultAssetId", value)} /></div>
+          <div className="editor-field"><AssetPicker assets={assets} id="story-editor-role-asset" label="Tư thế mặc định" category="character" value={roleDraft.defaultAssetId} allowLocalAssets={featureApiModes.content !== "real"} allowUpload={featureApiModes.content !== "real"} onChange={(value) => updateRole("defaultAssetId", value)} />{featureApiModes.content === "real" && <small className="editor-help">Asset chỉ lưu trên thiết bị không được gắn vào nhân vật. Hãy tải ảnh trực tiếp ở mục bên dưới.</small>}</div>
           {featureApiModes.content === "real" && <label className="editor-field"><span>Tải ảnh nhân vật lên (không bắt buộc)</span><input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0] || null; const errors = file ? validateAssetFile(file, "image") : {}; if (Object.keys(errors).length) { setLocalError(Object.values(errors)[0]); event.target.value = ""; return; } setRoleFile(file); updateRole("defaultAssetFileName", file?.name || ""); }} /><small>Ảnh tải lên sẽ dùng làm tư thế mặc định và thay ảnh đang chọn. PNG, JPG, WEBP, GIF · tối đa 5 MB.</small></label>}
         </div>
         <div className="editor-checkboxes"><label className="editor-checkbox"><input type="checkbox" checked={roleDraft.custom} onChange={(event) => updateRole("custom", event.target.checked)} /> Nhân vật riêng của truyện</label><label className="editor-checkbox"><input type="checkbox" checked={roleDraft.sensitive} onChange={(event) => updateRole("sensitive", event.target.checked)} /> Nội dung nhạy cảm</label></div>
@@ -162,7 +178,7 @@ export default function StoryRolesPage() {
       {localError && <div className="editor-mutation-message editor-mutation-error" role="alert"><span>{localError}</span></div>}
       {story.roles.length ? <div className="role-list">{story.roles.map((role) => (
         <article className="role-card" key={role.id}>
-          <div className="role-card-heading"><div><span className="editor-item-index">NHÂN VẬT</span><h3>{role.name}</h3><p>{role.custom ? "Nhân vật riêng của truyện" : "Nhân vật có sẵn"}{role.sensitive ? " · nhạy cảm" : ""}</p></div><div className="editor-item-actions"><button className="icon-button" type="button" aria-label={`Sửa nhân vật ${role.name}`} onClick={() => beginRoleEdit(role)} disabled={mutation.isPending || mutationOutcomeBlocked}><PencilSimple size={17} aria-hidden="true" /></button></div></div>
+          <div className="role-card-heading"><div><span className="editor-item-index">NHÂN VẬT</span><h3>{role.name}</h3><p>{role.custom ? "Nhân vật riêng của truyện" : "Nhân vật có sẵn"}{role.sensitive ? " · nhạy cảm" : ""}</p></div><div className="editor-item-actions"><button className="icon-button" type="button" aria-label={`Sửa nhân vật ${role.name}`} onClick={() => beginRoleEdit(role)} disabled={mutation.isPending || mutationOutcomeBlocked}><PencilSimple size={17} aria-hidden="true" /></button><button className="icon-button icon-button-danger" type="button" aria-label={`Xóa nhân vật ${role.name}`} title={role.slots?.length ? "Gỡ các vị trí khỏi trang trước khi xóa" : "Xóa nhân vật"} onClick={() => deleteRole(role)} disabled={mutation.isPending || mutationOutcomeBlocked || Boolean(role.slots?.length)}><Trash size={17} aria-hidden="true" /></button></div></div>
           <div className="slot-list">{role.slots?.length ? role.slots.map((slot) => <div className="slot-row" key={slot.id}><span><strong>{pageLabel(story.pages, slot.pageId)}</strong><small>Ngang {slot.x}% · dọc {slot.y}% · kích thước {slot.scale} · lớp {slot.layer}{slot.flip ? " · lật ngang" : ""}</small></span><div className="slot-row-actions"><Link className="workspace-text-link" to={`/content/stories/${storyId}/pages?pageId=${encodeURIComponent(slot.pageId)}&slotId=${encodeURIComponent(slot.id)}`}><ArrowRight size={14} aria-hidden="true" /> Mở vị trí trên trang</Link><button className="icon-button icon-button-danger" type="button" aria-label={`Xóa vị trí ${role.name} khỏi ${pageLabel(story.pages, slot.pageId)}`} disabled={mutation.isPending || mutationOutcomeBlocked} onClick={() => deleteSlot(role, slot)}><Trash size={16} aria-hidden="true" /></button></div></div>) : <p className="editor-help">Nhân vật này chưa được đặt lên trang nào.</p>}</div>
           {availablePages(role.id).length ? <SlotForm roleId={role.id} values={slotFor(role.id)} pages={availablePages(role.id)} onChange={(name, value) => updateSlot(role.id, name, value)} onSubmit={() => addSlot(role.id)} isSaving={mutation.isPending || mutationOutcomeBlocked} /> : story.pages.length ? <p className="editor-help">Nhân vật đã được đặt trên tất cả các trang.</p> : <p className="editor-help">Hãy tạo ít nhất một trang trước khi đặt nhân vật.</p>}
         </article>

@@ -52,8 +52,7 @@
 }
 
 .workspace-app-content .workspace-nav a.active {
-  position: relative;
-  box-shadow: inset 3px 0 0 #8a6200;
+  box-shadow: none;
 }
 
 .workspace-app-content .workspace-main {
@@ -2153,6 +2152,9 @@
 .workspace-app-content .story-studio-canvas .story-canvas-undo { min-width: 0; }
 .workspace-app-content .story-path-mode-banner { display: flex; min-height: 38px; justify-content: space-between; gap: 10px; align-items: center; padding: 5px 9px; border: 1px solid var(--cm-selected-border); border-radius: 8px; color: var(--cm-text); background: var(--cm-selected-bg); font-size: 12px; }
 .workspace-app-content .story-path-mode-banner .workspace-button { min-height: 30px; padding: 4px 9px; }
+.workspace-app-content .story-slot-load-warning { display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 8px 10px; margin-bottom: 10px; border: 1px solid #e6d39a; border-radius: 8px; color: #72530a; background: #fff9e8; font-size: 12px; }
+.workspace-app-content .story-slot-load-warning .workspace-button { min-height: 30px; padding: 4px 9px; }
+.workspace-app-content .story-slot-load-warning .workspace-alert-dismiss { margin-left: auto; }
 
 .workspace-app-content .story-filmstrip { display: flex; min-width: 0; flex: 0 0 60px; gap: 7px; overflow-x: auto; padding: 3px 1px 6px; scrollbar-width: thin; }
 .workspace-app-content .story-filmstrip > button { display: grid; min-width: 112px; max-width: 150px; min-height: 48px; grid-template-columns: 22px minmax(0, 1fr); align-items: center; gap: 2px 7px; padding: 6px 8px; border: 1px solid var(--cm-border); border-radius: 8px; color: var(--cm-text); background: var(--cm-surface); text-align: left; cursor: pointer; }
@@ -3023,7 +3025,7 @@
 .workspace-app-content .story-studio-topbar-actions .workspace-button { font-size: 12px; }
 .workspace-app-content .story-studio-validate { display: inline-flex !important; }
 .workspace-app-content .story-studio-section-menu { z-index: 30; }
-.workspace-app-content .story-inspector-context { display: flex; align-items: center; justify-content: space-between; margin: -5px 0 14px; color: var(--cm-text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.workspace-app-content .story-inspector-context { display: flex; align-items: center; justify-content: flex-end; margin: -5px 0 14px; color: var(--cm-text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .workspace-app-content .story-return-page { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; }
 .workspace-app-content .story-image-fields { display: grid; gap: 12px; }
 .workspace-app-content .story-image-help { margin: 0; color: var(--cm-text-secondary); font-size: 12px; line-height: 1.55; }
@@ -3097,6 +3099,10 @@
 .workspace-app-content .story-cue-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .workspace-app-content .story-cue-heading > button:first-child { border: 0; background: transparent; color: var(--cm-text); font: inherit; font-weight: 800; cursor: pointer; }
 .workspace-app-content .story-cue textarea { min-height: 68px; }
+.workspace-app-content .story-source-text { display: grid; gap: 8px; }
+.workspace-app-content .story-subtitle-editor > small { padding-bottom: 12px; border-bottom: 1px solid var(--cm-border); }
+.workspace-app-content .story-subtitle-editor textarea:focus-visible,
+.workspace-app-content .story-cue-timing input:focus-visible { outline: 2px solid var(--cm-focus); outline-offset: 2px; }
 .workspace-app-content .story-cue-timing { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
 .workspace-app-content .story-cue-timing label { display: grid; gap: 4px; }
 .workspace-app-content .story-cue-timing input { width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid var(--cm-control-border); border-radius: 6px; color: var(--cm-text); background: var(--cm-surface); font: inherit; font-variant-numeric: tabular-nums; }
@@ -3214,7 +3220,8 @@
 .workspace-app-content .cm-home-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 22px 24px 16px; }
 .workspace-app-content .cm-home h2 { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.4; }
 .workspace-app-content .cm-home-section-heading p { margin: 4px 0 0; font-size: 12px; color: var(--cm-text-secondary); }
-.workspace-app-content .cm-home .workspace-text-link { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; }
+.workspace-app-content .cm-home-compact-button { min-height: 36px; padding: 7px 11px; border-radius: 7px; font-size: 12px; }
+.workspace-app-content .cm-home-section-heading .cm-home-compact-button { flex: 0 0 auto; }
 .workspace-app-content .cm-home-search { display: flex; align-items: center; gap: 10px; margin: 0 24px 14px; padding: 5px 6px 5px 12px; border: 1px solid var(--cm-control-border); border-radius: 8px; color: var(--cm-text-muted); background: #fcfbf8; }
 .workspace-app-content .cm-home-search:focus-within { outline: 2px solid var(--cm-focus); outline-offset: 2px; }
 .workspace-app-content .cm-home-search input { flex: 1; min-width: 0; padding: 6px 0; border: 0; outline: none; background: transparent; color: var(--cm-text); font: inherit; font-size: 13px; }
@@ -3240,7 +3247,7 @@
 .workspace-app-content .cm-home-edit { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 9px 10px; border: 1px solid var(--cm-control-border); border-radius: 7px; color: var(--cm-text); background: white; font-size: 12px; font-weight: 700; text-decoration: none; flex-shrink: 0; }
 .workspace-app-content .cm-home-edit:hover { border-color: #b88b15; background: #fff9e6; }
 .workspace-app-content .cm-home-list-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 15px 24px; border-top: 1px solid var(--cm-border); color: var(--cm-text-muted); font-size: 12px; }
-.workspace-app-content .cm-home-list-footer a { display: inline-flex; align-items: center; gap: 6px; color: #7d5b05; font-weight: 700; text-decoration: none; }
+.workspace-app-content .cm-home-list-footer .cm-home-compact-button { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
 .workspace-app-content .cm-home-aside { display: grid; gap: 16px; min-width: 0; }
 .workspace-app-content .cm-home-resume, .workspace-app-content .cm-home-performance { padding: 22px; border: 1px solid var(--cm-border); border-radius: 12px; background: var(--cm-surface); }
 .workspace-app-content .cm-home-resume { border-color: #e5d5a6; background: #fff9e9; }
@@ -3250,8 +3257,9 @@
 .workspace-app-content .cm-home-caption { display: block; color: var(--cm-text-secondary); font-size: 12px; }
 .workspace-app-content .cm-home-resume h3 { margin: 8px 0; font-size: 18px; line-height: 1.45; overflow-wrap: anywhere; }
 .workspace-app-content .cm-home-resume p { margin: 8px 0 17px; font-size: 13px; line-height: 1.65; color: var(--cm-text-secondary); }
-.workspace-app-content .cm-home-resume > .workspace-button { display: flex; justify-content: space-between; width: 100%; font-size: 13px; }
-.workspace-app-content .cm-home-secondary { display: block; margin-top: 12px; font-size: 12px; text-align: center; color: #765a11; }
+.workspace-app-content .cm-home-resume > .workspace-button:not(.cm-home-secondary) { display: flex; justify-content: space-between; width: 100%; font-size: 13px; }
+.workspace-app-content .cm-home-secondary { display: flex; justify-content: center; width: 100%; margin-top: 10px; font-size: 12px; }
+.workspace-app-content .cm-home-performance-link { margin-top: 8px; }
 .workspace-app-content .cm-home .cm-home-dirty { color: #8a640d; font-size: 11px; }
 .workspace-app-content .cm-home-performance .cm-home-side-title { margin-bottom: 3px; }
 .workspace-app-content .cm-home-performance dl { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 22px 0 16px; }
@@ -3314,4 +3322,43 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .workspace-app-content .cm-home * { transition: none; }
+}
+
+/* Story Studio is a full-screen editor, so it must not inherit workspace gutters. */
+.workspace-app-content.workspace-app-studio {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.workspace-app-content.workspace-app-studio > .workspace-content {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.workspace-app-content.workspace-app-studio > .workspace-content > .workspace-main {
+  position: absolute;
+  inset: 0;
+  width: auto !important;
+  height: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.workspace-app-content.workspace-app-studio .story-editor-shell-studio,
+.workspace-app-content.workspace-app-studio .story-studio-page {
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }

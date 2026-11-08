@@ -4,6 +4,10 @@ function storageKey(userId, storyId) {
   return `${STORAGE_PREFIX}:${encodeURIComponent(userId || "unknown")}:${encodeURIComponent(storyId || "unknown")}`;
 }
 
+export function clearContentMockOverlay(userId, storyId) {
+  localStorage.removeItem(storageKey(userId, storyId));
+}
+
 export function readContentMockOverlay(userId, storyId) {
   try {
     const raw = localStorage.getItem(storageKey(userId, storyId));
@@ -20,6 +24,24 @@ export function readContentMockOverlay(userId, storyId) {
   } catch {
     return { storyDraft: {}, pageDrafts: {}, slotDrafts: {}, quizDrafts: {}, slots: [], pageOrder: [] };
   }
+}
+
+export function summarizeLocalOnlyChanges(userId, storyId) {
+  const overlay = readContentMockOverlay(userId, storyId);
+  const sections = [];
+  const storyFields = Object.keys(overlay.storyDraft);
+  const pageFields = Object.values(overlay.pageDrafts).reduce((count, fields) => count + Object.keys(fields || {}).length, 0);
+  const slotFields = Object.values(overlay.slotDrafts).reduce((count, fields) => count + Object.keys(fields || {}).length, 0);
+  const quizFields = Object.values(overlay.quizDrafts).reduce((count, fields) => count + Object.keys(fields || {}).length, 0);
+  if (storyFields.length) sections.push("thông tin/ảnh truyện");
+  if (pageFields || overlay.pageOrder.length) sections.push("trang, thứ tự hoặc nội dung dựng trang");
+  if (slotFields || overlay.slots.length) sections.push("tùy chọn vị trí nhân vật");
+  if (quizFields) sections.push("liên kết trang hoặc lời giải thích quiz");
+  return {
+    hasChanges: sections.length > 0,
+    sections,
+    changeCount: storyFields.length + pageFields + slotFields + quizFields + overlay.slots.length + (overlay.pageOrder.length ? 1 : 0),
+  };
 }
 
 function updateOverlay(userId, storyId, update) {
@@ -135,6 +157,7 @@ export function removeMockPage(userId, storyId, pageId, slotIds = [], quizIds = 
 
 export function mergeContentMockOverlay(story, userId, storyId) {
   const overlay = readContentMockOverlay(userId, storyId);
+  const localOnlyChanges = summarizeLocalOnlyChanges(userId, storyId);
   let pages = story.pages.map((page) => {
     const draft = Object.fromEntries(Object.entries(overlay.pageDrafts[page.id] || {}).filter(([key]) => key !== "title"));
     return { ...page, ...draft };
@@ -166,5 +189,13 @@ export function mergeContentMockOverlay(story, userId, storyId) {
   });
   const quizzes = story.quizzes.map((quiz) => ({ ...quiz, ...(overlay.quizDrafts[quiz.id] || {}) }));
   const hasData = Object.keys(overlay.storyDraft).length > 0 || Object.keys(overlay.pageDrafts).length > 0 || Object.keys(overlay.slotDrafts).length > 0 || Object.keys(overlay.quizDrafts).length > 0 || overlay.slots.length > 0 || overlay.pageOrder.length > 0;
-  return { ...story, ...overlay.storyDraft, pages, roles, quizzes, mockOverlay: { hasData, source: "mock" } };
+  return {
+    ...story,
+    ...overlay.storyDraft,
+    pages,
+    roles,
+    quizzes,
+    localOnlyChanges,
+    mockOverlay: { hasData, source: "mock" },
+  };
 }

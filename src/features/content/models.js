@@ -71,7 +71,7 @@ export function canContent(userOrRole, permission) {
  * @property {Array<{id: string, text: string, startMs: number, durationMs: number}>|null} [subtitles] Null uses legacy page text; an empty array hides captions. Cue intervals are start-inclusive, end-exclusive, in milliseconds.
  * @property {Array<{id: string, name: string, assetId: string, x: number, y: number, scale: number, rotation: number, flip: boolean, layer: number, anchor: string}>} [imageObjects] Independent canvas images, with the same percentage coordinates as character slots. Currently stored in the frontend overlay in real API mode.
  * @property {Array<{id: string, assetId: string, name?: string, type: "voiceover"|"music"|"effect", startMs?: number, trimStartMs?: number, durationMs?: number, volume?: number}>} [audioTracks] Timed page tracks; volume is normalized from 0 to 1. Backend shape is pending confirmation.
- * @property {Array<{id: string, slotId: string, preset: "appear"|"move"|"jump"|"spin"|"walk", durationMs?: number}>} [sequence] Frontend preview motion presets; not a frame-animation contract.
+ * @property {Array<{id: string, slotId: string, preset: string, durationMs?: number}>} [sequence] Frontend preview motion presets; not a frame-animation contract.
  * @property {Array<{id: string, targetId: string, kind: "preset"|"keyframes"|"path", preset?: string, startMs: number, durationMs: number, keyframes?: Array<{id: string, timeMs: number, x?: number, y?: number, scale?: number, rotation?: number, opacity?: number}>, points?: Array<{x: number, y: number}>}>} [animationClips] Draft editor animation. Legacy sequence remains readable and is migrated at the UI boundary.
  */
 

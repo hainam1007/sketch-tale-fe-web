@@ -2,7 +2,7 @@ import { featureApiModes, featureApiRequest } from "../../../lib/api/featureApi"
 import { ApiError } from "../../../lib/api/errors";
 import { SESSION_KEY } from "../../../mocks/mockServer";
 import { deleteAsset, listAssets, uploadAsset } from "./assetService";
-import { mergeContentMockOverlay, mergeMockStoryDraft, removeMockSlot, removeMockQuizDraft, saveMockPageOrder, saveMockQuizDraft, saveMockSlotDraft, saveMockStoryDraft } from "./contentMockOverlay";
+import { mergeContentMockOverlay, mergeMockStoryDraft, removeMockSlot, removeMockQuizDraft, saveMockPageOrder, saveMockQuizDraft, saveMockSlotDraft, saveMockStoryDraft, summarizeLocalOnlyChanges } from "./contentMockOverlay";
 import { normalizeStory } from "../models";
 
 const contentRequest = (options) => featureApiRequest("content", options);
@@ -393,18 +393,27 @@ async function getBackendEditor({ storyId, signal }) {
   const backendPages = responseRows(pageResponse).filter((page) => ![3, 4].includes(Number(page.status)));
   const pages = backendPages.map(normalizeBackendPage);
   const roles = responseRows(roleResponse).map(normalizeBackendRole);
+  const slotLoadErrors = new Set();
   const slotGroups = await mapWithConcurrency(pages, 4, async (page) => {
-    const response = await contentRequest({ path: `/story-pages/${page.id}/slots`, signal });
-    return responseRows(response).map((slot) => normalizeBackendSlot(slot, page.id));
+    try {
+      const response = await contentRequest({ path: `/story-pages/${page.id}/slots`, signal });
+      return responseRows(response).map((slot) => normalizeBackendSlot(slot, page.id));
+    } catch (error) {
+      if (signal?.aborted || error?.name === "AbortError") throw error;
+      slotLoadErrors.add(page.id);
+      return [];
+    }
   });
   const slotsByRoleId = new Map(roles.map((role) => [role.id, []]));
   for (const slot of slotGroups.flat()) {
     const roleSlots = slotsByRoleId.get(slot.roleId);
     if (!roleSlots) {
-      throw new ApiError({ status: 502, code: "CONTENT_SLOT_ROLE_NOT_FOUND", message: "Có vị trí nhân vật không khớp với danh sách nhân vật của truyện. Hãy tải lại hoặc liên hệ nhóm hỗ trợ." });
+      slotLoadErrors.add(slot.pageId);
+      continue;
     }
     roleSlots.push(slot);
   }
+  const pagesWithSlotState = pages.map((page) => ({ ...page, slotsUnavailable: slotLoadErrors.has(page.id) }));
   const rolesWithSlots = roles.map((role) => ({ ...role, slots: slotsByRoleId.get(role.id) || [] }));
   const vocabularyGroups = await mapWithConcurrency(backendPages, 4, (page) => listBackendVocabularyForPage(page.id, signal));
   const vocabulary = vocabularyGroups.flat();
@@ -414,7 +423,7 @@ async function getBackendEditor({ storyId, signal }) {
     ...backendStory,
     category: story.educationThemeName || "",
     coverAssetId: backendStory.coverAssetId || (story.coverImageUrl ? `story-cover:${story.id}` : null),
-    pages,
+    pages: pagesWithSlotState,
     roles: rolesWithSlots,
     vocabulary,
     quizzes,
@@ -423,7 +432,11 @@ async function getBackendEditor({ storyId, signal }) {
   });
 
   // The current Backend DTO does not expose a draft revision or version history.
-  return mergeContentMockOverlay({ ...normalized, revision: story.revision ?? null, versionHistoryAvailable: false }, activeUserId(), storyId);
+  const localOnly = summarizeLocalOnlyChanges(activeUserId(), storyId);
+  return {
+    ...mergeContentMockOverlay({ ...normalized, revision: story.revision ?? null, versionHistoryAvailable: false }, activeUserId(), storyId),
+    localOnlyChanges: featureApiModes.content === "real" ? localOnly : { hasChanges: false, sections: [], changeCount: 0 },
+  };
 }
 
 async function validateBackendStory({ storyId, signal }) {
@@ -444,7 +457,7 @@ async function validateBackendStory({ storyId, signal }) {
 
 async function listBackendStories({ search, status, category, sort, page, pageSize, signal }) {
   const response = await contentRequest({ path: "/story-template/all-stories", signal });
-  const rows = Array.isArray(response) ? response : response?.items || [];
+  const rows = responseRows(response);
   const normalizedSearch = search.trim().toLowerCase();
   const filtered = rows
     .map(normalizeBackendStory)
@@ -471,7 +484,7 @@ async function listBackendStories({ search, status, category, sort, page, pageSi
 
 async function getBackendStatistics(signal) {
   const response = await contentRequest({ path: "/story-template/all-stories", signal });
-  const rows = (Array.isArray(response) ? response : response?.items || []).map(normalizeBackendStory);
+  const rows = responseRows(response).map(normalizeBackendStory);
   return {
     summary: {
       publishedStories: rows.filter((story) => story.status === "published").length,
@@ -479,7 +492,8 @@ async function getBackendStatistics(signal) {
     },
     trend: [],
     topStories: [],
-    errors: [{ section: "analytics", message: "Một số thống kê hiện chưa thể hiển thị." }],
+    analyticsAvailable: false,
+    errors: [{ section: "analytics", message: "Swagger hiện chưa có API thống kê lượt đọc." }],
   };
 }
 
@@ -507,7 +521,7 @@ export const contentService = {
   listCategories: async ({ signal } = {}) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: "/content/catalog/categories", signal });
     const response = await contentRequest({ path: "/education-themes", signal });
-    const rows = Array.isArray(response) ? response : response?.items || [];
+    const rows = responseRows(response);
     return { items: rows.map((theme) => ({ id: theme.id, label: theme.name || "Chưa đặt tên" })) };
   },
   getStory: (params) => featureApiModes.content === "real"
@@ -560,14 +574,20 @@ export const contentService = {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/roles/${roleId}`, method: "PATCH", body: revisionBody(payload, revision) });
     return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-role/${roleId}`, method: "PUT", body: backendRoleFormData(payload) }));
   },
+  deleteRole: ({ storyId, roleId, revision }) => featureApiModes.content === "real"
+    ? mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-role/${roleId}`, method: "DELETE" }))
+    : contentRequest({ path: `/content/stories/${storyId}/roles/${roleId}`, method: "DELETE", body: revisionBody({}, revision) }),
   addSlot: async ({ storyId, roleId, revision, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/roles/${roleId}/slots`, method: "POST", body: revisionBody(payload, revision) });
+    let createdSlotId = "";
     const story = await mutateBackendStoryAndRefresh(storyId, () => contentRequest({
       path: `/story-pages/${payload.pageId}/slot`,
       method: "POST",
       body: backendSlotCreateBody(roleId, payload),
-    }));
-    const createdSlot = story.roles.find((role) => role.id === roleId)?.slots.find((slot) => slot.pageId === payload.pageId && slot.source === "backend");
+    }), { decorate: (nextStory, result) => { createdSlotId = result?.id || ""; return nextStory; } });
+    const createdSlot = createdSlotId
+      ? story.roles.find((role) => role.id === roleId)?.slots.find((slot) => slot.id === createdSlotId)
+      : null;
     if (!createdSlot) {
       const accepted = new ApiError({ status: 503, code: "CONTENT_MUTATION_REFRESH_FAILED", message: "Vị trí nhân vật đã được tạo nhưng danh sách chưa thể làm mới. Hãy tải lại truyện để kiểm tra." });
       accepted.mutationAccepted = true;

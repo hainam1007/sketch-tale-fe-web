@@ -21,9 +21,10 @@ const config = {
       { key: "freeTrialDays", label: "Dùng thử (ngày)", type: "number", min: 0, step: 1, nullable: true },
       { key: "accessFullStories", label: "Truy cập toàn bộ truyện", type: "checkbox" },
       { key: "canExportStory", label: "Được xuất truyện", type: "checkbox" },
+      { key: "haveParentProfileSub", label: "Có subscription Parent", type: "boolean", help: "Field mới trong Swagger. Để trống khi sửa nếu backend chưa trả field này." },
       { key: "isActive", label: "Đang cung cấp", type: "checkbox" },
     ],
-    columns: ["name", "price", "monthlyCreditLimit", "childProfileLimit", "isActive"],
+    columns: ["name", "price", "monthlyCreditLimit", "childProfileLimit", "haveParentProfileSub", "isActive"],
   },
   credits: {
     path: "/admin/credit-costs", title: "Chi phí credit", eyebrow: "DANH MỤC · CREDIT", description: "Cấu hình chi phí credit theo tính năng; trang này không quản lý số dư tài khoản.", icon: Coins,
@@ -48,13 +49,13 @@ const config = {
 };
 
 const defaults = {
-  plans: { name: "", code: "", price: "", childProfileLimit: "", monthlyCreditLimit: "", durationDays: "", freeTrialDays: "", accessFullStories: false, canExportStory: false, isActive: true },
+  plans: { name: "", code: "", price: "", childProfileLimit: "", monthlyCreditLimit: "", durationDays: "", freeTrialDays: "", accessFullStories: false, canExportStory: false, haveParentProfileSub: false, isActive: true },
   credits: { featureKey: "", featureNameVi: "", featureNameEn: "", cost: "", isActive: true },
   themes: { name: "", description: "", status: "2" },
 };
 
 const labels = {
-  name: "Tên", code: "Mã gói", price: "Giá trị", childProfileLimit: "Hồ sơ trẻ", monthlyCreditLimit: "Credit/tháng", durationDays: "Thời hạn", freeTrialDays: "Dùng thử", accessFullStories: "Truyện đầy đủ", canExportStory: "Xuất truyện", isActive: "Trạng thái", featureKey: "Mã tính năng", featureNameVi: "Tên tiếng Việt", featureNameEn: "Tên tiếng Anh", cost: "Credit/lượt", description: "Mô tả", status: "Trạng thái",
+  name: "Tên", code: "Mã gói", price: "Giá trị", childProfileLimit: "Hồ sơ trẻ", monthlyCreditLimit: "Credit/tháng", durationDays: "Thời hạn", freeTrialDays: "Dùng thử", accessFullStories: "Truyện đầy đủ", canExportStory: "Xuất truyện", haveParentProfileSub: "Subscription Parent", isActive: "Trạng thái", featureKey: "Mã tính năng", featureNameVi: "Tên tiếng Việt", featureNameEn: "Tên tiếng Anh", cost: "Credit/lượt", description: "Mô tả", status: "Trạng thái",
 };
 
 export default function AdminCatalogPage({ kind }) {
@@ -190,6 +191,11 @@ export default function AdminCatalogPage({ kind }) {
     for (const field of page.fields) {
       const value = editor.values[field.key];
       if (field.type === "checkbox") { payload[field.key] = Boolean(value); continue; }
+      if (field.type === "boolean") {
+        if (value === "" && editor.id) continue;
+        payload[field.key] = value === "" ? false : value === true || value === "true";
+        continue;
+      }
       if ((value === "" || value === null || value === undefined) && field.nullable) { payload[field.key] = null; continue; }
       if ((value === "" || value === null || value === undefined) && field.required) { errors[field.key] = "Trường này không được để trống."; continue; }
       if (value === "" || value === null || value === undefined) continue;
@@ -481,6 +487,7 @@ function Field({ field, editor, setEditor, error, statuses, allowStatusEdit }) {
   function update(next) { setEditor((current) => ({ ...current, values: { ...current.values, [field.key]: next } })); }
   const id = `admin-catalog-${field.key}`;
   if (field.type === "checkbox") return <label className="admin-catalog-checkbox" htmlFor={id}><input id={id} type="checkbox" checked={Boolean(value)} onChange={(event) => update(event.target.checked)} /><span>{field.label}</span></label>;
+  if (field.type === "boolean") return <label className="admin-catalog-field" htmlFor={id}><span>{field.label}</span><select id={id} value={value === true ? "true" : value === false ? "false" : ""} onChange={(event) => update(event.target.value)}><option value="">Không đổi / backend chưa trả field</option><option value="true">Có</option><option value="false">Không</option></select><small>{field.help}</small>{error && <small className="admin-field-error">{error}</small>}</label>;
   if (field.type === "status") {
     if (!allowStatusEdit) return <label className="admin-catalog-field" htmlFor={id}><span>{field.label}</span><output id={id} className="admin-catalog-status-locked">{value === "" ? "Không gửi trạng thái chưa được xác nhận" : `Giá trị hiện tại: ${String(value)}`}</output><small>CommonStatus chưa được xác nhận.</small></label>;
     const source = statuses.length ? statuses : [0, 1, 2, 3, 4];

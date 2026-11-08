@@ -1,3 +1,5 @@
+import { ANIMATION_PRESET_BY_ID } from "./storyAnimationPresets.js";
+
 export const ANIMATION_PROPERTIES = ["x", "y", "scale", "rotation", "opacity"];
 
 export function createId(prefix = "animation") {
@@ -110,6 +112,24 @@ export function evaluateSlotAnimation(slot, clips = [], playheadMs = 0) {
     if (clip.preset === "jump") state.y -= Math.sin(amount * Math.PI) * distance;
     if (clip.preset === "spin") state.rotation += amount * 360;
     if (clip.preset === "walk") state.y -= Math.abs(Math.sin(amount * Math.PI * 4)) * 2;
+    // Return oscillating effects exactly to their starting pose at the end.
+    const wave = amount === 1 ? 0 : Math.sin(amount * Math.PI * 2);
+    const arch = amount === 1 ? 0 : Math.sin(amount * Math.PI);
+    if (clip.preset === "fade-in") state.opacity = amount;
+    if (clip.preset === "fade-out") state.opacity = 1 - amount;
+    if (clip.preset === "slide-left") state.x = Math.max(0, Math.min(100, state.x - amount * distance));
+    if (clip.preset === "slide-up") state.y = Math.max(0, Math.min(100, state.y - amount * distance));
+    if (clip.preset === "slide-down") state.y = Math.max(0, Math.min(100, state.y + amount * distance));
+    if (clip.preset === "zoom-in") state.scale *= 1 + amount * 0.3;
+    if (clip.preset === "zoom-out") state.scale *= 1 - amount * 0.3;
+    if (clip.preset === "pulse") state.scale *= 1 + arch * 0.2;
+    if (clip.preset === "shake") state.x += amount === 1 ? 0 : Math.sin(amount * Math.PI * 8) * (1 - amount) * distance / 4;
+    if (clip.preset === "wobble") state.rotation += wave * 15;
+    if (clip.preset === "float") state.y -= arch * distance / 3;
+    if (clip.preset === "bounce") state.y -= amount === 1 ? 0 : Math.abs(Math.sin(amount * Math.PI * 3)) * (1 - amount) * distance;
+    if (clip.preset === "nod") state.rotation += amount === 1 ? 0 : (1 - Math.cos(amount * Math.PI * 4)) * 6;
+    if (clip.preset === "spin-reverse") state.rotation -= amount * 360;
+    if (clip.preset === "sway") state.x += wave * distance / 3;
   }
   return state;
 }
@@ -129,7 +149,7 @@ export function clipsConflict(clips, candidate, excludeId) {
     const start = Number(clip.startMs || 0);
     const end = start + Number(clip.durationMs || 0);
     if (clip.kind === "path") return [["x", start, end], ["y", start, end]];
-    if (clip.kind === "preset") return (({ move: ["x"], jump: ["y"], spin: ["rotation"], appear: ["opacity", "scale"], walk: ["y"] }[clip.preset]) || []).map((property) => [property, start, end]);
+    if (clip.kind === "preset") return (ANIMATION_PRESET_BY_ID[clip.preset]?.properties || []).map((property) => [property, start, end]);
     if (clip.kind !== "keyframes") return [];
     return ANIMATION_PROPERTIES.flatMap((property) => {
       const times = (clip.keyframes || []).filter((frame) => Number.isFinite(Number(frame[property]))).map((frame) => Number(frame.timeMs)).sort((left, right) => left - right);

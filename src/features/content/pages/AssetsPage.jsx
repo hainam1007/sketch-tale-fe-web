@@ -6,6 +6,7 @@ import { contentService } from "../services/contentService";
 import { assetCategory, ASSET_CATEGORIES, validateAssetFile } from "../services/assetService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
+import { featureApiModes } from "../../../lib/api/featureApi";
 
 const categories = [
   { id: ASSET_CATEGORIES.CHARACTER, label: "Asset nhân vật", icon: UserCircle },
@@ -31,7 +32,7 @@ export default function AssetsPage() {
     mutationFn: ({ file, signal, category }) => contentService.uploadAsset({ file, signal, category }),
     onSuccess: async (uploaded) => {
       setError("");
-      setSuccess("Ảnh đã được lưu trong thư viện.");
+      setSuccess(uploaded.local || uploaded.source === "mock" ? "Ảnh chỉ được lưu trên thiết bị này; API chưa có thư viện asset dùng chung." : "Ảnh đã được lưu trong thư viện.");
       setActiveCategory(assetCategory(uploaded));
       setPreviewAssetId(uploaded.id);
       uploadControllerRef.current = null;
@@ -82,7 +83,7 @@ export default function AssetsPage() {
 
   return <div className="workspace-dashboard assets-page">
     <header className="workspace-page-heading asset-library-page-heading">
-      <div><p className="workspace-eyebrow">CONTENT / THƯ VIỆN ẢNH</p><h1>Kho tài sản</h1><p>Ảnh đã tải lên được lưu trên thiết bị và sẵn sàng dùng trong truyện.</p></div>
+      <div><p className="workspace-eyebrow">CONTENT / THƯ VIỆN ẢNH</p><h1>Kho tài sản</h1></div>
       <input ref={inputRef} id="asset-file" className="asset-file-input" aria-hidden="true" tabIndex={-1} type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={selectFile} disabled={uploadMutation.isPending} />
       <button className="workspace-button asset-upload-trigger" type="button" onClick={() => inputRef.current?.click()} disabled={uploadMutation.isPending}><Plus size={18} aria-hidden="true" />{uploadMutation.isPending ? "Đang lưu ảnh…" : "Tải ảnh lên"}</button>
     </header>
@@ -104,7 +105,7 @@ export default function AssetsPage() {
         <div className="asset-local-panel-heading"><div><h2>{categories.find((item) => item.id === activeCategory)?.label}</h2><span>{visibleAssets.length} ảnh</span></div><button type="button" className="workspace-button workspace-button-quiet" onClick={() => inputRef.current?.click()} disabled={uploadMutation.isPending}><UploadSimple size={16} aria-hidden="true" />{uploadMutation.isPending ? "Đang lưu ảnh…" : "Tải ảnh"}</button></div>
         {visibleAssets.length ? <div className="asset-local-grid">{visibleAssets.map((asset) => <article className="asset-local-card" key={asset.id}>
           <button type="button" className="asset-local-image" aria-label={`Xem ${asset.name}`} onClick={() => setPreviewAssetId(asset.id)}>{asset.url ? <img src={asset.url} alt={asset.name} loading="lazy" /> : <span><ImageSquare size={28} />Ảnh chưa khả dụng</span>}<span className="asset-local-open">Mở ảnh</span></button>
-          <div className="asset-local-card-info"><strong title={asset.name}>{asset.name}</strong><span>{formatSize(asset.size)}</span></div>
+          <div className="asset-local-card-info"><strong title={asset.name}>{asset.name}</strong><span>{asset.local || asset.source === "mock" ? "Chỉ lưu trên thiết bị" : formatSize(asset.size)}</span></div>
           {!asset.readOnly && <button type="button" className="asset-local-delete" aria-label={`Xóa ${asset.name}`} title="Xóa ảnh" onClick={() => { setPreviewAssetId(asset.id); setError(""); }}><Trash size={16} aria-hidden="true" /></button>}
         </article>)}</div> : <div className="asset-local-empty"><ImageSquare size={30} aria-hidden="true" /><strong>{search ? "Không tìm thấy ảnh" : "Chưa có ảnh trong nhóm này"}</strong><p>{search ? "Thử tìm bằng tên file khác." : "Tải ảnh lên để dùng lại trong truyện."}</p><button type="button" className="workspace-button" onClick={() => inputRef.current?.click()}><UploadSimple size={16} aria-hidden="true" />Tải ảnh lên</button></div>}
       </section>
