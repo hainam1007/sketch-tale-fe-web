@@ -69,7 +69,7 @@ export default function StoryVocabularyPage() {
     mutation.mutate({ action: "delete", vocabularyId: item.id }, { onSuccess: () => { if (editingId === item.id) resetForm(); } });
   }
 
-  return <EditorPanel eyebrow="TỪ VỰNG" title="Từ vựng theo ngữ cảnh" description="Gắn mỗi từ với một trang để hiển thị đúng lúc đọc; có thể bổ sung âm thanh phát âm sau." action={<span className="story-editor-count"><BookOpenText size={17} aria-hidden="true" /> {story.vocabulary.length} từ</span>}>
+  return <EditorPanel isSaving={mutation.isPending} eyebrow="TỪ VỰNG" title="Từ vựng theo ngữ cảnh" description="Gắn mỗi từ với một trang để hiển thị đúng lúc đọc; có thể bổ sung âm thanh phát âm sau." action={<span className="story-editor-count"><BookOpenText size={17} aria-hidden="true" /> {story.vocabulary.length} từ</span>}>
     {!story.pages.length ? <div className="editor-empty"><h3>Tạo trang trước khi thêm từ vựng</h3><p className="editor-help">Mỗi từ vựng cần được gắn với một trang trong truyện.</p><Link className="workspace-button" to={`/content/stories/${storyId}/pages`}>Tạo trang đầu tiên</Link></div> : <div className="editor-form-card">
       <div className="editor-form-card-heading"><div><h3>{editingId ? "Sửa từ vựng" : "Thêm từ vựng"}</h3><p className="editor-help">Từ và nghĩa nên xuất hiện đúng trong câu chuyện.</p></div>{editingId && <button className="workspace-text-link" type="button" onClick={async () => { if (!dirty || await confirmToast({ title: "Hủy sửa từ vựng?", message: "Các thay đổi chưa lưu trong từ vựng sẽ bị bỏ.", confirmLabel: "Hủy sửa", tone: "danger" })) resetForm(); }}><X size={15} aria-hidden="true" /> Hủy sửa</button>}</div>
       <div className="editor-form-grid">

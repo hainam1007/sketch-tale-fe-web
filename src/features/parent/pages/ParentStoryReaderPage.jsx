@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { ArrowLeft, ArrowRight, BookOpen, SpeakerHigh } from "@phosphor-icons/react";
+import ParentReaderStage from "../components/ParentReaderStage";
+import ParentReaderActivities from "../components/ParentReaderActivities";
+import { useCallback, useState } from "react";
+import { ArrowLeft, ArrowRight, BookOpen } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
@@ -12,9 +14,16 @@ import "../parent-library-redesign.css";
 
 export default function ParentStoryReaderPage() {
   const { storyId } = useParams();
+  const { user } = useAuth();
+  return <Reader key={`${user?.id}:${storyId}`} />;
+}
+
+function Reader() {
+  const { storyId } = useParams();
   const location = useLocation();
   const { user } = useAuth();
   const [pageIndex, setPageIndex] = useState(0);
+  const [autoAdvance, setAutoAdvance] = useState(false);
   const isLive = moduleApiModes.parentCatalog === "real";
   const storyQuery = useQuery({
     queryKey: ["parent-story-reader", user?.id, storyId, moduleApiModes.parentCatalog],
@@ -26,6 +35,9 @@ export default function ParentStoryReaderPage() {
   const pages = story?.pages || [];
   const safePageIndex = Math.min(pageIndex, Math.max(pages.length - 1, 0));
   const page = pages[safePageIndex];
+  const finishPage = useCallback(() => {
+    if (autoAdvance) setPageIndex(index => Math.min(index + 1, Math.max(0, pages.length - 1)));
+  }, [autoAdvance, pages.length]);
 
   return (
     <div className="parent-page parent-catalog family-catalog library-redesign parent-reader-page">
@@ -69,27 +81,9 @@ export default function ParentStoryReaderPage() {
             <span>{story.category || "Câu chuyện"}</span>
             <span>Trang {safePageIndex + 1} / {pages.length}</span>
           </div>
-          <article className="catalog-page parent-reader-spread" key={page.id}>
-            {page.imageUrl && (
-              <img
-                src={page.imageUrl}
-                alt={`Minh họa ${story.title}, trang ${page.pageNumber}`}
-                onError={(event) => { event.currentTarget.hidden = true; }}
-              />
-            )}
-            <div className="parent-reader-copy">
-              <h2>{page.title}</h2>
-              {page.text ? <p>{page.text}</p> : <p className="parent-reader-muted">Trang này không có nội dung chữ.</p>}
-              {page.audioUrl && (
-                <div className="parent-reader-audio">
-                  <SpeakerHigh size={19} aria-hidden="true" />
-                  <audio key={page.id} controls preload="none" src={page.audioUrl} aria-label={`Nghe đọc trang ${page.pageNumber}`}>
-                    Trình duyệt chưa hỗ trợ phát âm thanh.
-                  </audio>
-                </div>
-              )}
-            </div>
-          </article>
+          <ParentReaderStage key={page.id} story={story} page={page} onFinished={finishPage} />
+          <ParentReaderActivities key={`${story.id}:${page.id}`} story={story} page={page} isLastPage={safePageIndex === pages.length - 1} />
+          <label className="parent-reader-auto"><input type="checkbox" checked={autoAdvance} onChange={event => setAutoAdvance(event.target.checked)} /> Chuyển trang khi phát xong</label>
           <nav className="catalog-pagination parent-reader-pagination" aria-label="Điều hướng trang truyện">
             <button
               className="workspace-button workspace-button-quiet"

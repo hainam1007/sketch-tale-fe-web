@@ -36,6 +36,7 @@ const tabs = [
   ["settings", "Cài đặt"],
   ["approvals", "Phê duyệt"],
   ["library", "Tủ truyện"],
+  ["progress", "Kết quả quiz"],
 ];
 
 function EditableChildName({ child, userId }) {
@@ -47,8 +48,6 @@ function EditableChildName({ child, userId }) {
       parentProfileService.update({
         childId: child.id,
         nickName,
-        dailyTimeLimit: child.dailyTimeLimit ?? null,
-        dailyCharacterLimit: child.dailyCharacterLimit ?? null,
       }),
     onSuccess: async (updated) => {
       setName(updated.nickName);
@@ -167,7 +166,7 @@ export default function ParentChildExperience({ childId, section = "", previewCh
         onRetry={() => query.refetch()}
       />
     );
-  if (section === "progress" || section === "exports")
+  if (section === "exports")
     return (
       <Navigate
         to={`/parent/children/${encodeURIComponent(childId)}${section === "exports" ? "/library" : ""}`}
@@ -303,7 +302,7 @@ function ChildExperience({ child, section, userId, family, isPreview }) {
         </label>
       </header>
       <nav className="family-tabs" aria-label="Không gian của bé">
-        {tabs.map(([path, label]) => (
+        {tabs.filter(([path]) => !isPreview || path !== "progress").map(([path, label]) => (
           <NavLink key={path} end to={`${base}${path ? `/${path}` : ""}`}>
             {label}
           </NavLink>

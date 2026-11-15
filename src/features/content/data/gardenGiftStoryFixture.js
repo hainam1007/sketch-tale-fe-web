@@ -83,7 +83,7 @@ export const gardenGiftStoryFixture = {
       startMs: Math.round(cueIndex * 57391 / scene.lines.length),
       durationMs: Math.round((cueIndex + 1) * 57391 / scene.lines.length) - Math.round(cueIndex * 57391 / scene.lines.length),
     })),
-    audioTracks: [{ id: `audio-garden-gift-${index + 1}`, assetId: gardenGiftAudio.id, name: gardenGiftAudio.name, type: "voiceover", startMs: 0, trimStartMs: 0, durationMs: 57391, volume: 0.8 }],
+    audioTracks: [{ id: `audio-garden-gift-${index + 1}`, assetId: gardenGiftAudio.id, name: gardenGiftAudio.name, type: "voiceover", startMs: 0, durationMs: 57391, volume: 0.8 }],
     animationClips: gardenGiftAnimation(index, { id: `slot-garden-gift-${index + 1}`, x: scene.x, y: 60, scale: 1.05 }),
     sequence: [], imageObjects: [],
   })),

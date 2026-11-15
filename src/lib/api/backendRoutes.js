@@ -1,9 +1,10 @@
 import { ApiError } from "./errors";
 
-// Routes from the SketchTale OpenAPI snapshot dated 2026-10-31 plus local source additions.
+// Routes from the SketchTale OpenAPI snapshot dated 2026-11-14 plus local source additions.
 // Swagger includes the /api base path; apiRequest paths do not. Local additions are pending release.
 // Keep this allowlist in sync so stale or mock-only paths are stopped early.
 const documentedRoutes = [
+  "GET /child-quiz-answers/child-profiles/:childProfileId",
   "GET /audit-logs",
   "GET /audit-logs/:id",
   "GET /audit-logs/user-id/:id",
@@ -39,7 +40,15 @@ const documentedRoutes = [
   "GET /child-profiles/:id/target-age-group",
   "GET /child-profiles/:id/daily-time-limit",
   "GET /child-profiles/:id/daily-character-limit",
-  // Local Backend addition; not present in the 2026-10-31 deployed Swagger snapshot.
+  "GET /characters/pending-approval",
+  "GET /characters/:id",
+  "PUT /characters/:id/approve",
+  "PUT /characters/:id/reject",
+  "POST /characters/:id/accept",
+  "POST /characters/:id/cancel-preview",
+  "GET /reading-logs/child-profiles/:childProfileId/quiz-answers",
+  "GET /reading-logs/:readingLogId/quiz-answers",
+  // Legacy mapping inbox is not present in live Swagger; kept only for unrelated mapping operations.
   "GET /user-story-character-mappings/child/:childProfileId",
   "PATCH /user-story-character-mappings/:id",
   "GET /credit-costs",
@@ -79,6 +88,8 @@ const documentedRoutes = [
   "GET /storypage-template/published/:storyId",
   "GET /storypage-template/all-pages/:storyId",
   "POST /storypage-template/:storyId/page",
+  // ReorderStoryPagesDto.orderedPageIds, confirmed in live Swagger 2026-11-09.
+  "PUT /storypage-template/:storyId/reorder-pages",
   "PUT /storypage-template/:id",
   "DELETE /storypage-template/story-pages/:id",
   "GET /story-template/:storyId/all-quizzes",

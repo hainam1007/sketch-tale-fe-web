@@ -1,3 +1,4 @@
+import ParentReaderStage from "../components/ParentReaderStage";
 ﻿import { useState } from "react";
 import {
   BookOpen,
@@ -452,21 +453,7 @@ function StoryDetail({ story, userId, user, returnTo, onBack }) {
             </div>
             {page ? (
               <>
-                <div className="catalog-page">
-                  {page.imageUrl && (
-                    <img
-                      src={page.imageUrl}
-                      alt={page.title || "Minh họa truyện"}
-                      onError={(event) => {
-                        event.currentTarget.hidden = true;
-                      }}
-                    />
-                  )}
-                  <div>
-                    <h3>{page.title}</h3>
-                    <p>{page.text}</p>
-                  </div>
-                </div>
+                <ParentReaderStage key={page.id} story={current} page={page} />
                 <nav className="catalog-pagination" aria-label="Trang truyện">
                   <button
                     className="workspace-button workspace-button-quiet"

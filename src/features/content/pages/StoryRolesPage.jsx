@@ -160,7 +160,7 @@ export default function StoryRolesPage() {
   }
 
   return (
-    <EditorPanel eyebrow="NHÂN VẬT / VỊ TRÍ" title="Nhân vật trong truyện" description="Tạo nhân vật dùng xuyên suốt truyện, rồi đặt từng tư thế lên trang và chỉnh vị trí, kích thước, hướng nhìn cùng lớp hiển thị." action={<span className="story-editor-count"><UserCircle size={17} aria-hidden="true" /> {story.roles.length} nhân vật</span>}>
+    <EditorPanel isSaving={mutation.isPending} eyebrow="NHÂN VẬT / VỊ TRÍ" title="Nhân vật trong truyện" description="Tạo nhân vật dùng xuyên suốt truyện, rồi đặt từng tư thế lên trang và chỉnh vị trí, kích thước, hướng nhìn cùng lớp hiển thị." action={<span className="story-editor-count"><UserCircle size={17} aria-hidden="true" /> {story.roles.length} nhân vật</span>}>
       <div className="editor-form-card">
         <h3>{editingRoleId ? "Sửa nhân vật" : "Thêm nhân vật"}</h3>
         <div className="editor-form-grid">

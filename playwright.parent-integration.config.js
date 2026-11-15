@@ -7,7 +7,7 @@ const environments = [
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: "parent-integration.spec.js",
+  testMatch: ["parent-integration.spec.js", "parent-audit.spec.js"],
   workers: 1,
   timeout: 30_000,
   use: { channel: "chromium", trace: "retain-on-failure" },
@@ -23,6 +23,8 @@ export default defineConfig({
       VITE_PARENT_PROFILE_API_MODE: profile,
       VITE_PARENT_CATALOG_API_MODE: "real",
       VITE_PARENT_APPROVALS_API_MODE: "real",
+      VITE_PARENT_QUIZ_RESULTS_API_MODE: "real",
+      VITE_PARENT_PAYMENT_API_MODE: "mock",
     },
   })),
 });

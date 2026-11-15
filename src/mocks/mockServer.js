@@ -697,7 +697,6 @@ function validatePage(body) {
     if (!track?.assetId) errors[`audioTracks.${index}.assetId`] = "Chọn tệp âm thanh.";
     if (!Number.isFinite(Number(track?.startMs || 0)) || Number(track?.startMs || 0) < 0) errors[`audioTracks.${index}.startMs`] = "Thời điểm bắt đầu phải từ 0 trở lên.";
     if (track?.durationMs !== undefined && (!Number.isFinite(Number(track.durationMs)) || Number(track.durationMs) <= 0)) errors[`audioTracks.${index}.durationMs`] = "Thời lượng phải lớn hơn 0.";
-    if (track?.trimStartMs !== undefined && (!Number.isFinite(Number(track.trimStartMs)) || Number(track.trimStartMs) < 0)) errors[`audioTracks.${index}.trimStartMs`] = "Điểm cắt đầu phải từ 0 trở lên.";
     if (track?.volume !== undefined && (!Number.isFinite(Number(track.volume)) || Number(track.volume) < 0 || Number(track.volume) > 1)) errors[`audioTracks.${index}.volume`] = "Âm lượng phải từ 0 đến 1.";
   });
   (body?.animationClips || []).forEach((clip, index) => {
@@ -756,8 +755,8 @@ function validateForPublish(story, database) {
     page.audioTracks?.forEach((track, trackIndex) => {
       const asset = database.assets.find((item) => item.id === track.assetId && item.kind === "audio");
       if (!asset) errors[`pages.${index}.audioTracks.${trackIndex}.assetId`] = `Trang ${index + 1} có audio không còn trong thư viện.`;
-      if (!Number.isFinite(Number(track.startMs || 0)) || Number(track.startMs || 0) < 0 || (track.durationMs !== undefined && (!Number.isFinite(Number(track.durationMs)) || Number(track.durationMs) <= 0)) || (track.trimStartMs !== undefined && (!Number.isFinite(Number(track.trimStartMs)) || Number(track.trimStartMs) < 0)) || (track.volume !== undefined && (!Number.isFinite(Number(track.volume)) || Number(track.volume) < 0 || Number(track.volume) > 1))) errors[`pages.${index}.audioTracks.${trackIndex}`] = `Trang ${index + 1} có audio với thời điểm, đoạn cắt hoặc âm lượng không hợp lệ.`;
-      if (asset?.duration > 0 && (Number(track.trimStartMs || 0) >= asset.duration * 1000 || (Number(track.durationMs) > 0 && Number(track.trimStartMs || 0) + Number(track.durationMs) > asset.duration * 1000 + 1))) errors[`pages.${index}.audioTracks.${trackIndex}.durationMs`] = `Trang ${index + 1} có đoạn âm thanh vượt quá thời lượng tệp.`;
+      if (!Number.isFinite(Number(track.startMs || 0)) || Number(track.startMs || 0) < 0 || (track.durationMs !== undefined && (!Number.isFinite(Number(track.durationMs)) || Number(track.durationMs) <= 0)) || (track.volume !== undefined && (!Number.isFinite(Number(track.volume)) || Number(track.volume) < 0 || Number(track.volume) > 1))) errors[`pages.${index}.audioTracks.${trackIndex}`] = `Trang ${index + 1} có audio với thời điểm, thời lượng hoặc âm lượng không hợp lệ.`;
+      if (asset?.duration > 0 && Number(track.durationMs) > asset.duration * 1000 + 1) errors[`pages.${index}.audioTracks.${trackIndex}.durationMs`] = `Trang ${index + 1} có đoạn âm thanh vượt quá thời lượng tệp.`;
     });
     const pageSlots = story.roles?.flatMap((role) => (role.slots || []).filter((slot) => slot.pageId === page.id)) || [];
     const slotIds = new Set(pageSlots.map((slot) => slot.id));

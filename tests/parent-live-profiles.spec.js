@@ -55,7 +55,7 @@ for (const width of [390, 768, 1366]) {
     page.on("pageerror", (error) => errors.push(error.message));
     const writes = await session(page);
     await page.goto("/parent");
-    await page.getByRole("link", { name: /Mây.*6–8 tuổi/ }).click();
+    await page.locator('a[href="/parent/children/11111111-1111-1111-1111-111111111111"]').first().click();
     await page.getByRole("link", { name: "Hồ sơ", exact: true }).click();
     await page.getByLabel("Tên hiển thị của bé").fill("Mây Nhỏ");
     await page.getByLabel("Thời gian sử dụng mỗi ngày (phút)").fill("45");
@@ -75,16 +75,9 @@ for (const width of [390, 768, 1366]) {
       ),
     ).toBe(true);
     await page.screenshot({
-      path: `artifacts/parent-profile-live-${width}.png`,
+      path: `artifacts/parent-profile-audit-2026-11-14-${width}.png`,
       fullPage: true,
     });
-    await page.getByRole("link", { name: "Báo cáo", exact: true }).click();
-    await expect(
-      page.getByRole("heading", { name: "Cùng nhìn lại hành trình đọc", exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Những điều bé đã học"),
-    ).toBeVisible();
     expect(errors).toEqual([]);
   });
 }

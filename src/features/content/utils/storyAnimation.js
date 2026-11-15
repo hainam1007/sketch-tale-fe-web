@@ -138,7 +138,7 @@ export function animationDuration(page, audioDurations = {}) {
   const motionEnd = pageAnimationClips(page).reduce((end, clip) => Math.max(end, Number(clip.startMs || 0) + Number(clip.durationMs || 0)), 0);
   const audioEnd = (page?.audioTracks || []).reduce((end, track) => {
     const fullLength = Number(track.durationMs || audioDurations[track.id] || 3000);
-    const playableLength = Number(track.durationMs) > 0 ? Number(track.durationMs) : Math.max(0, fullLength - Number(track.trimStartMs || 0));
+    const playableLength = Number(track.durationMs) > 0 ? Number(track.durationMs) : fullLength;
     return Math.max(end, Number(track.startMs || 0) + playableLength);
   }, 0);
   return Math.max(3000, motionEnd, audioEnd, ...(page?.subtitles || []).map((cue) => Number(cue.startMs) + Number(cue.durationMs)));

@@ -1,4 +1,5 @@
 export const apiSpecs = [
+  "content-integration.spec.js",
   "confirm-email.spec.js",
   "admin-api-ux.spec.js",
   "parent-live-profiles.spec.js",

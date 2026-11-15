@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "stage": {
+    "aspectRatio": "16:9",
+    "coordinates": "percent",
+    "anchor": "center"
+  },
+  "background": {
+    "mode": "native",
+    "assetId": null,
+    "offsetX": 0,
+    "offsetY": 0,
+    "scale": 1
+  },
+  "subtitles": [
+    {
+      "id": "cue-demo-001",
+      "text": "Một câu phụ đề mẫu nằm bên trong khung hình.",
+      "startMs": 0,
+      "durationMs": 2800
+    }
+  ],
+  "imageObjects": [
+    {
+      "id": "image-demo-001",
+      "name": "Ngôi sao",
+      "assetId": "asset-image-demo-001",
+      "x": 74,
+      "y": 62,
+      "scale": 0.8,
+      "rotation": -8,
+      "flip": false,
+      "layer": 2,
+      "anchor": "center"
+    }
+  ],
+  "animationClips": [
+    {
+      "id": "animation-demo-001",
+      "targetId": "00000000-0000-4000-8000-000000000001",
+      "kind": "keyframes",
+      "startMs": 0,
+      "durationMs": 1200,
+      "easing": "ease-in-out",
+      "keyframes": [
+        { "timeMs": 0, "x": 42, "opacity": 0 },
+        { "timeMs": 1200, "x": 54, "opacity": 1 }
+      ]
+    }
+  ],
+  "audioTracks": [
+    {
+      "id": "audio-demo-001",
+      "assetId": "asset-audio-demo-001",
+      "name": "Lời kể mẫu",
+      "type": "voiceover",
+      "startMs": 250,
+      "durationMs": 4200,
+      "volume": 0.75
+    }
+  ],
+  "slotExtensions": {
+    "00000000-0000-4000-8000-000000000001": {
+      "rotation": 0,
+      "layer": 1,
+      "anchor": "center",
+      "assetId": null
+    }
+  },
+  "quizExtensions": {
+    "00000000-0000-4000-8000-000000000002": {
+      "feedback": "Hãy quan sát kỹ bức tranh rồi thử lại nhé."
+    }
+  },
+  "assets": [
+    {
+      "id": "asset-image-demo-001",
+      "kind": "image",
+      "name": "Ngôi sao mẫu",
+      "url": "https://cdn.example.test/content-manager-demo/star.png",
+      "mimeType": "image/png",
+      "size": 18432
+    },
+    {
+      "id": "asset-audio-demo-001",
+      "kind": "audio",
+      "name": "Lời kể mẫu",
+      "url": "https://cdn.example.test/content-manager-demo/narration.mp3",
+      "mimeType": "audio/mpeg",
+      "size": 128000,
+      "durationMs": 4200
+    }
+  ],
+  "extensions": {
+    "exampleNamespace": {
+      "preserveUnknownFields": true
+    }
+  }
+}

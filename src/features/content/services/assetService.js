@@ -1,7 +1,7 @@
 import { featureApiModes, featureApiRequest, isFeatureMockMode } from "../../../lib/api/featureApi";
 import { ApiError } from "../../../lib/api/errors";
 import { mockRequest } from "../../../mocks/mockServer";
-import { getLocalAssetNamespace, getLocalAsset, localAssetUrl, putLocalAsset, removeLocalAsset } from "./localAssetStore";
+import { getLocalAssetNamespace, getLocalAsset, listLocalAssets, localAssetUrl, putLocalAsset, removeLocalAsset } from "./localAssetStore";
 
 const contentRequest = (options) => featureApiRequest("content", options);
 
@@ -122,6 +122,26 @@ export function validateAssetFile(file, kind = file?.type?.startsWith("audio/") 
   return errors;
 }
 
+export async function getAssetFileForStoryUpload(asset) {
+  if (!asset?.id) throw new Error("Không tìm thấy ảnh đã chọn.");
+  let blob = (await getLocalAsset(asset.id))?.blob;
+  if (!blob && asset.url) {
+    const response = await fetch(asset.url);
+    if (!response.ok) throw new Error("Không thể tải file ảnh đã chọn. Hãy tải ảnh lên lại.");
+    blob = await response.blob();
+  }
+  if (!blob) throw new Error("File ảnh không còn khả dụng. Hãy tải ảnh lên lại.");
+
+  const type = blob.type || asset.mimeType;
+  const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" })[type];
+  const safeName = String(asset.name || "anh-bia").split(/[\\/]/).pop().replace(/[<>:\"|?*\x00-\x1F]/g, "-").trim() || "anh-bia";
+  const fileName = /\.(png|jpe?g|webp|gif)$/i.test(safeName) ? safeName : `${safeName}.${extension || "webp"}`;
+  const file = new File([blob], fileName, { type, lastModified: Date.now() });
+  const errors = validateAssetFile(file, "image");
+  if (Object.keys(errors).length) throw new Error(Object.values(errors)[0]);
+  return file;
+}
+
 /**
  * Upload bytes through the configured Content Manager adapter.
  * AbortController cancellation is supported in both modes.
@@ -134,7 +154,6 @@ export function uploadAsset({ file, signal, category = ASSET_CATEGORIES.BACKGROU
     error.fieldErrors = validationErrors;
     return Promise.reject(error);
   }
-  const useMockAdapter = featureApiModes.content === "real" || isFeatureMockMode("content");
   const body = new FormData();
   body.append("file", file);
   body.append("name", file.name);
@@ -143,6 +162,35 @@ export function uploadAsset({ file, signal, category = ASSET_CATEGORIES.BACKGROU
   body.append("mimeType", file.type);
   body.append("size", String(file.size));
   const namespace = getLocalAssetNamespace();
+  const useMockAdapter = featureApiModes.content === "real" || isFeatureMockMode("content");
+  if (featureApiModes.content === "real" && kind === "image") {
+    const backendBody = new FormData();
+    backendBody.append("file", file, file.name || "image");
+    const uploadPath = "/upload/background-image";
+    return contentRequest({ path: uploadPath, method: "POST", body: backendBody, signal }).then(async (response) => {
+      const url = response?.imageUrl ?? response?.ImageUrl;
+      if (typeof url !== "string" || !url.trim()) {
+        throw new ApiError({ status: 502, code: "CONTENT_ASSET_UPLOAD_RESPONSE_INVALID", message: "Backend không trả về đường dẫn ảnh đã tải lên." });
+      }
+      const id = `cloudinary-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+      const asset = {
+        id,
+        name: file.name || "image",
+        kind,
+        category,
+        size: file.size,
+        mimeType: file.type,
+        url,
+        source: "cloudinary",
+        uploadedToBackend: true,
+        readOnly: true,
+        createdAt: new Date().toISOString(),
+      };
+      await putLocalAsset(id, file, namespace, category, { name: asset.name, kind, size: file.size, mimeType: file.type, remoteUrl: url, uploadedToBackend: true });
+      return asset;
+    });
+  }
+
   const request = useMockAdapter ? mockRequest : contentRequest;
   return request({ path: "/content/assets", method: "POST", body, signal }).then(async (asset) => {
     if (!useMockAdapter) return asset;
@@ -160,7 +208,21 @@ export async function listAssets({ signal } = {}) {
   if (featureApiModes.content === "real") {
     const backend = await listBackendAssets(signal);
     const { items: mockItems } = await listMockAssets({ signal });
-    const items = [...backend.items.map((asset) => ({ ...asset, category: assetCategory(asset) })), ...mockItems];
+    const uploadedAssets = (await listLocalAssets()).filter((record) => record.uploadedToBackend && record.remoteUrl).map((record) => ({
+      id: record.assetId,
+      name: record.name || "image",
+      kind: record.kind || "image",
+      category: record.category || ASSET_CATEGORIES.BACKGROUND,
+      size: record.size || record.blob?.size || 0,
+      mimeType: record.mimeType || record.blob?.type || "image/*",
+      url: record.remoteUrl,
+      source: "cloudinary",
+      uploadedToBackend: true,
+      readOnly: true,
+      createdAt: new Date(record.updatedAt || Date.now()).toISOString(),
+    }));
+    const uniqueAssets = new Map([...backend.items.map((asset) => ({ ...asset, category: assetCategory(asset) })), ...mockItems, ...uploadedAssets].map((asset) => [asset.id, asset]));
+    const items = [...uniqueAssets.values()];
     return { ...backend, items, total: items.length, pageSize: items.length || 1, totalPages: 1 };
   }
   const response = await contentRequest({ path: "/content/assets", signal });
@@ -178,6 +240,9 @@ export async function listAssets({ signal } = {}) {
 
 export async function deleteAsset(asset) {
   if (!asset?.id) throw new Error("Không tìm thấy ảnh cần xóa.");
+  if (featureApiModes.content === "real" && asset.source === "cloudinary") {
+    throw new ApiError({ status: 501, code: "CONTENT_ASSET_REGISTRY_UNAVAILABLE", message: "Tư liệu đã tải lên máy chủ đang được dùng ở chế độ chỉ đọc. Backend chưa có API thư viện để xóa an toàn." });
+  }
   const request = asset.local || asset.source === "mock" ? mockRequest : contentRequest;
   const removed = await request({ path: `/content/assets/${asset.id}`, method: "DELETE" });
   if (asset.local || asset.source === "mock") await removeLocalAsset(asset.id);

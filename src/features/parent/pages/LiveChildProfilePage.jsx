@@ -25,7 +25,7 @@ export default function LiveChildProfilePage({ childId }) {
         />
       </div>
     );
-  return <ProfileEditor key={childId} child={query.data} userId={user.id} />;
+  return <ProfileEditor key={`${user.id}:${childId}`} child={query.data} userId={user.id} />;
 }
 
 function ProfileEditor({ child, userId }) {
@@ -50,9 +50,9 @@ function ProfileEditor({ child, userId }) {
     window.addEventListener("beforeunload", guard);
     return () => window.removeEventListener("beforeunload", guard);
   }, [dirty]);
-  const mutation = useMutation({
-    mutationFn: parentProfileService.update,
-    onSuccess: async (updated) => {
+  const [needsReadback, setNeedsReadback] = useState(false);
+  async function applyServerProfile(updated) {
+      setNeedsReadback(false);
       setSaved({
         nickName: updated.nickName,
         dailyTimeLimit: updated.dailyTimeLimit ?? "",
@@ -72,7 +72,19 @@ function ProfileEditor({ child, userId }) {
           queryKey: ["parent-live-profile", userId, child.id],
         }),
       ]);
+  }
+  const mutation = useMutation({
+    mutationFn: parentProfileService.update,
+    retry: false,
+    onSuccess: applyServerProfile,
+    onError: (error) => {
+      if (error.code === "PARENT_PROFILE_READ_AFTER_WRITE_FAILED") setNeedsReadback(true);
     },
+  });
+  const recovery = useMutation({
+    mutationFn: () => parentProfileService.get({ childId: child.id }),
+    retry: false,
+    onSuccess: async (updated) => { await applyServerProfile(updated); mutation.reset(); },
   });
   function change(event) {
     const { name, value, type } = event.target;
@@ -114,7 +126,7 @@ function ProfileEditor({ child, userId }) {
         className="parent-pending-panel parent-live-form"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!values.nickName.trim() || mutation.isPending) return;
+          if (!values.nickName.trim() || mutation.isPending || needsReadback) return;
           mutation.mutate({
             childId: child.id,
             nickName: values.nickName.trim(),
@@ -128,7 +140,7 @@ function ProfileEditor({ child, userId }) {
         }}
       >
         <h2>Thông tin và giới hạn sử dụng</h2>
-        <fieldset disabled={mutation.isPending}>
+        <fieldset disabled={mutation.isPending || needsReadback}>
           <label>
             Tên hiển thị của bé
             <input
@@ -167,8 +179,8 @@ function ProfileEditor({ child, userId }) {
             </label>
           </div>
           <p className="parent-live-note">
-            Ô trống nghĩa là chưa có giá trị cấu hình. Giới hạn được áp dụng
-            theo quy tắc của hệ thống.
+            Để trống giữ nguyên giới hạn đã lưu; API hiện chưa hỗ trợ xóa giới hạn.
+            Giá trị 0 được gửi nguyên vẹn cho hệ thống.
           </p>
         </fieldset>
         {mutation.isError && (
@@ -176,6 +188,11 @@ function ProfileEditor({ child, userId }) {
             {mutation.error.message}
           </p>
         )}
+        {needsReadback && <div role="status">
+          <p>Cập nhật đã được tiếp nhận. Tải lại dữ liệu trước khi sửa tiếp; thao tác này chỉ đọc hồ sơ.</p>
+          <button className="workspace-button" type="button" disabled={recovery.isPending} onClick={() => recovery.mutate()}>Tải lại hồ sơ đã lưu</button>
+          {recovery.isError && <p role="alert">{recovery.error.message}</p>}
+        </div>}
         {message && <p role="status">{message}</p>}
         <div className="parent-form-actions">
           <span>
@@ -184,7 +201,7 @@ function ProfileEditor({ child, userId }) {
           <button
             className="workspace-button workspace-button-quiet"
             type="button"
-            disabled={!dirty || mutation.isPending}
+            disabled={!dirty || mutation.isPending || needsReadback}
             onClick={() => {
               setValues(saved);
               setMessage("");
@@ -196,7 +213,7 @@ function ProfileEditor({ child, userId }) {
           <button
             className="workspace-button"
             type="submit"
-            disabled={!dirty || mutation.isPending}
+            disabled={!dirty || mutation.isPending || needsReadback}
           >
             {mutation.isPending ? "Đang lưu…" : "Lưu thay đổi"}
           </button>

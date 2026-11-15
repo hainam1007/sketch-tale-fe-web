@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useBlocker, useLocation, useNavigate, useParams 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../auth/useAuth";
 import { contentService } from "../services/contentService";
+import { readLocalStoryDemo } from "../services/localStoryDemo";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState } from "../../../components/feedback/States";
 import DismissButton from "../../../components/feedback/DismissButton";
@@ -29,7 +30,8 @@ export default function StoryEditorLayout() {
   const blocker = useBlocker(editorDirty);
   const blockerRef = useRef(null);
   const confirmToast = useConfirmToast();
-  const storyQuery = useQuery({ queryKey: queryKeys.story(user.id, storyId), queryFn: ({ signal }) => contentService.getEditor({ storyId, signal }) });
+  const localDemo = location.pathname.endsWith("/preview") && new URLSearchParams(location.search).get("localDemo") === "1";
+  const storyQuery = useQuery({ queryKey: localDemo ? ["local-story-demo", user.id, storyId] : queryKeys.story(user.id, storyId), queryFn: ({ signal }) => localDemo ? readLocalStoryDemo(storyId, user.id) : contentService.getEditor({ storyId, signal }) });
 
   useEffect(() => { blockerRef.current = blocker; }, [blocker]);
 
@@ -74,11 +76,14 @@ export default function StoryEditorLayout() {
     mutationFn: () => contentService.validateStory({ storyId, revision: storyQuery.data?.revision }),
     scope: { id: `content-story-${storyId}` },
     retry: false,
-    onSuccess: (result) => setValidation({ type: "success", message: result.message, revision: result.revision }),
+    onSuccess: (result) => setValidation({ type: result.valid === false ? "error" : "success", message: result.message, revision: result.revision }),
     onError: () => setValidation(null),
   });
   const publishMutation = useMutation({
-    mutationFn: () => contentService.publishStory({ storyId, revision: storyQuery.data?.revision }),
+    mutationFn: () => {
+      if (isContentEditorDirty()) throw new Error("Còn thay đổi hoặc thao tác lưu chưa hoàn tất. Hãy lưu trước khi xuất bản.");
+      return contentService.publishStory({ storyId, revision: storyQuery.data?.revision });
+    },
     scope: { id: `content-story-${storyId}` },
     retry: false,
     onSuccess: (story) => {
@@ -107,30 +112,36 @@ export default function StoryEditorLayout() {
   const story = storyQuery.data;
   const localOnlyChanges = featureApiModes.content === "real" ? story.localOnlyChanges : null;
   const hasLocalOnlyChanges = Boolean(localOnlyChanges?.hasChanges);
+  const hasUnverifiedComposition = featureApiModes.content === "real" && Boolean(story.hasUnverifiedComposition);
   const visibleValidation = validation?.revision !== undefined && validation.revision !== story.revision ? null : validation;
   const actionError = validateMutation.error || publishMutation.error || hideMutation.error;
   const mutationOutcomeBlocked = [validateMutation, publishMutation, hideMutation].some(({ error }) => error?.mutationAccepted || error?.mutationOutcomeUnknown);
   const busy = validateMutation.isPending || publishMutation.isPending || hideMutation.isPending;
 
+  if (localDemo) return <section className="story-editor-layout"><Outlet context={{ story, storyId }} /></section>;
+
   function validate() {
     if (mutationOutcomeBlocked) return;
-    if (hasLocalOnlyChanges) return setValidation({ type: "error", message: "Truyện còn thay đổi chỉ lưu trên thiết bị. Chưa thể kiểm tra hoặc xuất bản bản đầy đủ bằng API hiện tại." });
+    if (hasLocalOnlyChanges) return setValidation({ type: "error", message: "Một số thay đổi mới chỉ được lưu trên thiết bị, chưa đồng bộ lên máy chủ. Cần đồng bộ đầy đủ trước khi kiểm tra hoặc xuất bản." });
+    if (hasUnverifiedComposition) return setValidation({ type: "error", message: "Có trang chứa bố cục lỗi, tham chiếu không hợp lệ hoặc chưa tải đủ vị trí nhân vật. Hãy xử lý các trang đó trước khi kiểm tra." });
     if (editorDirty) return setValidation({ type: "error", message: "Hãy lưu thay đổi thông tin truyện trước khi kiểm tra." });
     validateMutation.mutate();
   }
 
   async function publish() {
     if (mutationOutcomeBlocked) return;
-    if (hasLocalOnlyChanges) return setValidation({ type: "error", message: "Truyện còn thay đổi chỉ lưu trên thiết bị. Chưa thể xuất bản bản đầy đủ bằng API hiện tại." });
+    if (hasLocalOnlyChanges) return setValidation({ type: "error", message: "Một số thay đổi mới chỉ được lưu trên thiết bị, chưa đồng bộ lên máy chủ. Cần đồng bộ đầy đủ trước khi xuất bản." });
+    if (hasUnverifiedComposition) return setValidation({ type: "error", message: "Có trang chứa bố cục lỗi, tham chiếu không hợp lệ hoặc chưa tải đủ vị trí nhân vật. Hãy xử lý các trang đó trước khi xuất bản." });
     if (editorDirty) return setValidation({ type: "error", message: "Hãy lưu thay đổi trước khi xuất bản." });
     if (storyQuery.data?.status === "unknown") return setValidation({ type: "error", message: "Chưa thể xuất bản truyện này lúc này. Vui lòng thử lại sau." });
     if (await confirmToast({ title: "Xuất bản truyện?", message: "Truyện sẽ hiển thị với người đọc sau khi xuất bản.", confirmLabel: "Xuất bản" })) publishMutation.mutate();
   }
 
   async function hide() {
+    if (mutationOutcomeBlocked) return;
     if (hasLocalOnlyChanges) return setValidation({ type: "error", message: "Hãy đồng bộ hoặc bỏ thay đổi chỉ lưu trên thiết bị trước khi ẩn truyện." });
     if (editorDirty) return setValidation({ type: "error", message: "Hãy lưu thay đổi trước khi ẩn truyện." });
-    if (await confirmToast({ title: "Ẩn truyện?", message: `Ẩn “${story.title}” khỏi danh mục truyện?`, confirmLabel: "Ẩn truyện", tone: "danger" })) hideMutation.mutate();
+    if (await confirmToast({ title: "Ẩn truyện?", message: `Ẩn “${story.title}” khỏi danh mục truyện?`, confirmLabel: "Ẩn truyện", tone: "danger" }) && !isContentEditorDirty()) hideMutation.mutate();
   }
 
   function downloadLocalBackup() {
@@ -179,17 +190,18 @@ export default function StoryEditorLayout() {
         </div>
       </div>
       <div className="story-editor-actions">
-        <button className="workspace-button workspace-button-quiet" type="button" onClick={validate} disabled={busy || mutationOutcomeBlocked || editorDirty || hasLocalOnlyChanges}><CheckCircle size={17} aria-hidden="true" /> Kiểm tra</button>
-        <button className="workspace-button" type="button" onClick={publish} disabled={busy || mutationOutcomeBlocked || editorDirty || hasLocalOnlyChanges || story.status === "unknown"} title={hasLocalOnlyChanges ? "Có thay đổi chưa được lưu vào máy chủ." : mutationOutcomeBlocked ? "Tải lại truyện để kiểm tra trạng thái thao tác trước khi tiếp tục." : story.status === "unknown" ? "Truyện chưa thể xuất bản lúc này." : undefined}><Rocket size={17} aria-hidden="true" /> {publishMutation.isPending ? "Đang xuất bản..." : "Xuất bản"}</button>
+        <button className="workspace-button workspace-button-quiet" type="button" onClick={validate} disabled={busy || mutationOutcomeBlocked || editorDirty || hasLocalOnlyChanges || hasUnverifiedComposition}><CheckCircle size={17} aria-hidden="true" /> Kiểm tra</button>
+        <button className="workspace-button" type="button" onClick={publish} disabled={busy || mutationOutcomeBlocked || editorDirty || hasLocalOnlyChanges || hasUnverifiedComposition || story.status === "unknown"} title={hasLocalOnlyChanges ? "Có thay đổi chỉ lưu trên thiết bị." : hasUnverifiedComposition ? "Có bố cục hoặc tham chiếu cần xử lý." : mutationOutcomeBlocked ? "Tải lại truyện để kiểm tra trạng thái thao tác trước khi tiếp tục." : story.status === "unknown" ? "Truyện chưa thể xuất bản lúc này." : undefined}><Rocket size={17} aria-hidden="true" /> {publishMutation.isPending ? "Đang xuất bản..." : "Xuất bản"}</button>
         {(story.status === "published" || hasLocalOnlyChanges) && <details className="story-editor-more"><summary aria-label="Thao tác khác" title="Thao tác khác"><DotsThree size={23} aria-hidden="true" /></summary><div>{story.status === "published" && <><button className="workspace-button workspace-button-danger" type="button" onClick={hide} disabled={busy || editorDirty || hasLocalOnlyChanges || mutationOutcomeBlocked}><EyeSlash size={17} aria-hidden="true" /> Ẩn truyện</button><small>Gỡ truyện khỏi danh mục của người đọc.</small></>}{hasLocalOnlyChanges && <><button className="workspace-button workspace-button-quiet" type="button" onClick={downloadLocalBackup}>Tải bản sao JSON</button><button className="workspace-button workspace-button-danger" type="button" onClick={discardLocalChanges}>Bỏ thay đổi local</button><small>Bản sao JSON không đính kèm file ảnh hoặc âm thanh.</small></>}</div></details>}
       </div>
     </header>
     {story.status === "unknown" && <p className="editor-help" role="status">Truyện chưa thể xuất bản lúc này. Vui lòng thử lại sau.</p>}
+    {hasUnverifiedComposition && <p className="editor-help" role="status">Một số trang có bố cục lỗi, tham chiếu không hợp lệ hoặc chưa tải đủ vị trí nhân vật. Dữ liệu gốc được giữ lại để khôi phục; kiểm tra và xuất bản sẽ mở lại sau khi xử lý.</p>}
     <nav className="story-editor-tabs" aria-label="Các phần chỉnh sửa truyện">{tabs.map(([suffix, label]) => {
       const count = ({ "/pages": story.pages.length, "/roles": story.roles.length, "/vocabulary": story.vocabulary?.length, "/quizzes": story.quizzes?.length })[suffix];
       return <NavLink key={suffix} to={`/content/stories/${storyId}${suffix}`} end={!suffix}>{label}{count !== undefined && <span className="story-tab-count" aria-label={`${count} mục`}>{count}</span>}</NavLink>;
     })}</nav>
-    {visibleValidation && <div className={`story-action-message ${visibleValidation.type === "error" ? "story-action-error" : "story-action-success"}`} role="status">{visibleValidation.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />} {visibleValidation.message}{visibleValidation.type === "error" && <DismissButton onClick={() => setValidation(null)} />}</div>}
+    {visibleValidation && !(hasLocalOnlyChanges && visibleValidation.message.includes("chỉ được lưu trên thiết bị")) && <div className={`story-action-message ${visibleValidation.type === "error" ? "story-action-error" : "story-action-success"}`} role="status">{visibleValidation.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />} {visibleValidation.message}{visibleValidation.type === "error" && <DismissButton onClick={() => setValidation(null)} />}</div>}
     <PublishIssues error={actionError} />
     <Outlet context={{ story, assets: [], queryKey: queryKeys.story(user.id, storyId), setEditorDirty, refetchStory: storyQuery.refetch, onPublish: publish, onValidate: validate, isPublishing: publishMutation.isPending, isValidating: validateMutation.isPending, publishError: actionError, validation: visibleValidation }} />
   </section>;

@@ -1,5 +1,6 @@
 import { moduleApiRequest } from "../../../lib/api/featureApi";
 import { ApiError } from "../../../lib/api/errors";
+import { buildParentReader } from "./parentReaderModel";
 
 function asRows(response, label) {
   const rows = Array.isArray(response) ? response : response?.items;
@@ -43,6 +44,7 @@ function mapPage(page) {
     text: page.rawText ?? page.RawText ?? "",
     imageUrl: page.backgroundUrl ?? page.BackgroundUrl ?? "",
     audioUrl: page.audioNarrationUrl ?? page.AudioNarrationUrl ?? "",
+    compositionJson: page.compositionJson ?? page.CompositionJson ?? null,
     status: page.status ?? page.Status,
   };
 }
@@ -110,6 +112,9 @@ async function getStory({ storyId, signal }) {
   if (!response || typeof (response.id ?? response.Id) !== "string") {
     throw new ApiError({ status: 502, code: "PARENT_STORY_RESPONSE_INVALID", message: "Backend returned an invalid story detail." });
   }
+  if ((response.id ?? response.Id).toLowerCase() !== storyId.toLowerCase()) {
+    throw new ApiError({ status: 502, code: "PARENT_STORY_ID_MISMATCH", message: "Backend trả về truyện không đúng yêu cầu." });
+  }
   if (!isPublishedStory(response)) {
     throw new ApiError({
       status: 404,
@@ -118,7 +123,11 @@ async function getStory({ storyId, signal }) {
     });
   }
   const pages = await listActivePages({ storyId, signal });
-  return mapStory(response, pages);
+  const [roles, slots] = await Promise.all([
+    moduleApiRequest("parentCatalog", { path: `/story-template/${encodeURIComponent(storyId)}/roles`, signal }),
+    Promise.all(pages.map(page => moduleApiRequest("parentCatalog", { path: `/story-pages/${encodeURIComponent(page.id)}/slots`, signal }))),
+  ]);
+  return buildParentReader(mapStory(response, pages), roles, Object.fromEntries(pages.map((page, index) => [page.id, slots[index]])));
 }
 
 async function listThemesOrEmpty({ signal } = {}) {
@@ -132,13 +141,17 @@ async function listThemesOrEmpty({ signal } = {}) {
 }
 
 function attachThemeName(story, themes) {
-  return { ...story, category: themes.find((theme) => (theme.id ?? theme.Id) === story.categoryId)?.name || "" };
+  const theme = themes.find((item) => (item.id ?? item.Id) === story.categoryId);
+  return { ...story, category: theme?.nameVi || theme?.name || theme?.NameVi || theme?.Name || "" };
 }
 
 export const parentCatalogService = {
   list: async ({ signal } = {}) => {
     const [stories, themes] = await Promise.all([listStories({ signal }), listThemesOrEmpty({ signal })]);
-    const themeNames = new Map(themes.map((theme) => [theme.id ?? theme.Id, theme.name ?? theme.Name ?? ""]));
+    const themeNames = new Map(themes.map((theme) => [
+      theme.id ?? theme.Id,
+      theme.nameVi || theme.name || theme.NameVi || theme.Name || "",
+    ]));
     const items = stories.map((story) => ({ ...story, category: themeNames.get(story.categoryId) || "" }));
     return { items, total: items.length };
   },

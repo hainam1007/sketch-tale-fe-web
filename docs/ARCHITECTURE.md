@@ -1,46 +1,53 @@
-# Kiến trúc, cấu hình và kiểm thử
+# Kiến trúc và cấu hình
 
-Đối chiếu source ngày 24/10/2026. Đây là trạng thái frontend local, không xác nhận backend đã triển khai hoặc được nghiệm thu.
-
-## Ranh giới thư mục
+Đối chiếu source ngày 14/11/2026. FE: React 19, Vite 8, JavaScript/JSX, React Router 7, TanStack Query, CSS, Playwright, oxlint. BE: ASP.NET Core, Application/Domain/Infrastructure, EF Core, Identity/JWT, Cloudinary, PayOS.
 
 | Thư mục | Trách nhiệm |
 | --- | --- |
-| `src/app` | Provider, router, guard và layout workspace |
-| `src/features/<feature>` | Trang, component, service, dữ liệu và CSS theo nghiệp vụ |
-| `src/components` | UI dùng chung giữa các feature |
-| `src/lib/api` | HTTP, token, lỗi, route mapping, query key và API mode |
-| `src/lib/permissions` | Định nghĩa và chuẩn hóa role |
-| `src/mocks` | Backend mô phỏng cho operation chưa có API |
-| `src/styles` | Token và CSS toàn ứng dụng |
-| `tests`, `tests/support` | Playwright và cấu hình test dùng chung |
-| `scripts` | Công cụ asset và hiệu năng |
-| `docs` | Kiến trúc, contract, đặc tả, báo cáo theo thời điểm |
-| `design`, `artifacts` | Thiết kế và bằng chứng kiểm tra, không phải runtime |
+| `src/app` | Router, providers, guards, workspace layouts |
+| `src/features/{auth,parent,content,admin,public}` | Pages, components, services theo nghiệp vụ |
+| `src/lib/api` | HTTP/token/errors, allowlist, mode, query keys |
+| `src/lib/permissions` | Chuẩn hóa role; không thay quyền BE |
+| `src/mocks` | Mock capability; không thay thế khi real request lỗi |
+| `tests`, `scripts` | Playwright, công cụ asset/performance |
+| BE `sketch_tale.API/Controllers` | Method/path/auth/request binding |
+| BE `sketch_tale.Application/{DTOs,Services,Mappings}` | Payload, nghiệp vụ, mapping/null semantics |
+| BE `sketch_tale.Infrastructure/{Repositories,Migrations}` | Query scope, persistence/schema |
 
-Giữ cấu trúc theo feature. Không gom service có contract khác nhau chỉ vì cùng gọi HTTP. Auth context nằm ở `AuthContext.js`, hook ở `useAuth.js`, provider chỉ export component. Dữ liệu preview gia đình nằm ở `features/parent/services/familyProfilePreview.js`.
+## Mode: mặc định khác cấu hình production
 
-## Chọn nguồn dữ liệu
+Nguồn: `src/lib/api/featureApi.js`, `httpClient.js`, `.env.example`, `.env.production`. Bảng production là file repo, chưa kiểm tra env hosting hoặc `.env.local` của máy khác.
 
-Nguồn xác định hành vi là `src/lib/api/featureApi.js`, `httpClient.js` và service từng feature. `.env.example` khai báo cấu hình hybrid mẫu; `.env.development` không bị sửa trong đợt review.
+| Biến `VITE_…` | Khi không khai báo | `.env.production` |
+| --- | --- | --- |
+| API_MODE | mock nếu không bằng real | real |
+| CONTENT_API_MODE | theo API_MODE | real |
+| PARENT_API_MODE | mock | mock |
+| PARENT_PROFILE_API_MODE | theo Parent | real |
+| PARENT_CATALOG_API_MODE | theo Parent | real |
+| PARENT_APPROVALS_API_MODE | theo Parent | real |
+| PARENT_QUIZ_RESULTS_API_MODE | disabled | disabled (14/11: own child 403) |
+| PARENT_PAYMENT_API_MODE | mock | real |
+| PARENT_SUBSCRIPTION_API_MODE | disabled | disabled |
+| ADMIN_API_MODE | mock | mock |
+| ADMIN_CATALOG_API_MODE | real | real |
+| ADMIN_REPORTS_API_MODE | real | không khai báo → real |
+| ADMIN_MODERATION_CATALOG_API_MODE | theo Admin catalog | không khai báo → real |
 
-| Biến | Mặc định nếu không khai báo |
-| --- | --- |
-| `VITE_API_MODE` | Auth/HTTP mock trừ khi bằng `real` |
-| `VITE_CONTENT_API_MODE` | Theo API chung |
-| `VITE_PARENT_API_MODE`, `VITE_ADMIN_API_MODE` | `mock` |
-| `VITE_PARENT_PROFILE_API_MODE` | `real` nếu API chung real, còn lại theo Parent |
-| `VITE_PARENT_CATALOG_API_MODE`, `VITE_PARENT_SUBSCRIPTION_API_MODE` | Theo Parent |
-| `VITE_ADMIN_CATALOG_API_MODE`, `VITE_ADMIN_REPORTS_API_MODE` | `real` |
-| `VITE_ADMIN_MODERATION_CATALOG_API_MODE` | Theo Admin catalog |
+Parent profile **không tự theo global API_MODE**. `.env.example` giữ catalog/payment/approvals mock; khác production có chủ đích trong source hiện tại. Admin users/audit và một số mutation dùng `forceReal`; không suy mọi operation mock từ `ADMIN_API_MODE=mock`. Subscription service vẫn unavailable; đổi cờ chưa đủ để tích hợp.
 
-`VITE_PARENT_API_MODE=mock` không có nghĩa toàn bộ Parent là mock: profile vẫn có thể gọi thật khi API chung real. Admin audit/restricted keywords gọi `forceReal` trực tiếp, độc lập với Admin core. Lỗi request thật không tự chuyển sang mock.
+## Luồng dữ liệu
 
-Parent profile đã có list/detail/update; Parent catalog có story/theme. Admin reports đã có list/detail thật, UI read-only. Khác với snapshot 19/10, source hiện gọi API profile. Có adapter không chứng minh backend đã sửa ownership; cần kiểm tra quyền bằng tài khoản staging trước nghiệm thu.
+UI → feature service → `moduleApiRequest`/`featureApiRequest` hoặc `apiRequest(forceReal)` → allowlist → HTTP → mapper/query cache. Base URL đã có `/api`, path trong service không thêm prefix lần nữa. Allowlist không chứng minh endpoint tồn tại hoặc có quyền.
 
-## Kiểm thử tái lập
+Composition v1 nằm `features/content/services/storyComposition.js`; lưu qua `contentService.js`. Local overlay/asset store/recovery không phải DB server. Parent reader 14/11 giữ composition qua `parentReaderModel`, dùng chung codec/StoryPageRenderer/animation/audio; `ParentReaderStage` dùng chung catalog preview và reader, không đọc editor overlay. Hợp đồng deploy/ownership còn mở theo [Parent](roles/PARENT.md).
+
+## Chạy và kiểm tra
+
+Làm theo [README gốc](../README.md), không ghi đè env local đang dùng. Các scripts có thật trong package.json:
 
 ```sh
+npm run dev
 npm run lint
 npm run build
 npm test
@@ -48,23 +55,6 @@ npm run test:api
 npm run test:editor
 ```
 
-- `npm test`: nhóm mock, server riêng cổng 5180.
-- `npm run test:api`: adapter thật nhưng response được Playwright intercept, server và API URL local cổng 5181. Không phải kiểm thử Render.
-- `npm run test:editor`: Story Editor mock, cổng 5174, một worker.
-- Các cấu hình này khai báo rõ mode, dùng `--strictPort` và không dùng lại dev server sẵn có. Cần Chrome và Playwright Chromium (một số spec chỉ định Chromium).
-- `playwright.parent-production.config.js` yêu cầu build trước. Spec còn kỳ vọng UI “đang hoàn thiện” cũ; cần cập nhật theo Parent v2 trước khi dùng nghiệm thu.
+`test:api` dùng Playwright intercept; `test:editor` dùng mock. Xem chính config tương ứng để biết port/mode và testMatch trước khi chạy. Không gọi kết quả intercept là xác minh Render. Chạy kiểm thử đúng phần thay đổi; kiểm thử ownership, persistence và payment cần môi trường test thực tế.
 
-## Kết quả review và việc còn lại
-
-- Bỏ 6 file không còn importer/route: hai page trong `features/workspace`, `ParentPlaceholderPage`, `ParentReportsPage`, `ParentFeaturePending`, `publicFeatures`. Route `/parent/reports` vẫn redirect sang library; báo cáo demo hiện dùng `FamilyReportsDemo`.
-- Bỏ helper không được gọi và tham số thừa; ổn định dependency danh sách hạn chế Admin.
-- Lint giảm từ 15 xuống 7 cảnh báo, không có lỗi. Cảnh báo còn lại thuộc effect/render trong Story Editor. `Date.now` nằm trong hàm xử lý draft; cần phân tích call site trước khi kết luận lỗi render.
-- Build thành công, vẫn cảnh báo bundle JS khoảng 1,27 MB trước gzip. `App.jsx` import các trang đồng bộ; có thể tối ưu tải theo route trong đợt sau.
-- 17 test adapter API đã pass với response intercept. Kết quả này không nghiệm thu backend thật.
-- Nhóm Public/Profile: 6 test pass ở lượt đầu; 1 test dùng tên nút đăng ký cũ đã được cập nhật và pass khi chạy lại riêng. Chưa chạy toàn bộ suite.
-- `mockServer.js` và Story Editor chứa nhiều trách nhiệm; nên tách theo domain/chu trình lưu với regression test tương ứng.
-- Các spec cũ có thể còn selector/kỳ vọng giao diện lỗi thời. Cấu hình test ổn định không có nghĩa toàn bộ E2E đã pass.
-
-## Quy tắc tài liệu
-
-README gốc hướng dẫn bắt đầu; tài liệu này mô tả cấu trúc/config hiện tại. Contract ghi yêu cầu nghiệp vụ. Plan/report có ngày là lịch sử hoặc backlog. Khi có bản thay thế, thêm liên kết và trạng thái ở đầu bản cũ; không xóa contract/bằng chứng chỉ vì nội dung giao nhau.
+Đợt cập nhật docs 13/11 không chạy build/lint/E2E vì không đổi runtime code. Kiểm tra tài liệu gồm link local, fixture JSON, mapping tên cũ/mới và source evidence.

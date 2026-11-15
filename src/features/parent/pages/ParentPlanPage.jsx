@@ -73,15 +73,18 @@ export default function ParentPlanPage() {
           <div>
             <dt>Trạng thái đăng ký</dt>
             <dd>
-              {subscriptionsQuery.isPending
-                ? "Đang tải"
+              {moduleApiModes.parentSubscription !== "real"
+                ? "Chưa khả dụng"
+                : subscriptionsQuery.isPending
+                  ? "Đang tải"
                 : subscriptionsQuery.isError
                   ? "Chưa tải được"
                   : currentSubscription
                     ? subscriptionStatusLabel(currentSubscription.status)
                     : "Chưa có bản ghi"}
             </dd>
-            {subscriptionsQuery.isError && <small>{subscriptionsQuery.error.message}</small>}
+            {moduleApiModes.parentSubscription !== "real" && <small>API này chưa được bật vì Backend chưa xác nhận quyền truy cập theo Parent.</small>}
+            {moduleApiModes.parentSubscription === "real" && subscriptionsQuery.isError && <small>{subscriptionsQuery.error.message}</small>}
           </div>
           {currentSubscription && (
             <div>

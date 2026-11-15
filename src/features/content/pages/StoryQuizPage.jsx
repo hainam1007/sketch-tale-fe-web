@@ -111,7 +111,7 @@ export default function StoryQuizPage() {
     mutation.mutate({ action: "delete", quizId: quiz.id }, { onSuccess: () => { if (editingId === quiz.id) resetForm(true); } });
   }
 
-  return <EditorPanel eyebrow="CÂU HỎI" title="Câu hỏi sau khi đọc" description="Thêm câu hỏi trắc nghiệm và đánh dấu một đáp án đúng để bé ôn lại nội dung truyện." action={<span className="story-editor-count"><Question size={17} aria-hidden="true" /> {story.quizzes.length} câu</span>}>
+  return <EditorPanel isSaving={mutation.isPending} eyebrow="CÂU HỎI" title="Câu hỏi sau khi đọc" description="Thêm câu hỏi trắc nghiệm và đánh dấu một đáp án đúng để bé ôn lại nội dung truyện." action={<span className="story-editor-count"><Question size={17} aria-hidden="true" /> {story.quizzes.length} câu</span>}>
     {!story.pages.length ? <div className="editor-empty"><h3>Tạo trang trước khi thêm câu hỏi</h3><p className="editor-help">Mỗi câu hỏi cần được gắn với một trang trong truyện.</p><Link className="workspace-button" to={`/content/stories/${storyId}/pages`}>Tạo trang đầu tiên</Link></div> : <div className="editor-form-card">
       <div className="editor-form-card-heading"><div><h3>{editingId ? "Sửa câu hỏi" : "Thêm câu hỏi"}</h3><p className="editor-help">Đánh dấu đáp án đúng; hệ thống không tự chọn đáp án mặc định.</p></div>{editingId && <button className="workspace-text-link" type="button" onClick={() => { void resetForm(); }}><X size={15} aria-hidden="true" /> Hủy sửa</button>}</div>
       <div className="editor-form-grid">

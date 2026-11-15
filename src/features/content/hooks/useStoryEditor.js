@@ -35,6 +35,7 @@ export function useContentAssets() {
   const assetsQuery = useQuery({
     queryKey: queryKeys.assets(user.id),
     queryFn: ({ signal }) => contentService.listAssets({ signal }),
+    enabled: !story?.localDemo,
     staleTime: 60_000,
   });
   const realAssets = useMemo(() => {
@@ -43,14 +44,13 @@ export function useContentAssets() {
     for (const page of story?.pages || []) {
       if (page.backgroundUrl) items.push({ id: page.backgroundAssetId || `page-background:${page.id}`, name: `${story.title || "Truyện"} · Trang ${page.order} · Ảnh nền`, kind: "image", mimeType: "image/*", size: 0, url: page.backgroundUrl, readOnly: true });
       if (page.audioNarrationUrl) items.push({ id: `page-audio:${page.id}`, name: `${story.title || "Truyện"} · Trang ${page.order} · Lời kể`, kind: "audio", mimeType: "audio/*", size: 0, url: page.audioNarrationUrl, readOnly: true });
+      for (const asset of page.compositionData?.assets || []) {
+        if (asset?.id && asset?.url && !items.some((item) => item.id === asset.id)) items.push({ ...asset, source: "backend", readOnly: true });
+      }
     }
-    const mockAssets = (assetsQuery.data?.items || []).filter((asset) => asset.source === "mock");
-    const mockImageAssets = mockAssets.filter((asset) => asset.kind === "image" && asset.url);
+    const libraryAssets = (assetsQuery.data?.items || []).filter((asset) => asset.source === "mock" || (asset.source === "cloudinary" && asset.uploadedToBackend));
     for (const role of story?.roles || []) {
       if (!role.defaultAssetUrl) continue;
-      const roleName = (role.name || "").trim().toLocaleLowerCase();
-      const matchingPoses = roleName ? mockImageAssets.filter((asset) => asset.name.toLocaleLowerCase().includes(roleName)) : [];
-      const fallback = matchingPoses.find((asset) => /stand|front|đứng|thẳng/i.test(`${asset.id} ${asset.name}`)) || matchingPoses[0];
       items.push({
         id: role.defaultAssetId || `role-default:${role.id}`,
         name: `${story.title || "Truyện"} · ${role.name || "Nhân vật"}`,
@@ -58,13 +58,13 @@ export function useContentAssets() {
         mimeType: "image/*",
         size: 0,
         url: role.defaultAssetUrl,
-        ...(fallback ? { fallbackUrl: fallback.url, fallbackName: fallback.name } : {}),
         readOnly: true,
       });
     }
-    items.push(...mockAssets);
+    items.push(...libraryAssets);
     return [...new Map(items.map((asset) => [asset.id, asset])).values()];
   }, [assetsQuery.data?.items, story]);
+  if (story?.localDemo) return { data: { items: story.localDemo.assets }, isLoading: false, isError: false };
   if (featureApiModes.content !== "real") return assetsQuery;
   return {
     ...assetsQuery,

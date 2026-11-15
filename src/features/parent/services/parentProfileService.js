@@ -40,64 +40,6 @@ function mapProfile(value) {
   };
 }
 
-function parentProfileIdFrom(user) {
-  const parentProfile = user?.parentProfile ?? user?.ParentProfile;
-  return (
-    parentProfile?.id ??
-    parentProfile?.Id ??
-    parentProfile?.parentProfileId ??
-    parentProfile?.ParentProfileId ??
-    null
-  );
-}
-
-function userIdFrom(user) {
-  return user?.id ?? user?.Id ?? user?.userId ?? user?.UserId ?? null;
-}
-
-export async function getParentProfileForUser(user, signal) {
-  const profileId = parentProfileIdFrom(user);
-  if (profileId) {
-    return apiRequest({
-      path: `/parent-profiles/${encodeURIComponent(profileId)}`,
-      signal,
-      forceReal: true,
-    });
-  }
-
-  const userId = userIdFrom(user);
-  if (!userId) {
-    throw new ApiError({
-      status: 502,
-      code: "PARENT_USER_ID_MISSING",
-      message: "Không tìm thấy User ID trong hồ sơ đăng nhập.",
-    });
-  }
-
-  const response = await apiRequest({ path: "/parent-profiles", signal, forceReal: true });
-  const profiles = Array.isArray(response) ? response : response?.items;
-  if (!Array.isArray(profiles)) {
-    throw new ApiError({
-      status: 502,
-      code: "PARENT_PROFILE_LIST_INVALID",
-      message: "Backend không trả danh sách ParentProfile đúng định dạng.",
-    });
-  }
-
-  const profile = profiles.find((item) => {
-    const profileUserId = item?.userId ?? item?.UserId;
-    return typeof profileUserId === "string" && profileUserId.toLowerCase() === String(userId).toLowerCase();
-  });
-  if (!profile) {
-    throw new ApiError({
-      status: 404,
-      code: "PARENT_PROFILE_NOT_FOUND",
-      message: "Không tìm thấy hồ sơ Parent gắn với tài khoản đang đăng nhập.",
-    });
-  }
-  return profile;
-}
-
 async function getProfile(childId, signal) {
   requireLiveApi();
   const response = await apiRequest({
@@ -105,7 +47,11 @@ async function getProfile(childId, signal) {
     signal,
     forceReal: true,
   });
-  return mapProfile(response);
+  const profile = mapProfile(response);
+  if (profile.id.toLowerCase() !== childId.toLowerCase()) {
+    throw new ApiError({ status: 502, code: "PARENT_PROFILE_ID_MISMATCH", message: "Backend trả về hồ sơ không đúng bé đang chọn." });
+  }
+  return profile;
 }
 
 export const parentProfileService = {

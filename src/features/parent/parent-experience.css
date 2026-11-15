@@ -57,6 +57,160 @@
 @media(prefers-reduced-motion:reduce) { .family-profile-card,.family-action-grid a { transition:none; } }
 @media(hover:none) { .family-child-name-edit { opacity:1; } }
 .family-avatar-options { display:flex; gap:14px; flex-wrap:wrap; }.family-avatar-options label { display:flex!important; align-items:center; cursor:pointer; }.family-avatar-options .family-avatar { width:48px; height:48px; border-radius:15px; }.family-settings input[type=date] { padding:12px; border:1px solid #cbd3d9; border-radius:10px; font:inherit; background:#fff; }
+
+/* Give every section in a child's workspace a clear, warm surface hierarchy. */
+.family-workspace:has(.family-child-heading) {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(16px, 2.4vw, 30px);
+  border: 1px solid #e7d9b8;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 18px 48px #5a47201c, inset 0 1px #ffffffc9;
+}
+.family-workspace:has(.family-child-heading) .family-child-heading {
+  position: relative;
+  isolation: isolate;
+  min-height: 132px;
+  padding: 24px 28px;
+  overflow: hidden;
+  border: 1px solid #335367;
+  border-radius: 22px;
+  color: #fff;
+  background: linear-gradient(112deg, #132e55 0%, #1b465c 66%, #315f59 100%);
+  box-shadow: 0 14px 30px #17335230, inset 0 1px #ffffff24;
+}
+.family-workspace:has(.family-child-heading) .family-child-heading::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    radial-gradient(circle at 88% 4%, #ffd36a48 0 3px, transparent 4px),
+    radial-gradient(ellipse at 88% 0%, #f6c95b3d 0, transparent 18rem),
+    radial-gradient(circle at 72% 100%, #a4c6a923 0, transparent 14rem);
+  content: "";
+  pointer-events: none;
+}
+.family-workspace:has(.family-child-heading) .family-child-heading > * {
+  position: relative;
+  z-index: 1;
+}
+.family-workspace:has(.family-child-heading) .family-child-heading .family-avatar {
+  border: 3px solid #fff4d6;
+  background: #f5ce6a;
+  box-shadow: 0 5px 16px #081c3c55;
+}
+.family-workspace:has(.family-child-heading) .family-child-heading .workspace-eyebrow {
+  color: #f7d56f;
+}
+.family-workspace:has(.family-child-heading) .family-child-heading h1 {
+  margin: 4px 0 8px;
+  color: #fff;
+  font-size: clamp(30px, 3.4vw, 42px);
+  letter-spacing: -1.2px;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.family-workspace:has(.family-child-heading) .family-child-heading p:not(.workspace-eyebrow) {
+  color: #e1e9e8;
+}
+.family-workspace:has(.family-child-heading) .family-switch {
+  color: #e6edeb;
+}
+.family-workspace:has(.family-child-heading) .family-switch select {
+  border-color: #f1d88e;
+  background: #fffaf0;
+  box-shadow: 0 3px 10px #081c3c20;
+}
+.family-workspace:has(.family-child-heading) .family-tabs {
+  gap: 5px;
+  padding: 7px;
+  margin-bottom: 0;
+  border: 1px solid #e5d6b4;
+  border-radius: 16px;
+  background: #fffaf0d9;
+  box-shadow: inset 0 1px #fff;
+}
+.family-workspace:has(.family-child-heading) .family-tabs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 43px;
+  padding: 10px 16px;
+  border-radius: 11px;
+  color: #59677d;
+  transition: color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+.family-workspace:has(.family-child-heading) .family-tabs a.active {
+  color: #fff;
+  background: #173754;
+  box-shadow: 0 4px 10px #1737542b;
+}
+.family-workspace:has(.family-child-heading) .family-tabs a:hover:not(.active) {
+  color: #173754;
+  background: #f3e5c4;
+}
+.family-workspace:has(.family-child-heading) .family-panel,
+.family-workspace:has(.family-child-heading) .family-metrics article {
+  border-color: #e5dcc8;
+  background: #fffefa;
+  box-shadow: 0 8px 22px #68552a0c, inset 0 1px #fff;
+}
+.family-workspace:has(.family-child-heading) .family-metrics article {
+  border-radius: 19px;
+}
+.family-workspace:has(.family-child-heading) .family-metrics svg {
+  box-sizing: content-box;
+  padding: 9px;
+  border-radius: 13px;
+  color: #416d5b;
+  background: #eaf1e4;
+}
+.family-workspace:has(.family-child-heading) .family-metrics strong {
+  color: #173754;
+}
+.family-workspace:has(.family-child-heading) .family-demo-note {
+  padding: 11px 14px;
+  border: 1px solid #e7d9b8;
+  border-left: 4px solid #daa936;
+  border-radius: 10px;
+  background: #fffaf0c9;
+}
+.family-workspace:has(.family-child-heading) :is(a, button, input, select):focus-visible {
+  outline-color: #b47d16;
+}
+@media (max-width: 600px) {
+  .family-workspace:has(.family-child-heading) {
+    padding: 14px;
+    border-radius: 21px;
+  }
+  .family-workspace:has(.family-child-heading) .family-child-heading {
+    gap: 13px;
+    padding: 19px;
+    border-radius: 18px;
+  }
+  .family-workspace:has(.family-child-heading) .family-child-heading > .family-avatar {
+    width: 64px;
+    height: 64px;
+  }
+  .family-workspace:has(.family-child-heading) .family-switch {
+    width: 100%;
+  }
+  .family-workspace:has(.family-child-heading) .family-switch select {
+    width: 100%;
+  }
+  .family-workspace:has(.family-child-heading) .family-tabs {
+    margin-inline: -2px;
+    scrollbar-width: thin;
+  }
+  .family-workspace:has(.family-child-heading) .family-tabs a {
+    padding-inline: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .family-workspace:has(.family-child-heading) .family-tabs a {
+    transition: none;
+  }
+}
 /* Illustrated child profiles: the portrait sits inside a painter's palette. */
 .family-avatar.family-avatar-image { background:#fff2c9; }
 .family-avatar-image img { display:block; width:100%; height:100%; object-fit:contain; }

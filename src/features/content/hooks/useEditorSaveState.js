@@ -22,24 +22,25 @@ export function consumeApprovedContentEditorNavigation() {
 
 /** Shared dirty/save state for authoring forms. */
 export function useEditorSaveState({ dirty = false, isSaving = false, error = null, onDirtyChange } = {}) {
+  const blocked = dirty || isSaving;
   useEffect(() => {
-    if (typeof window !== "undefined") window.__sketchTaleContentEditorDirty = Boolean(dirty);
-    onDirtyChange?.(dirty);
+    if (typeof window !== "undefined") window.__sketchTaleContentEditorDirty = Boolean(blocked);
+    onDirtyChange?.(blocked);
     return () => {
       if (typeof window !== "undefined") window.__sketchTaleContentEditorDirty = false;
       onDirtyChange?.(false);
     };
-  }, [dirty, onDirtyChange]);
+  }, [blocked, onDirtyChange]);
 
   useEffect(() => {
     function warnBeforeUnload(event) {
-      if (!dirty) return;
+      if (!blocked) return;
       event.preventDefault();
       event.returnValue = "";
     }
     window.addEventListener("beforeunload", warnBeforeUnload);
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [dirty]);
+  }, [blocked]);
 
   return { dirty, isSaving, error, status: isSaving ? "saving" : error ? "error" : dirty ? "dirty" : "saved" };
 }

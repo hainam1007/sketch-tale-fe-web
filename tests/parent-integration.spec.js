@@ -27,12 +27,13 @@ async function setup(page, { syncFailure = false } = {}) {
       }
       return route.fulfill({ json: child });
     }
-    if (path.includes("/user-story-character-mappings/child/")) return route.fulfill({ json: { items: [], total: 0, page: 1, pageSize: 20 } });
+    if (path === "/api/characters/pending-approval") return route.fulfill({ json: [] });
     if (path === "/api/subscription-plans") return route.fulfill({ json: [{ id: "plan-plus", code: "PlusPlan", name: "Plus", price: 49000, isActive: true }] });
     if (path === "/api/story-template/stories") return route.fulfill({ json: [{ id: "story-live", title: "Truyện thật", status: 2, educationThemeId: "theme" }] });
     if (path === "/api/education-themes") return route.fulfill({ json: [{ id: "theme", name: "Thiên nhiên" }] });
+    if (path.endsWith("/roles") || path.endsWith("/slots")) return route.fulfill({ json: [] });
     if (path === "/api/story-template/stories/story-live") return route.fulfill({ json: { id: "story-live", title: "Truyện thật", status: 2 } });
-    if (path === "/api/storypage-template/published/story-live") return route.fulfill({ json: [{ id: "page-1", pageNumber: 1, rawText: "Nội dung trang đã xuất bản" }] });
+    if (path === "/api/storypage-template/pages/story-live") return route.fulfill({ json: [{ id: "page-1", storyTemplateId: "story-live", status: 2, pageNumber: 1, rawText: "Nội dung trang đã xuất bản" }] });
     return route.fulfill({ status: 501, json: { message: `Unexpected ${path}` } });
   });
   return state;
@@ -41,7 +42,7 @@ async function setup(page, { syncFailure = false } = {}) {
 test("real checkout cannot be opened directly", async ({ page }) => {
   await setup(page);
   await page.goto("/parent/checkout?plan=PlusPlan");
-  await expect(page.getByRole("heading", { name: "Thanh toán chưa khả dụng" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Thanh toán PayOS chưa được bật" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Xác nhận thanh toán demo" })).toHaveCount(0);
 });
 

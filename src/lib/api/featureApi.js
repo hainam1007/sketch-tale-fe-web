@@ -20,11 +20,15 @@ export const moduleApiModes = Object.freeze({
   // global auth/content mode; opt in explicitly after the backend is deployed.
   parentProfile: import.meta.env.VITE_PARENT_PROFILE_API_MODE || featureApiModes.parent,
   parentCatalog: import.meta.env.VITE_PARENT_CATALOG_API_MODE || featureApiModes.parent,
-  parentSubscription: import.meta.env.VITE_PARENT_SUBSCRIPTION_API_MODE || featureApiModes.parent,
+  // Subscription-by-parent-profile is not owner-scoped in the checked Backend source.
+  parentSubscription: import.meta.env.VITE_PARENT_SUBSCRIPTION_API_MODE || "disabled",
+  // Quiz history has an owner-scoped backend read endpoint. Keep it opt-in per
+  // module so enabling Parent demos cannot silently switch this request to mock.
+  parentQuizResults: import.meta.env.VITE_PARENT_QUIZ_RESULTS_API_MODE || "disabled",
   // Payment links can charge real money. Keep checkout off until the runtime
   // has verified PayOS callbacks and a Parent-scoped payment status endpoint.
   parentPayment: import.meta.env.VITE_PARENT_PAYMENT_API_MODE || "mock",
-  // Also requires parentProfile=real so the inbox receives a backend ChildProfile ID.
+  // Character approval endpoints derive the Parent from the JWT.
   parentApprovals: import.meta.env.VITE_PARENT_APPROVALS_API_MODE || featureApiModes.parent,
   // Swagger documents list/detail ContentReport operations; keep this module
   // read-only in the UI until status-transition semantics are confirmed.
@@ -39,6 +43,7 @@ const featureLabels = {
   parentProfile: "hồ sơ Parent",
   parentCatalog: "thư viện Parent",
   parentSubscription: "gói Parent",
+  parentQuizResults: "kết quả quiz Parent",
   parentPayment: "thanh toán Parent",
   parentApprovals: "phê duyệt Parent",
   adminReports: "báo cáo Admin",

@@ -8,7 +8,7 @@ import { featureApiModes } from "../../../lib/api/featureApi";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import AssetPicker from "./AssetPicker";
 import { useEditorSaveState } from "../hooks/useEditorSaveState";
-import { validateAssetFile } from "../services/assetService";
+import { getAssetFileForStoryUpload, validateAssetFile } from "../services/assetService";
 import { contentService } from "../services/contentService";
 
 const emptyStory = { title: "", description: "", category: "", coverAssetId: "" };
@@ -41,20 +41,21 @@ export default function StoryForm({ assets, assetsLoading, assetsError, categori
   const [currentCoverFailed, setCurrentCoverFailed] = useState(false);
   const [uploadedCoverAsset, setUploadedCoverAsset] = useState(null);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isPreparingCover, setIsPreparingCover] = useState(false);
   const [coverFileError, setCoverFileError] = useState("");
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const serverFields = serverError?.fieldErrors || {};
   const currentCoverUrl = initialValues?.coverImageUrl || "";
-  const showCurrentCover = isRealApi && currentCoverUrl && !coverPreviewUrl && (!initialValues?.coverAssetId || values.coverAssetId === initialValues.coverAssetId);
+  const showCurrentCover = isRealApi && currentCoverUrl && !coverPreviewUrl && (!values.coverAssetId || values.coverAssetId === initialValues?.coverAssetId);
   const mutationOutcomeBlocked = Boolean(serverError?.mutationAccepted || serverError?.mutationOutcomeUnknown);
   const backendEnumBlocked = isRealApi && Boolean(initialValues) && initialValues.status == null;
-  const dirty = JSON.stringify(values) !== initialKey || Boolean(coverFile) || isUploadingCover;
+  const dirty = JSON.stringify(values) !== initialKey || Boolean(coverFile) || isUploadingCover || isPreparingCover;
   const coverAssets = uploadedCoverAsset ? [...(assets || []), uploadedCoverAsset] : assets;
   const options = useMemo(() => categoryOptions(categories), [categories]);
   useEditorSaveState({ dirty, isSaving, error: serverError, onDirtyChange });
-  const saveDisabled = isSaving || isUploadingCover || mutationOutcomeBlocked || backendEnumBlocked || categoriesLoading || Boolean(categoriesError) || (Boolean(initialValues) && !dirty);
+  const saveDisabled = isSaving || isUploadingCover || isPreparingCover || mutationOutcomeBlocked || backendEnumBlocked || categoriesLoading || Boolean(categoriesError) || (Boolean(initialValues) && !dirty);
 
   useEffect(() => {
     function saveWithKeyboard(event) {
@@ -108,10 +109,11 @@ export default function StoryForm({ assets, assetsLoading, assetsError, categori
     if (isUploadingCover) {
       return;
     }
-    onSubmit({ ...values, ...(coverFile ? { coverFile } : {}), title: values.title.trim(), description: values.description.trim() });
+    onSubmit({ ...values, ...(isRealApi && coverFile ? { coverAssetId: "" } : {}), ...(coverFile ? { coverFile } : {}), title: values.title.trim(), description: values.description.trim() });
   }
 
   return <form ref={formRef} className="content-form content-story-form" onSubmit={submit} noValidate>
+    <fieldset disabled={isSaving} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
     <div className="content-form-alerts">{backendEnumBlocked && <div className="parent-form-alert" role="status"><strong>Chưa thể lưu thay đổi của truyện này lúc này.</strong></div>}{serverError && <div className="parent-form-alert" role="alert"><strong>{mutationOutcomeBlocked ? "Hãy kiểm tra trạng thái trước khi gửi lại" : "Chưa thể lưu truyện"}</strong><p>{serverError.message}</p>{mutationOutcomeBlocked && <div className="content-form-reconcile-actions"><button className="workspace-text-link" type="button" onClick={() => window.location.reload()}>Tải lại trang</button><Link className="workspace-text-link" to={serverError.storyId || serverError.createdStoryId ? `/content/stories/${serverError.storyId || serverError.createdStoryId}` : "/content/stories"} target="_blank" rel="noreferrer">{serverError.storyId || serverError.createdStoryId ? "Mở truyện để kiểm tra" : "Mở kho truyện để kiểm tra"}</Link></div>}</div>}</div>
     <div className="content-form-grid"><div>
       <div className="content-form-section"><span className="content-form-icon"><TextT size={20} aria-hidden="true" /></span><div><h2>Nội dung giới thiệu</h2><p>Giúp người đọc nhận biết truyện trong thư viện.</p></div></div>
@@ -126,18 +128,33 @@ export default function StoryForm({ assets, assetsLoading, assetsError, categori
     </div><aside className="content-cover-picker">
       <div className="content-form-section"><span className="content-form-icon"><ImageSquare size={20} aria-hidden="true" /></span><div><h2>Ảnh bìa</h2><p>Chọn ảnh có sẵn trong kho tư liệu hoặc tải ảnh mới trực tiếp từ máy tính.</p></div></div>
       <div className="parent-field">
-        <AssetPicker assets={coverAssets} id="story-cover-library" label="Ảnh có sẵn trong kho tư liệu" value={values.coverAssetId} allowUpload={false} showUploadHint={false} disabled={isSaving || isUploadingCover || isRealApi} emptyLabel={showCurrentCover ? "Ảnh bìa hiện tại được lưu trực tiếp trên truyện." : undefined} onChange={(value) => {
+        <AssetPicker assets={coverAssets} id="story-cover-library" label="Ảnh có sẵn trong kho tư liệu" value={values.coverAssetId} allowUpload={false} showUploadHint={false} disabled={isSaving || isUploadingCover || isPreparingCover || assetsLoading || Boolean(assetsError)} emptyLabel={showCurrentCover ? "Ảnh bìa hiện tại được lưu trực tiếp trên truyện." : undefined} onChange={async (value, asset) => {
           update("coverAssetId", value);
           setCoverFile(null);
           setCoverPreviewFile(null);
+          setUploadedCoverAsset(null);
           setCoverFileError("");
+          if (isRealApi && value) {
+            setIsPreparingCover(true);
+            try {
+              const file = await getAssetFileForStoryUpload(asset);
+              setCoverFile(file);
+              setCoverPreviewFile(file);
+            } catch (error) {
+              setValues((current) => ({ ...current, coverAssetId: "" }));
+              setCoverFileError(error.message || "Không thể dùng ảnh này làm ảnh bìa.");
+            } finally {
+              setIsPreparingCover(false);
+            }
+          }
         }} />
+        {isRealApi && <small className="content-field-hint">Ảnh chọn từ kho sẽ được tải lên cùng truyện khi bạn lưu.</small>}
         {assetsError && coverAssets?.length ? <p className="parent-field-error" role="alert">Không thể làm mới kho tư liệu: {assetsError} Bạn vẫn có thể tải ảnh mới từ máy.</p> : assetsLoading ? <p className="content-muted-note">Đang tải kho tư liệu…</p> : !assetsError && !coverAssets?.length && <p className="content-muted-note">Chưa có tư liệu hình ảnh. Bạn vẫn có thể tải ảnh trực tiếp từ máy ở khung bên dưới.</p>}
       </div>
       <div className="parent-field">
         <label htmlFor="story-cover-file">{initialValues?.coverImageUrl ? "Tệp ảnh bìa từ máy tính (không bắt buộc)" : "Tải tệp ảnh bìa từ máy tính (không bắt buộc)"}</label>
         <div className="story-cover-file-box">
-          <input id="story-cover-file" className="story-cover-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={isSaving || isUploadingCover} onChange={async (event) => {
+          <input id="story-cover-file" className="story-cover-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={isSaving || isUploadingCover || isPreparingCover} onChange={async (event) => {
           const file = event.target.files?.[0] || null;
           event.target.value = "";
           if (!file) return;
@@ -175,10 +192,11 @@ export default function StoryForm({ assets, assetsLoading, assetsError, categori
           {coverPreviewUrl && <img className="story-cover-file-preview" src={coverPreviewUrl} alt={`Xem trước ảnh bìa ${coverPreviewFile?.name || "đã chọn"}`} />}
           {showCurrentCover && <div className="story-cover-current">{currentCoverFailed ? <small role="status">Ảnh bìa hiện tại đã lưu nhưng không tải được bản xem trước.</small> : <><small>Ảnh bìa hiện tại</small><img className="story-cover-file-preview" src={currentCoverUrl} alt={`Ảnh bìa hiện tại của ${initialValues?.title || "truyện"}`} onError={() => setCurrentCoverFailed(true)} /></>}</div>}
         </div>
-        {isUploadingCover && <small className="content-field-hint">Đang tải ảnh lên kho tư liệu…</small>}
+        {(isUploadingCover || isPreparingCover) && <small className="content-field-hint">{isPreparingCover ? "Đang chuẩn bị ảnh bìa…" : "Đang tải ảnh lên kho tư liệu…"}</small>}
         {coverFileError && <p className="parent-field-error" role="alert">{coverFileError}</p>}
         <small className="content-field-hint">{values.coverImageUrl ? "Bỏ trống để giữ ảnh hiện tại. " : ""}PNG, JPG, WEBP, GIF · tối đa 5 MB.</small>
       </div>
     </aside></div><div className="parent-form-actions story-form-savebar"><span className="story-form-save-hint" role="status">{isSaving ? "Đang lưu thông tin…" : dirty ? "Có thay đổi chưa lưu" : initialValues ? "Thông tin đã lưu" : "Điền thông tin để tạo truyện"}<small>Ctrl / ⌘ + S để lưu</small></span><button className="workspace-button workspace-button-quiet" type="button" onClick={async () => { if (navigationGuarded || !dirty || await confirmToast({ title: "Rời trang này?", message: "Bạn có thay đổi chưa lưu. Nếu rời trang, các thay đổi này sẽ bị bỏ.", confirmLabel: "Rời trang", tone: "danger" })) onCancel(); }}>{navigationGuarded ? "Sang dựng truyện" : "Hủy"}</button><button className="workspace-button" type="submit" disabled={saveDisabled}><FloppyDisk size={17} aria-hidden="true" /> {isSaving ? "Đang lưu..." : initialValues ? "Lưu thông tin truyện" : "Tạo truyện"}</button></div>
+    </fieldset>
   </form>;
 }

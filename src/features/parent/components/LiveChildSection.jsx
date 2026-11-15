@@ -1,3 +1,4 @@
+import { LiveQuizHistory } from "../pages/ChildProgressPage";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { BookOpen, Clock, Star, CheckCircle, ShieldCheck, Gear } from "@phosphor-icons/react";
@@ -17,6 +18,8 @@ export default function LiveChildSection({ child, userId, section }) {
     queryFn: ({ signal }) => parentApprovalService.list({ childId: child.id, status: "pending", pageSize: 1, signal }),
     enabled: isOverview && approvalsEnabled,
   });
+
+  if (section === "progress") return <LiveQuizHistory child={child} userId={userId} />;
 
   if (section === "approvals") {
     return approvalsEnabled

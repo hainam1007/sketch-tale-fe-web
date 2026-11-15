@@ -187,8 +187,17 @@ export async function apiRequest({ path, method = "GET", body, signal, forceReal
 
     const requestPair = skipAuth ? null : getTokenPair();
     const requestToken = requestPair?.accessToken || null;
+    const ensureSameSession = (result) => {
+      const currentPair = getTokenPair();
+      if (requestPair && (!currentPair || (requestPair.sessionId
+        ? currentPair.sessionId !== requestPair.sessionId
+        : currentPair.accessToken !== requestPair.accessToken))) {
+        throw new ApiError({ status: 409, code: "SESSION_CHANGED", message: "Tài khoản đã thay đổi trong lúc gửi yêu cầu. Hãy tải lại trang." });
+      }
+      return result;
+    };
     try {
-      return await realRequest({ path, method, body, signal, skipAuth, accessToken: requestToken });
+      return ensureSameSession(await realRequest({ path, method, body, signal, skipAuth, accessToken: requestToken }));
     } catch (error) {
       const normalized = normalizeApiError(error);
       if (normalized.status === 423 && requestToken && !skipAuth) {
@@ -220,7 +229,7 @@ export async function apiRequest({ path, method = "GET", body, signal, forceReal
         throw normalized;
       }
       try {
-        return await realRequest({ path, method, body, signal, accessToken: retryToken, skipRefresh: true });
+        return ensureSameSession(await realRequest({ path, method, body, signal, accessToken: retryToken, skipRefresh: true }));
       } catch (retryError) {
         const retryFailure = normalizeApiError(retryError);
         const currentPair = getTokenPair();

@@ -1,35 +1,40 @@
-# Tài liệu dự án SketchTale
+# Tài liệu SketchTale
 
-Danh mục gồm hướng dẫn hiện tại, contract/backlog và báo cáo lịch sử. [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) chứa thông tin sản phẩm và snapshot ngày 19/10, không phải bảng API mới nhất.
+Cập nhật 13/11/2026 theo FE và BE local, gồm thay đổi chưa commit. Điểm bắt đầu cho chat mới là [PROJECT_SUMMARY](PROJECT_SUMMARY.md).
 
-## Hiện trạng và tài liệu mới
+## Đọc theo công việc
 
-- [Kiến trúc, cấu hình và kiểm thử](ARCHITECTURE.md): đối chiếu source 24/10.
-- [Parent experience v2](api-integration/PARENT_EXPERIENCE_V2_2026-10-23.md): thay thế hướng UI “sắp ra mắt”.
-- [Parent API/UX](api-integration/PARENT_API_UX_PLAN_2026-10-23.md), [Admin API](api-integration/ADMIN_API_PLAN_2026-10-23.md): tích hợp 23/10.
-- [API status 21/10](api-integration/API_IMPLEMENTATION_STATUS_2026-10-21.md), [connection plan](api-integration/API_CONNECTION_PLAN_2026-10-21.md), [handoff](api-integration/LUNA_API_HANDOFF_2026-10-21.md), [operation matrix](api-integration/LUNA_API_OPERATION_MATRIX_2026-10-21.md).
-- [Auth controller](AUTH_CONTROLLER_README.md), [Auth optimization](AUTH_API_OPTIMIZATION_PLAN.md), [Parent API còn thiếu](PARENT_MISSING_APIS_BACKEND.md).
-
-## Tổng quan và lịch sử đợt 19/10
-
-| Tài liệu | Phạm vi hiện còn mở |
+| Cần làm | Đọc theo thứ tự |
 | --- | --- |
-| [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) | Tổng hợp sản phẩm, stack, API hiện trạng, blocker và việc tiếp theo |
-| [LUNA_EXTRAMAX_API_RUNBOOK_2026-10-19.md](LUNA_EXTRAMAX_API_RUNBOOK_2026-10-19.md) | Các bước nối API, mock theo capability, kiểm thử và blocker |
-| [API implementation report](api-integration/luna-extramax/implementation-report-2026-10-19.md) | Phần đã đổi trong source, mock được giữ và kiểm chứng còn thiếu |
-| [Luna decisions](api-integration/luna-extramax/decisions.md) | Các quyết định đã chốt và blocker ownership/child ID còn mở |
-| [Backend source audit](api-integration/luna-extramax/backend-source-audit-2026-10-19.md) | Enum, DTO, ownership và hành vi backend cần xử lý/kiểm chứng |
-| [OpenAPI snapshot](api-integration/openapi-2026-10-19.snapshot.json) | Contract tham chiếu cho API work chưa nghiệm thu |
+| Bắt đầu chat mới | [Tổng quan](PROJECT_SUMMARY.md) → [Backlog](BACKLOG.md) → đúng role bên dưới |
+| Parent | [Parent](roles/PARENT.md) → [Contract API](api/CONTRACTS.md) |
+| Soạn truyện / reader | [Content Manager](roles/CONTENT_MANAGER.md) → [Composition v1](api/COMPOSITION_V1.md) → [Kế hoạch reader](plans/WEB_READER.md) |
+| Admin | [Admin](roles/ADMIN.md) → [Contract API](api/CONTRACTS.md) |
+| Public / Mobile | [Public và Child](roles/PUBLIC_CHILD.md) |
+| Auth / phiên / cấu hình | [Auth](api/AUTH.md) → [Kiến trúc](ARCHITECTURE.md) |
+| Tra endpoint BE local | [Danh mục route từ controller](api/ENDPOINTS.md); DTO/service dẫn trong [contract](api/CONTRACTS.md) |
+| Chỉnh UI chi tiết | [Đặc tả tham chiếu](specs/README.md), chỉ đọc phần màn hình đang làm |
 
-## Tài liệu theo khu vực
+## Cấu trúc và quy tắc cập nhật
 
-| Khu vực | Tài liệu còn mở |
-| --- | --- |
-| Thiết kế chung | [DESIGN.md](DESIGN.md) — migration thị giác và QA chưa hoàn tất |
-| Public | [Public Website.md](Public%20Website.md) — đặc tả và nghiệm thu website; chưa có billing thật |
-| Parent | [PARENT_IMPLEMENTATION_PLAN.md](PARENT_IMPLEMENTATION_PLAN.md) — yêu cầu theo hồ sơ bé và tích hợp còn bị chặn bởi ownership backend |
-| Content Manager | [CONTENT_MANAGER_UI_UX_PLAN.md](CONTENT_MANAGER_UI_UX_PLAN.md), [CONTENT_MANAGER_UI_UX_DETAIL_SPEC.md](CONTENT_MANAGER_UI_UX_DETAIL_SPEC.md), [CONTENT_MANAGER_CONTRACT.md](CONTENT_MANAGER_CONTRACT.md) |
-| Story Editor | [STORY_EDITOR_UX_REDESIGN_PLAN.md](STORY_EDITOR_UX_REDESIGN_PLAN.md), [STORY_EDITOR_CANVA_ANIMATION_PLAN.md](STORY_EDITOR_CANVA_ANIMATION_PLAN.md), [STORY_EDITOR_UI_UX_DETAIL_SPEC.md](STORY_EDITOR_UI_UX_DETAIL_SPEC.md) |
-| Admin | [ADMIN_UI_UX_PLAN_2026-10-17.md](ADMIN_UI_UX_PLAN_2026-10-17.md), [ADMIN_CONTRACT.md](ADMIN_CONTRACT.md) |
+- Gốc `docs/`: tổng quan, mục lục, kiến trúc và một backlog đang mở.
+- `roles/`: trách nhiệm, trạng thái source và điểm chạm code từng role.
+- `api/`: contract hiện tại, Auth, CompositionJson và fixture.
+- `plans/`: kế hoạch chưa hoàn tất; hiện giữ luồng soạn → xuất bản → reader.
+- `specs/`: yêu cầu UI/nghiệp vụ để tham chiếu, không phải báo cáo trạng thái API.
+- `development/`: hướng dẫn demo local; `diagrams/`: sơ đồ dự án.
 
-Giữ báo cáo và snapshot theo ngày để truy vết contract/quyết định. Kế hoạch cũ không xác nhận hành vi source mới. Kiểm tra local hoặc request được intercept không chứng minh quyền truy cập, persistence hay trạng thái deploy của backend thật.
+Khi hoàn tất việc: cập nhật role/contract, bỏ dòng khỏi backlog hoặc thu gọn thành quyết định còn giá trị; không tạo thêm chuỗi report/plan theo ngày. Chỉ ghi `verified-runtime` khi có request thực tế và kết quả; build hoặc intercept không thay thế kiểm tra BE.
+
+Đợt 13/11 đã gộp các audit, runbook, handoff và report cũ vào các nguồn trên; bỏ snapshot 19/10 trong docs. Snapshot API theo ngày ở `artifacts/` vẫn giữ để tra chứng cứ, không phải nguồn live. Các đặc tả dài còn checklist chưa nghiệm thu được giữ riêng. [Bản đồ thay thế tài liệu](development/DOCS_MIGRATION.md) giúp tìm tên cũ.
+
+## Prompt cho chat mới
+
+```text
+Đọc docs/PROJECT_SUMMARY.md, docs/BACKLOG.md và docs/roles/<ROLE>.md.
+Kiểm tra git status của FE và BE; giữ thay đổi đang có.
+Tiếp tục mục <ID backlog>. Dùng api/CONTRACTS.md và source để xác minh
+method/path/DTO/quyền, phân biệt BE local với snapshot/deploy.
+Chỉ đọc specs của màn hình liên quan. Hoàn thành phần đủ điều kiện,
+ghi rõ phần bị chặn và kiểm thử đã chạy; cập nhật tài liệu hiện hành.
+```
