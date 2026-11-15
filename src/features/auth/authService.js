@@ -171,11 +171,11 @@ export const authService = {
       body: { currentPassword, newPassword },
     });
   },
-  async restore() {
+  async restore({ persist = true } = {}) {
     const response = await apiRequest({ path: isRealApi ? "/auth/profile" : "/auth/me" });
     const user = pickUser(response);
     if (!user) throw new Error("Không tìm thấy phiên đăng nhập.");
-    storeSessionUser(user);
+    if (persist) storeSessionUser(user);
     return user;
   },
   getCachedUser() {

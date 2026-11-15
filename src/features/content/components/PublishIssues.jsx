@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { WarningCircle } from "@phosphor-icons/react";
 import { Link, useParams } from "react-router-dom";
+import DismissButton from "../../../components/feedback/DismissButton";
 
 function issueTarget(field = "") {
   const normalized = field.toLowerCase();
@@ -29,7 +31,9 @@ function issueTarget(field = "") {
 
 export default function PublishIssues({ error }) {
   const { storyId } = useParams();
-  if (!error) return null;
+  const [dismissedError, setDismissedError] = useState(null);
+  useEffect(() => setDismissedError(null), [error]);
+  if (!error || dismissedError === error) return null;
   const fieldErrors = Object.entries(error.fieldErrors || {});
   return <div className="story-action-message story-action-error" role="alert">
     <WarningCircle size={17} aria-hidden="true" />
@@ -42,5 +46,6 @@ export default function PublishIssues({ error }) {
         return <li key={field}><Link to={`${target}#${issue.hash}`}>{issue.label}: {message}</Link></li>;
       })}</ul>}
     </div>
+    <DismissButton onClick={() => setDismissedError(error)} />
   </div>;
 }

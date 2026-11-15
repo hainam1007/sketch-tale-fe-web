@@ -576,6 +576,92 @@
   font-size: 14px;
   line-height: 1.7;
 }
+.library-redesign .parent-reader-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 8px;
+}
+.library-redesign .parent-reader-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 22px;
+}
+.library-redesign .parent-reader-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 22px;
+  border: 1px solid #e7e2d5;
+  border-radius: 22px;
+  background: #fffdf7;
+}
+.library-redesign .parent-reader-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  color: #66715f;
+  font-size: 13px;
+  font-weight: 750;
+}
+.library-redesign .parent-reader-spread {
+  border-radius: 14px;
+}
+.library-redesign .parent-reader-spread > img {
+  display: block;
+  width: 100%;
+  max-height: min(58vh, 650px);
+  object-fit: contain;
+}
+.library-redesign .parent-reader-copy {
+  padding: 26px clamp(18px, 5vw, 54px) 32px;
+}
+.library-redesign .parent-reader-copy h2 {
+  margin: 0 0 14px;
+  color: #263e35;
+  font-size: 21px;
+}
+.library-redesign .parent-reader-copy p {
+  margin: 0;
+  color: #39483d;
+  font-size: 18px;
+  line-height: 1.9;
+  white-space: pre-line;
+}
+.library-redesign .parent-reader-copy .parent-reader-muted {
+  color: #7a8074;
+  font-size: 14px;
+}
+.library-redesign .parent-reader-audio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  color: #896015;
+}
+.library-redesign .parent-reader-audio audio {
+  width: min(100%, 480px);
+}
+.library-redesign .parent-reader-pagination {
+  justify-content: space-between;
+  margin-top: 18px;
+}
+.library-redesign .parent-reader-pagination > span {
+  color: #66715f;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.library-redesign .parent-reader-message {
+  max-width: 760px;
+  margin: 16px auto 0;
+  text-align: center;
+}
+.library-redesign .parent-reader-message .workspace-button {
+  display: inline-flex;
+  width: auto;
+  margin-top: 10px;
+}
 .library-redesign .catalog-recommend {
   position: sticky;
   top: 24px;
@@ -828,6 +914,17 @@
   .library-redesign .catalog-reader-heading h2 {
     font-size: 25px;
   }
+  .library-redesign .parent-reader-shell {
+    padding: 12px;
+    border-radius: 16px;
+  }
+  .library-redesign .parent-reader-copy {
+    padding: 20px 16px 24px;
+  }
+  .library-redesign .parent-reader-copy p {
+    font-size: 16px;
+    line-height: 1.8;
+  }
   .library-redesign .catalog-pagination {
     gap: 9px;
     flex-wrap: wrap;
@@ -836,6 +933,13 @@
   .library-redesign .catalog-pagination button {
     padding: 9px 11px;
     font-size: 11px;
+  }
+  .library-redesign .parent-reader-pagination {
+    gap: 10px;
+  }
+  .library-redesign .parent-reader-pagination button {
+    flex: 1;
+    justify-content: center;
   }
 }
 @media (prefers-reduced-motion: reduce) {

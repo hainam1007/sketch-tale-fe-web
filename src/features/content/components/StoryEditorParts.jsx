@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
+import DismissButton from "../../../components/feedback/DismissButton";
 
-export function EditorPanel({ eyebrow, title, description, action, children }) {
+export function EditorPanel({ eyebrow, title, description, action, children, isSaving = false }) {
   return (
     <section className="story-editor-panel">
       <div className="story-editor-panel-heading">
@@ -11,13 +13,16 @@ export function EditorPanel({ eyebrow, title, description, action, children }) {
         </div>
         {action}
       </div>
-      {children}
+      <fieldset disabled={isSaving} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>{children}</fieldset>
     </section>
   );
 }
 
 export function EditorMutationMessage({ mutation, showSuccess = true }) {
+  const [dismissedError, setDismissedError] = useState(null);
+  useEffect(() => setDismissedError(null), [mutation.error]);
   if (mutation.isError) {
+    if (dismissedError === mutation.error) return null;
     if (mutation.error?.mutationAccepted || mutation.error?.mutationOutcomeUnknown) {
       return (
         <div className="editor-mutation-message editor-mutation-error" role="alert">
@@ -26,6 +31,7 @@ export function EditorMutationMessage({ mutation, showSuccess = true }) {
             <strong>{mutation.error.message}</strong>
             <button className="workspace-text-link" type="button" onClick={() => window.location.reload()}>Tải lại nội dung để kiểm tra</button>
           </div>
+          <DismissButton onClick={() => setDismissedError(mutation.error)} />
         </div>
       );
     }
@@ -42,6 +48,7 @@ export function EditorMutationMessage({ mutation, showSuccess = true }) {
             </ul>
           )}
         </div>
+        <DismissButton onClick={() => setDismissedError(mutation.error)} />
       </div>
     );
   }

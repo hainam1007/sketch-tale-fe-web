@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState } from "react";
 import { BezierCurve, Clock, Diamond, Minus, Pause, Play, Plus, Trash } from "@phosphor-icons/react";
+import DismissButton from "../../../components/feedback/DismissButton";
 import { evaluateSlotAnimation, clipsConflict, createId } from "../utils/storyAnimation";
+import { ANIMATION_PRESETS } from "../utils/storyAnimationPresets";
 import { compactAudioFilename } from "../utils/storyAudio";
 
-const presetOptions = [["appear", "Xuất hiện", "Mờ dần và phóng nhẹ"], ["move", "Di chuyển", "Lướt ngang qua cảnh"], ["jump", "Nhảy", "Bật lên rồi hạ xuống"], ["spin", "Xoay", "Quay một vòng"], ["walk", "Nhún bước", "Chuyển động tại chỗ"]];
+const presetOptions = ANIMATION_PRESETS.map(({ id, label, description, glyph }) => [id, label, description, glyph]);
 const propertyLabels = { x: "Vị trí ngang", y: "Vị trí dọc", scale: "Kích thước", rotation: "Góc xoay", opacity: "Độ trong suốt" };
 const propertyUnits = { x: "%", y: "%", scale: "×", rotation: "°", opacity: "%" };
 
@@ -59,8 +61,11 @@ function TimelineClip({ clip, width, onSelect, onMove, onResize, selected }) {
   ><span>{clip.name || (clip.kind === "path" ? "Đường đi" : clip.kind === "keyframes" ? "Mốc chuyển động" : presetOptions.find(([key]) => key === clip.preset)?.[1] || "Hiệu ứng")}</span><i className="story-timeline-resize-handle is-start" data-resize-edge="start" aria-hidden="true" /><i className="story-timeline-resize-handle is-end" data-resize-edge="end" aria-hidden="true" /></button>;
 }
 
-export default function StoryAnimationEditor({ page, slots, imageObjects = [], assets, audioDurations, clips, onChange, onAudioChange, selectedMedia, onMediaSelect, onSubtitleChange, selectedSlotId, onSlotSelect, playheadMs, onPlayheadChange, isPlaying, onTogglePlayback, selectedClipId, onClipSelect, onPathStart, selectedPathPointIndex = -1, onPathPointChange, onPathPointAdd, pageDurationMs, showPanel = true, showTimeline = true, recording = false, onRecordingChange, property = "x", onPropertyChange, tab = "effects", onTabChange, animationError = "", onAnimationErrorChange }) {
+export default function StoryAnimationEditor({ page, slots, assets, audioDurations, clips, onChange, onAudioChange, selectedMedia, onMediaSelect, onSubtitleChange, selectedSlotId, onSlotSelect, playheadMs, onPlayheadChange, isPlaying, onTogglePlayback, selectedClipId, onClipSelect, onPathStart, selectedPathPointIndex = -1, onPathPointChange, onPathPointAdd, pageDurationMs, showPanel = true, showTimeline = true, recording = false, onRecordingChange, property = "x", onPropertyChange, tab = "effects", onTabChange, animationError = "", onAnimationErrorChange }) {
   const [zoom, setZoom] = useState(100);
+  const [effectSearch, setEffectSearch] = useState("");
+  const normalizeSearch = (value) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").toLowerCase();
+  const visiblePresets = presetOptions.filter(([, label, description]) => normalizeSearch(`${label} ${description}`).includes(normalizeSearch(effectSearch.trim())));
   const timelineRef = useRef(null);
   const target = slots.find(({ slot }) => slot.id === selectedSlotId);
   const selectedClip = clips.find((clip) => clip.id === selectedClipId);
@@ -133,14 +138,17 @@ export default function StoryAnimationEditor({ page, slots, imageObjects = [], a
 
   return <>
     {showPanel && <div className="story-animation-panel">
-      <div className="story-animation-panel-heading"><div><span className="workspace-eyebrow">CHUYỂN ĐỘNG</span><h3>{target?.role.name || "Chọn nhân vật"}</h3></div><span className="story-animation-time"><Clock size={15} aria-hidden="true" /> {seconds(playheadMs)} s</span></div>
+      <div className="story-animation-panel-heading"><div><h3>{target?.role.name || "Chọn nhân vật"}</h3></div><span className="story-animation-time"><Clock size={15} aria-hidden="true" /> {seconds(playheadMs)} s</span></div>
       {selectedClip && <button type="button" className="workspace-button workspace-button-danger story-animation-delete-button" aria-label="Xóa chuyển động đã chọn" title="Xóa chuyển động đã chọn" onClick={deleteSelectedClip}><Trash size={16} aria-hidden="true" /> Xóa chuyển động</button>}
       <div className="story-animation-tabs" role="tablist" aria-label="Công cụ chuyển động">
         {[ ["effects", "Hiệu ứng"], ["keyframes", "Keyframe"], ["path", "Đường đi"] ].map(([id, label]) => <button key={id} id={`story-animation-tab-${id}`} role="tab" aria-selected={tab === id} aria-controls="story-animation-tabpanel" type="button" onClick={() => onTabChange(id)}>{label}</button>)}
       </div>
       <div className="story-animation-tabpanel" id="story-animation-tabpanel" role="tabpanel" aria-labelledby={`story-animation-tab-${tab}`}>
         {tab === "effects" && <>
-          <div className="story-preset-grid">{presetOptions.map(([id, label]) => <button type="button" key={id} onClick={() => addPreset(id)} disabled={!target} aria-label={`Thêm hiệu ứng ${label}`}><span className={`story-preset-glyph preset-${id}`} aria-hidden="true">✦</span><strong>{label}</strong></button>)}</div>
+          <label className="story-effect-search">Tìm hiệu ứng<input type="search" value={effectSearch} onChange={(event) => setEffectSearch(event.target.value)} placeholder="Ví dụ: trượt, rung, xoay…" /></label>
+          {!target && <p className="editor-help">Chọn nhân vật trên khung truyện hoặc dòng thời gian để thêm hiệu ứng.</p>}
+          <div className="story-preset-grid">{visiblePresets.map(([id, label, description, glyph]) => <button type="button" key={id} title={description} onClick={() => addPreset(id)} disabled={!target} aria-label={`Thêm hiệu ứng ${label}`}><span className={`story-preset-glyph preset-${id}`} aria-hidden="true">{glyph}</span><strong>{label}</strong><small>{description}</small></button>)}</div>
+          {!visiblePresets.length && <p className="editor-help" role="status">Không tìm thấy hiệu ứng. Thử từ khóa khác.</p>}
           {selectedClip?.kind === "preset" && <div className="story-animation-fields"><label>Thời điểm (giây)<input type="number" min="0" step="0.1" value={seconds(selectedClip.startMs)} onChange={(event) => moveClip(selectedClip.id, Math.max(0, Number(event.target.value) * 1000 || 0))} /></label><label>Thời lượng (giây)<input type="number" min="0.1" step="0.1" value={seconds(selectedClip.durationMs)} onChange={(event) => updateClip(selectedClip.id, { durationMs: Math.max(100, Number(event.target.value) * 1000 || 100) })} /></label><label>Nhân vật<select value={selectedClip.targetId} onChange={(event) => updateClip(selectedClip.id, { targetId: event.target.value })}>{slots.map(({ role, slot }) => <option value={slot.id} key={slot.id}>{role.name}</option>)}</select></label><label>Chuyển động<select value={selectedClip.easing || "ease-in-out"} onChange={(event) => updateClip(selectedClip.id, { easing: event.target.value })}><option value="linear">Đều</option><option value="ease-in">Nhanh dần</option><option value="ease-out">Chậm dần</option><option value="ease-in-out">Nhanh rồi chậm</option></select></label></div>}
         </>}
         {tab === "keyframes" && <>
@@ -153,7 +161,7 @@ export default function StoryAnimationEditor({ page, slots, imageObjects = [], a
           <button type="button" className="workspace-button story-draw-path-button" disabled={!target} onClick={onPathStart}><BezierCurve size={17} aria-hidden="true" /> Vẽ đường trên canvas</button>
           {selectedClip?.kind === "path" && <div className="story-animation-fields"><label>Thời điểm (giây)<input type="number" min="0" step="0.1" value={seconds(selectedClip.startMs)} onChange={(event) => moveClip(selectedClip.id, Math.max(0, Number(event.target.value) * 1000 || 0))} /></label><label>Thời lượng (giây)<input type="number" min="0.1" step="0.1" value={seconds(selectedClip.durationMs)} onChange={(event) => updateClip(selectedClip.id, { durationMs: Math.max(100, Number(event.target.value) * 1000 || 100) })} /></label><label>Chuyển động<select value={selectedClip.easing || "ease-in-out"} onChange={(event) => updateClip(selectedClip.id, { easing: event.target.value })}><option value="linear">Đều</option><option value="ease-in">Nhanh dần</option><option value="ease-out">Chậm dần</option><option value="ease-in-out">Nhanh rồi chậm</option></select></label>{selectedPathPoint && <div className="story-path-point-fields"><strong>Điểm {selectedPathPointIndex + 1}</strong><label>X (%)<input type="number" min="0" max="100" step="0.1" value={Number(selectedPathPoint.x).toFixed(1)} onChange={(event) => onPathPointChange?.(selectedClip.id, selectedPathPointIndex, { x: event.target.value })} /></label><label>Y (%)<input type="number" min="0" max="100" step="0.1" value={Number(selectedPathPoint.y).toFixed(1)} onChange={(event) => onPathPointChange?.(selectedClip.id, selectedPathPointIndex, { y: event.target.value })} /></label></div>}<button type="button" className="workspace-button workspace-button-quiet" disabled={selectedClip.points.length >= 160} onClick={() => onPathPointAdd?.(selectedClip.id)}><Plus size={15} aria-hidden="true" /> Thêm điểm trên đường</button><button type="button" className="workspace-button workspace-button-quiet" onClick={() => updateClip(selectedClip.id, { points: [...selectedClip.points].reverse() })}>Đảo chiều đường đi</button></div>}
         </>}
-        {animationError && <p className="story-animation-error" role="alert">{animationError}</p>}
+        {animationError && <p className="story-animation-error" role="alert"><span>{animationError}</span><DismissButton onClick={() => onAnimationErrorChange?.("")} /></p>}
       </div>
     </div>}
     {showTimeline && <div className="story-timeline">
@@ -173,20 +181,33 @@ export default function StoryAnimationEditor({ page, slots, imageObjects = [], a
               </div>
             </div>;
           })}
-          {imageObjects.map((item) => <div className={`story-timeline-track${selectedSlotId === item.id ? " is-active" : ""}`} key={item.id}><button type="button" className="story-timeline-track-label" onClick={() => onSlotSelect(item.id)}>{item.name}<small>Ảnh phụ</small></button><div className="story-timeline-lane"><button type="button" className="story-timeline-clip is-image" style={{ left: 0, width: `${durationMs / 1000 * width}px` }} onClick={() => onSlotSelect(item.id)}>{item.name}</button></div></div>)}
-          {(page.audioTracks || []).map((track) => { const asset = audioById.get(track.assetId); const audioName = asset?.name || track.name || "Âm thanh"; const fullLength = Number(track.durationMs) || Number(asset?.duration) * 1000 || Number(audioDurations?.[track.id]) || 3000; const length = Number(track.durationMs) > 0 ? Number(track.durationMs) : Math.max(100, fullLength - Number(track.trimStartMs || 0)); return <div className="story-timeline-track story-timeline-audio-track" key={track.id}><span className="story-timeline-track-label"><span className="story-timeline-audio-name" title={audioName}>{compactAudioFilename(audioName)}</span><small>Âm thanh</small></span><div className="story-timeline-lane"><TimelineClip clip={{ ...track, durationMs: length, name: audioName, mediaType: "is-audio" }} width={width} selected={selectedMedia?.id === track.id} onSelect={(id) => onMediaSelect("audioTracks", id)} onMove={(id, startMs) => onAudioChange(id, { startMs })} onResize={(id, patch) => {
-                  const trim = Number(track.trimStartMs || 0);
-                  const source = Number(asset?.duration) * 1000 || Number(audioDurations?.[track.id]) || trim + length;
-                  if (patch.startMs !== undefined) {
-                    const delta = Math.max(-trim, Math.min(length - 100, patch.startMs - Number(track.startMs || 0)));
-                    onAudioChange(id, { startMs: Number(track.startMs || 0) + delta, trimStartMs: trim + delta, durationMs: length - delta });
-                  } else onAudioChange(id, { durationMs: Math.min(source - trim, patch.durationMs) });
-                }} /></div></div>; })}
+          {(page.audioTracks || []).map((track) => {
+            const asset = audioById.get(track.assetId);
+            const audioName = asset?.name || track.name || "Âm thanh";
+            const sourceLength = Number(asset?.duration) * 1000 || Number(audioDurations?.[track.id]) || Number(track.durationMs) || 3000;
+            const length = Number(track.durationMs) > 0 ? Number(track.durationMs) : sourceLength;
+            return <div className="story-timeline-track story-timeline-audio-track" key={track.id}>
+              <span className="story-timeline-track-label"><span className="story-timeline-audio-name" title={audioName}>{compactAudioFilename(audioName)}</span><small>Âm thanh</small></span>
+              <div className="story-timeline-lane"><TimelineClip
+                clip={{ ...track, durationMs: length, name: audioName, mediaType: "is-audio" }}
+                width={width}
+                selected={selectedMedia?.id === track.id}
+                onSelect={(id) => onMediaSelect("audioTracks", id)}
+                onMove={(id, startMs) => onAudioChange(id, { startMs })}
+                onResize={(id, patch) => {
+                  const next = {};
+                  if (patch.startMs !== undefined) next.startMs = patch.startMs;
+                  if (patch.durationMs !== undefined) next.durationMs = Math.min(sourceLength, patch.durationMs);
+                  onAudioChange(id, next);
+                }}
+              /></div>
+            </div>;
+          })}
           {(page.subtitles || []).map((cue, index) => <div className="story-timeline-track" key={cue.id}><button type="button" className="story-timeline-track-label" onClick={() => onMediaSelect("subtitles", cue.id)}>T · Phụ đề {index + 1}<small>{seconds(cue.startMs)}–{seconds(cue.startMs + cue.durationMs)} s</small></button><div className="story-timeline-lane"><TimelineClip clip={{ ...cue, name: cue.text || "Phụ đề", mediaType: "is-subtitle" }} width={width} selected={selectedMedia?.id === cue.id} onSelect={(id) => onMediaSelect("subtitles", id)} onMove={(id, startMs) => onSubtitleChange(id, { startMs })} onResize={onSubtitleChange} /></div></div>)}
           <div className="story-timeline-playhead" style={{ left: `${184 + playheadMs / 1000 * width}px` }} aria-hidden="true" />
         </div>
       </div>
-      {!slots.length && <p className="story-timeline-empty">Thêm nhân vật vào trang để tạo track chuyển động.</p>}
+      {!slots.length && !(page.audioTracks || []).length && !(page.subtitles || []).length && <p className="story-timeline-empty">Thêm nhân vật vào trang để tạo track chuyển động.</p>}
     </div>}
   </>;
 }

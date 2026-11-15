@@ -34,8 +34,10 @@ function openDatabase() {
 
 function transaction(database, mode, callback) {
   return new Promise((resolve, reject) => {
-    const request = callback(database.transaction(STORE_NAME, mode).objectStore(STORE_NAME));
-    request.onsuccess = () => resolve(request.result);
+    const tx = database.transaction(STORE_NAME, mode);
+    const request = callback(tx.objectStore(STORE_NAME));
+    tx.oncomplete = () => resolve(request.result);
+    tx.onabort = () => reject(tx.error || new Error("Không thể hoàn tất lưu tư liệu."));
     request.onerror = () => reject(request.error || new Error("Không thể đọc kho asset local."));
   });
 }
@@ -44,9 +46,9 @@ export function getLocalAssetNamespace() {
   return namespaceFromSession();
 }
 
-export async function putLocalAsset(assetId, blob, namespace = namespaceFromSession(), category = "background") {
+export async function putLocalAsset(assetId, blob, namespace = namespaceFromSession(), category = "background", metadata = {}) {
   if (!assetId || !blob) throw new Error("Asset local cần có ID và file.");
-  const record = { key: keyFor(namespace, assetId), namespace, assetId, blob, category, updatedAt: Date.now() };
+  const record = { key: keyFor(namespace, assetId), namespace, assetId, blob, category, ...metadata, updatedAt: Date.now() };
   const database = await openDatabase();
   if (!database) {
     memoryStore.set(record.key, record);
@@ -64,6 +66,18 @@ export async function getLocalAsset(assetId, namespace = namespaceFromSession())
   const record = await transaction(database, "readonly", (store) => store.get(key));
   database.close();
   return record || null;
+}
+
+export async function listLocalAssets(namespace = namespaceFromSession()) {
+  const database = await openDatabase();
+  if (!database) return [...memoryStore.values()].filter((record) => record.namespace === namespace);
+  const records = await new Promise((resolve, reject) => {
+    const request = database.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).index("namespace").getAll(namespace);
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error || new Error("Could not read local asset library."));
+  });
+  database.close();
+  return records;
 }
 
 export async function removeLocalAsset(assetId, namespace = namespaceFromSession()) {

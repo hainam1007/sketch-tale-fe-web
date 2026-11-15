@@ -1,30 +1,37 @@
 ﻿import { useState } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { Link, useSearchParams } from "react-router-dom";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CreditCard,
   CheckCircle,
   Bank,
   Wallet,
   ArrowLeft,
+  ArrowSquareOut,
+  ShieldCheck,
 } from "@phosphor-icons/react";
 import { publicService } from "../../public/services/publicService";
 import { queryKeys } from "../../../lib/api/queryKeys";
+import { moduleApiModes } from "../../../lib/api/featureApi";
+import { useAuth } from "../../auth/useAuth";
+import { parentPaymentService } from "../services/parentPaymentService";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import "../parent-plan.css";
 import "../parent-experience.css";
 export default function ParentCheckoutPage() {
   const [params] = useSearchParams();
-  const location = useLocation();
+  const { user } = useAuth();
   const catalog = useQuery({
     queryKey: queryKeys.publicPlanAvailability(),
-    queryFn: publicService.getPlanAvailability,
+    queryFn: ({ signal }) => publicService.getPlanAvailability({ signal }),
   });
   const plan =
-    catalog.data?.plans.find((item) => item.id === params.get("plan")) ||
-    (location.state?.plan?.id === params.get("plan")
-      ? location.state.plan
-      : null);
+    catalog.data?.plans.find((item) => item.id === params.get("plan"));
+  const checkoutMutation = useMutation({
+    mutationFn: () => parentPaymentService.createCheckout({ plan, user }),
+    onSuccess: ({ checkoutUrl }) => window.location.assign(checkoutUrl),
+    retry: false,
+  });
   const [method, setMethod] = useState("wallet");
   const [status, setStatus] = useState("ready");
   const [outcome, setOutcome] = useState("success");
@@ -46,7 +53,32 @@ export default function ParentCheckoutPage() {
       ? "Chưa công bố giá"
       : plan.price === 0
         ? "Miễn phí"
-        : `${new Intl.NumberFormat("vi-VN").format(plan.price)}${plan.currency === "VND" ? " ₫" : ""}`;
+        : plan.currency
+          ? plan.currency === "VND"
+            ? `${new Intl.NumberFormat("vi-VN").format(plan.price)} ₫`
+            : `${new Intl.NumberFormat("vi-VN").format(plan.price)} ${plan.currency}`
+          : "Đơn vị giá chưa được xác nhận";
+
+  if (catalog.data?.source === "backend") {
+    const checkoutEnabled =
+      import.meta.env.VITE_API_MODE === "real" &&
+      moduleApiModes.parentPayment === "real";
+
+    if (!checkoutEnabled) {
+      return (
+        <div className="parent-checkout-page family-workspace">
+          <Link className="family-back" to="/parent/plan"><ArrowLeft /> Quay lại gói sử dụng</Link>
+          <section className="family-panel" role="status">
+            <h1>Thanh toán PayOS chưa được bật</h1>
+            <p>Gói và giá đã được tải từ Backend. Checkout thật sẽ mở khi môi trường được cấu hình và Backend xác nhận đầy đủ trạng thái giao dịch.</p>
+          </section>
+        </div>
+      );
+    }
+
+    return <PayOsCheckout plan={plan} price={price} mutation={checkoutMutation} />;
+  }
+
   return (
     <div className="parent-checkout-page family-workspace">
       <Link className="family-back" to="/parent/plan">
@@ -192,7 +224,7 @@ export default function ParentCheckoutPage() {
             <p className="workspace-eyebrow">LỰA CHỌN CỦA GIA ĐÌNH</p>
             <h2>Gói {plan.name}</h2>
             <p className="checkout-order-price">{price}</p>
-            {plan.price > 0 && !plan.currency && <small>Đơn vị tiền đang chờ xác nhận.</small>}
+            {plan.price > 0 && !plan.currency && <small>Thông tin giá từ danh mục chưa có đơn vị tiền tệ.</small>}
             <p>
               {plan.durationDays
                 ? `${plan.durationDays} ngày sử dụng`
@@ -215,6 +247,80 @@ export default function ParentCheckoutPage() {
           </aside>
         </div>
       )}
+    </div>
+  );
+}
+
+function PayOsCheckout({ plan, price, mutation }) {
+  const canPay = Boolean(plan.backendId) && Number(plan.price) > 0;
+
+  return (
+    <div className="parent-checkout-page family-workspace">
+      <Link className="family-back" to="/parent/plan">
+        <ArrowLeft /> Quay lại gói sử dụng
+      </Link>
+      <header className="checkout-heading">
+        <div>
+          <p className="workspace-eyebrow">THANH TOÁN GÓI GIA ĐÌNH</p>
+          <h1>Tiếp tục với PayOS</h1>
+          <p>Kiểm tra lựa chọn rồi mở trang thanh toán do Backend tạo.</p>
+        </div>
+        <span className="checkout-heading-icon" aria-hidden="true">
+          <CreditCard size={27} />
+        </span>
+      </header>
+
+      <div className="checkout-layout">
+        <section className="checkout-placeholder-card payos-checkout-card">
+          <span className="checkout-placeholder-icon" aria-hidden="true">
+            <ShieldCheck size={26} />
+          </span>
+          <p className="workspace-eyebrow">CỔNG THANH TOÁN</p>
+          <h2>Thanh toán an toàn qua PayOS</h2>
+          <p>Backend sẽ tạo liên kết thanh toán theo mã gói và giá hiện được lưu trong danh mục.</p>
+          <div className="checkout-placeholder-note">
+            <ShieldCheck size={18} aria-hidden="true" />
+            <span>Không nhập thông tin thẻ trên SketchTale. PayOS xử lý giao dịch ở trang riêng.</span>
+          </div>
+          {mutation.isError && (
+            <p className="payos-payment-error" role="alert">
+              {mutation.error.message || "Chưa tạo được liên kết thanh toán. Vui lòng thử lại."}
+            </p>
+          )}
+          {!canPay && (
+            <p className="payos-payment-error" role="alert">
+              Gói này chưa có mã Backend hoặc mức giá để tạo thanh toán.
+            </p>
+          )}
+          <button
+            className="workspace-button payos-payment-button"
+            type="button"
+            disabled={!canPay || mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
+            {mutation.isPending ? "Đang tạo liên kết…" : "Tiếp tục đến PayOS"}
+            {!mutation.isPending && <ArrowSquareOut size={18} aria-hidden="true" />}
+          </button>
+          {mutation.isPending && (
+            <p className="payos-payment-pending" role="status">
+              Đang chờ Backend tạo liên kết. Không đóng trang lúc này.
+            </p>
+          )}
+        </section>
+
+        <aside className="checkout-order-card">
+          <p className="workspace-eyebrow">LỰA CHỌN CỦA GIA ĐÌNH</p>
+          <h2>Gói {plan.name}</h2>
+          <p className="checkout-order-price">{price}</p>
+          <p>{plan.durationDays ? `${plan.durationDays} ngày sử dụng` : "Thời hạn theo gói"}</p>
+          <ul>
+            {(plan.highlights || plan.limits || []).slice(0, 5).map((item) => (
+              <li key={item}><CheckCircle size={17} aria-hidden="true" />{item}</li>
+            ))}
+          </ul>
+          <p>Thanh toán hoàn tất sau khi Backend xác nhận giao dịch và áp dụng quyền lợi.</p>
+        </aside>
+      </div>
     </div>
   );
 }

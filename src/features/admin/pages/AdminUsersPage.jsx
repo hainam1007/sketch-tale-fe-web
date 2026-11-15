@@ -1,5 +1,5 @@
-import { Coins, Eye, Funnel, LockKey, LockKeyOpen, MagnifyingGlass, UserCircle, X } from "@phosphor-icons/react";
-import { useMemo } from "react";
+import { Check, Coins, Eye, Funnel, LockKey, LockKeyOpen, MagnifyingGlass, Plus, UserCircle, WarningCircle, X } from "@phosphor-icons/react";
+import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../auth/useAuth";
@@ -7,12 +7,16 @@ import { adminService } from "../services/adminService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import StatusBadge from "../../../components/ui/StatusBadge";
-import { ADMIN_PAGE_SIZE, normalizeAdminListResponse, normalizePage } from "../models";
+import { ADMIN_PAGE_SIZE, adminRoleLabels, normalizeAdminListResponse, normalizePage } from "../models";
 
 export default function AdminUsersPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createDraft, setCreateDraft] = useState({ username: "", password: "", email: "", role: "parent" });
+  const [pendingStatus, setPendingStatus] = useState(null);
+  const [statusReason, setStatusReason] = useState("");
 
   const filters = useMemo(() => ({
     search: searchParams.get("search") || "",
@@ -30,18 +34,24 @@ export default function AdminUsersPage() {
   });
 
   const toggleStatusMutation = useMutation({
-    mutationFn: ({ userId, profileId }) => adminService.toggleUserStatus({ userId, profileId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
+    mutationFn: ({ userId, isLocked, reason }) => adminService.toggleUserStatus({ userId, isLocked, reason }),
+    onSuccess: async () => {
+      setPendingStatus(null);
+      setStatusReason("");
+      await queryClient.invalidateQueries({ queryKey: ["admin-users", user.id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.adminOverview(user.id) });
+      await queryClient.invalidateQueries({ queryKey: ["admin-audit", user.id] });
     },
   });
 
-  const updateRoleMutation = useMutation({
-    mutationFn: ({ userId, profileId, role }) => adminService.updateUserRole({ userId, profileId, role }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-overview"] });
+  const createUserMutation = useMutation({
+    mutationFn: (payload) => adminService.createUser({ payload }),
+    onSuccess: async () => {
+      setCreateDraft({ username: "", password: "", email: "", role: "parent" });
+      setCreateOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["admin-users", user.id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.adminOverview(user.id) });
+      await queryClient.invalidateQueries({ queryKey: ["admin-audit", user.id] });
     },
   });
 
@@ -57,25 +67,56 @@ export default function AdminUsersPage() {
     setSearchParams({});
   }
 
-  function handleToggleStatus(userId, profileId) {
-    toggleStatusMutation.mutate({ userId, profileId });
+  function handleToggleStatus(item) {
+    setStatusReason("");
+    toggleStatusMutation.reset();
+    setPendingStatus({ userId: item.userId, isLocked: item.status !== "locked", name: item.name });
   }
 
-  function handleRoleChange(userId, profileId, role) {
-    updateRoleMutation.mutate({ userId, profileId, role });
+  function confirmStatusChange() {
+    if (!pendingStatus) return;
+    toggleStatusMutation.mutate({ ...pendingStatus, reason: statusReason.trim() });
+  }
+
+  function submitCreateUser(event) {
+    event.preventDefault();
+    const username = createDraft.username.trim();
+    const password = createDraft.password;
+    if (!username || password.length < 6 || !createDraft.role) return;
+    const payload = { username, password, role: createDraft.role };
+    if (createDraft.email.trim()) payload.email = createDraft.email.trim();
+    createUserMutation.mutate(payload);
   }
 
   const data = usersQuery.data || { items: [], total: 0, page: 1, pageSize: ADMIN_PAGE_SIZE, totalPages: 1 };
 
   return (
+    <>
     <div className="workspace-dashboard admin-users-page">
       <div className="workspace-page-heading">
         <div>
           <p className="workspace-eyebrow">ADMIN / QUẢN LÝ NGƯỜI DÙNG</p>
           <h1>Tài khoản Người dùng</h1>
-          <p>Xem thông tin tài khoản, email, gói dịch vụ, phân quyền và khóa/mở khóa trực tiếp.</p>
+          <p>Danh sách tài khoản từ Backend; hồ sơ gói dịch vụ chỉ hiện khi tài khoản có Parent profile.</p>
         </div>
+        <button className="workspace-button" type="button" onClick={() => { setCreateOpen((value) => !value); createUserMutation.reset(); }}>
+          {createOpen ? <X size={17} aria-hidden="true" /> : <Plus size={17} aria-hidden="true" />}
+          {createOpen ? "Đóng" : "Tạo tài khoản"}
+        </button>
       </div>
+
+      {createOpen && <section className="admin-filter-panel" aria-labelledby="admin-create-user-title">
+        <div className="admin-filter-title"><Plus size={17} aria-hidden="true" /><strong id="admin-create-user-title">Tạo tài khoản</strong></div>
+        <form className="admin-filter-fields" onSubmit={submitCreateUser}>
+          <label><span>Tên đăng nhập *</span><input autoComplete="off" required minLength={1} value={createDraft.username} onChange={(event) => setCreateDraft((current) => ({ ...current, username: event.target.value }))} /></label>
+          <label><span>Mật khẩu *</span><input type="password" autoComplete="new-password" required minLength={6} value={createDraft.password} onChange={(event) => setCreateDraft((current) => ({ ...current, password: event.target.value }))} /></label>
+          <label><span>Email</span><input type="email" autoComplete="off" value={createDraft.email} onChange={(event) => setCreateDraft((current) => ({ ...current, email: event.target.value }))} /></label>
+          <label><span>Vai trò *</span><select value={createDraft.role} onChange={(event) => setCreateDraft((current) => ({ ...current, role: event.target.value }))}><option value="parent">Phụ huynh</option><option value="child">Trẻ em</option><option value="content_manager">Content Manager</option><option value="admin">Quản trị viên</option></select></label>
+          <button className="workspace-button" type="submit" disabled={createUserMutation.isPending || !createDraft.username.trim() || createDraft.password.length < 6}>{createUserMutation.isPending ? "Đang tạo…" : <><Check size={16} aria-hidden="true" /> Tạo tài khoản</>}</button>
+        </form>
+        {createUserMutation.isError && <p className="admin-mutation-error" role="alert"><WarningCircle size={16} aria-hidden="true" /> {createUserMutation.error.message}</p>}
+        {createUserMutation.isSuccess && <p className="workspace-inline-success" role="status">Backend đã tạo tài khoản.</p>}
+      </section>}
 
       <section className="admin-filter-panel">
         <div className="admin-filter-title">
@@ -121,18 +162,19 @@ export default function AdminUsersPage() {
             returnTo={`/admin/users?${searchParams.toString()}`}
             onPageChange={(page) => updateFilter("page", String(page))}
             onToggleStatus={handleToggleStatus}
-            onRoleChange={handleRoleChange}
             isToggling={toggleStatusMutation.isPending}
-            isUpdatingRole={updateRoleMutation.isPending}
           />
+          {data.warnings?.map((warning) => <p className="admin-refresh-note" role="status" key={warning}>{warning}</p>)}
           {usersQuery.isError && <p className="admin-refresh-note" role="status">Lần làm mới chưa thành công; đang hiển thị dữ liệu gần nhất.</p>}
         </>
       )}
     </div>
+    {pendingStatus && <div className="admin-overlay" role="presentation"><section className="admin-editor-panel admin-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="admin-user-status-confirm-title"><p className="workspace-eyebrow">CẬP NHẬT TRẠNG THÁI</p><h2 id="admin-user-status-confirm-title">{pendingStatus.isLocked ? "Khóa tài khoản?" : "Mở khóa tài khoản?"}</h2><p><strong>{pendingStatus.name}</strong></p><label className="admin-catalog-field"><span>Lý do (không bắt buộc)</span><textarea rows={3} value={statusReason} onChange={(event) => setStatusReason(event.target.value)} /></label>{toggleStatusMutation.isError && <p className="admin-mutation-error" role="alert">{toggleStatusMutation.error.message}</p>}<div className="admin-dialog-actions"><button className="workspace-button workspace-button-quiet" type="button" disabled={toggleStatusMutation.isPending} onClick={() => setPendingStatus(null)}>Hủy</button><button className="workspace-button workspace-button-danger" type="button" disabled={toggleStatusMutation.isPending} onClick={confirmStatusChange}>{toggleStatusMutation.isPending ? "Đang lưu…" : pendingStatus.isLocked ? "Xác nhận khóa" : "Xác nhận mở khóa"}</button></div></section></div>}
+    </>
   );
 }
 
-function UserTable({ data, returnTo, onPageChange, onToggleStatus, onRoleChange, isToggling, isUpdatingRole }) {
+function UserTable({ data, returnTo, onPageChange, onToggleStatus, isToggling }) {
   if (!data.items.length) {
     return (
       <div className="workspace-state workspace-state-empty">
@@ -179,35 +221,25 @@ function UserTable({ data, returnTo, onPageChange, onToggleStatus, onRoleChange,
                 </td>
                 <td>
                   <StatusBadge
-                    value={item.plan || "Free"}
-                    label={item.plan || "Free"}
+                    value={item.plan || "unavailable"}
+                    label={item.plan || "Không áp dụng"}
                     tone={item.plan?.toLowerCase().includes("pro") ? "success" : item.plan?.toLowerCase().includes("plus") ? "accent" : "neutral"}
                   />
                 </td>
                 <td>
                   <span className="admin-credit-display">
                     <Coins size={16} aria-hidden="true" />
-                    <strong>{item.remainingMonthlyCredit}</strong> Credit
+                    <strong>{item.remainingMonthlyCredit ?? "—"}</strong> {item.remainingMonthlyCredit === null ? "" : "Credit"}
                   </span>
                 </td>
                 <td>
-                  <select
-                    className="admin-role-select"
-                    aria-label={`Sửa vai trò của ${item.name}`}
-                    value={item.role || "parent"}
-                    onChange={(e) => onRoleChange(item.userId, item.id, e.target.value)}
-                    disabled={isUpdatingRole}
-                  >
-                    <option value="parent">Phụ huynh</option>
-                    <option value="content_manager">Content Manager</option>
-                    <option value="admin">Quản trị viên</option>
-                  </select>
+                  <span>{adminRoleLabels[item.role] || item.role || "Chưa có dữ liệu"}</span>
                 </td>
                 <td>
                   <StatusBadge
-                    value={isLocked ? "locked" : "active"}
-                    label={isLocked ? "Đã khóa" : "Hoạt động"}
-                    tone={isLocked ? "danger" : "success"}
+                    value={item.status || "unknown"}
+                    label={isLocked ? "Đã khóa" : item.status === "active" ? "Hoạt động" : "Chưa có dữ liệu"}
+                    tone={isLocked ? "danger" : item.status === "active" ? "success" : "neutral"}
                   />
                 </td>
                 <td>
@@ -226,8 +258,8 @@ function UserTable({ data, returnTo, onPageChange, onToggleStatus, onRoleChange,
                       className={`admin-icon-btn ${isLocked ? "is-danger" : ""}`}
                       title={isLocked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
                       aria-label={isLocked ? `Mở khóa tài khoản ${item.name}` : `Khóa tài khoản ${item.name}`}
-                      onClick={() => onToggleStatus(item.userId, item.id)}
-                      disabled={isToggling}
+                      onClick={() => onToggleStatus(item)}
+                      disabled={isToggling || item.status === "unknown"}
                     >
                       {isLocked ? (
                         <LockKey size={18} aria-hidden="true" />

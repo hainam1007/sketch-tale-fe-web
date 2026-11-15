@@ -58,7 +58,7 @@ export default function WorkspaceLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const confirmToast = useConfirmToast();
-  const isStoryStudio = user.role === ROLES.CONTENT && /\/content\/stories\/[^/]+\/pages\/?$/.test(location.pathname);
+  const isStoryStudio = /\/content\/stories\/[^/]+\/pages\/?$/.test(location.pathname);
   const isStoryEditorRoute = /^\/content\/stories\/(?!new(?:\/|$))[^/]+/.test(location.pathname);
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuButtonRef = useRef(null);

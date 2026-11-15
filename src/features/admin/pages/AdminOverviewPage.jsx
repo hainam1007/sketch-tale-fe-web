@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   ArrowClockwise,
   Coins,
@@ -7,7 +6,6 @@ import {
   Package,
   Prohibit,
   ShieldCheck,
-  TrendUp,
   UsersThree,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
@@ -20,29 +18,8 @@ import { adminService } from "../services/adminService";
 
 const statusTone = { open: "neutral", under_review: "gold", resolved: "success", rejected: "danger" };
 
-// Dữ liệu template doanh thu — Sẵn sàng nhận API từ backend khi cập nhật
-const defaultRevenueData = {
-  total: 49000,
-  growthPercent: 18.4,
-  subscriptionTotal: 49000,
-  creditUsed: 6190,
-  activeSubscriptionsCount: 2,
-  monthlyTrend: [
-    { label: "Thg 5", sub: 0, credit: 0, total: 0 },
-    { label: "Thg 6", sub: 0, credit: 0, total: 0 },
-    { label: "Thg 7", sub: 0, credit: 0, total: 0 },
-    { label: "Thg 8", sub: 0, credit: 0, total: 0 },
-    { label: "Thg 9", sub: 0, credit: 0, total: 0 },
-    { label: "Thg 10", sub: 49000, credit: 6190, total: 49000 },
-  ],
-  packages: [
-    { name: "Gói Plus", amount: 49000, unitPrice: 49000, count: "1 lượt", rawCount: 1, share: 100 },
-    { name: "Gói Pro", amount: 0, unitPrice: 99000, count: "0 lượt", rawCount: 0, share: 0 },
-  ],
-};
-
 function formatVND(amount) {
-  if (typeof amount !== "number" || !Number.isFinite(amount)) return "0 ₫";
+  if (typeof amount !== "number" || !Number.isFinite(amount)) return "Chưa có dữ liệu";
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(amount);
 }
 
@@ -59,7 +36,6 @@ function formatCompactVND(amount) {
 
 export default function AdminOverviewPage() {
   const { user } = useAuth();
-  const [revenueTab, setRevenueTab] = useState("30days");
 
   const overviewQuery = useQuery({
     queryKey: queryKeys.adminOverview(user.id),
@@ -73,8 +49,7 @@ export default function AdminOverviewPage() {
   const data = overviewQuery.data || {};
   const counts = data.counts || {};
   const queue = Array.isArray(data.queue) ? data.queue : [];
-  // Nhận dữ liệu doanh thu từ backend khi có (hoặc fallback sang template)
-  const revenue = data.revenue || defaultRevenueData;
+  const revenue = data.revenue || {};
 
   const maxMonthTotal = Math.max(...(revenue.monthlyTrend || []).map((m) => m.sub || m.total || 0), 1);
 
@@ -90,55 +65,28 @@ export default function AdminOverviewPage() {
         </button>
       </div>
       {overviewQuery.isError && <p className="admin-refresh-note" role="status">Không tải được bản mới. Đang hiển thị dữ liệu gần nhất.</p>}
+      {data.errors?.map((error) => <p className="admin-refresh-note" role="status" key={error.section}>{error.message}</p>)}
 
       <section className="workspace-stat-grid admin-overview-stat-grid" aria-label="Chỉ số vận hành">
         <OverviewStat icon={Flag} label="Báo cáo chờ xử lý" value={counts.reportsOpen} to="/admin/reports" tone="gold" />
         <OverviewStat icon={ShieldCheck} label="Báo cáo đang xem xét" value={counts.reportsUnderReview} to="/admin/reports" tone="gold" />
-        <OverviewStat icon={UsersThree} label="Người dùng" value={counts.totalParents} to="/admin/users" tone="success" />
+        <OverviewStat icon={UsersThree} label="Người dùng" value={counts.totalUsers} to="/admin/users" tone="success" />
         <OverviewStat icon={Package} label="Gói sử dụng đang chạy" value={counts.activePlans} to="/admin/subscription-plans" tone="neutral" />
       </section>
 
       <div className="admin-overview-grid">
-        {/* KHU VỰC DOANH THU — DÀNH PHẦN RỘNG (SẴN SÀNG NỐI API) */}
         <section className="analytics-card admin-revenue-card" aria-label="Tổng quan doanh thu">
           <div className="analytics-card-heading">
             <div>
               <p className="workspace-eyebrow">HIỆU QUẢ KINH DOANH</p>
               <h2>Tổng quan doanh thu</h2>
-              <p>Doanh thu từ gói thành viên và mức độ tiêu thụ Credit AI của người dùng.</p>
+              <p>Backend chưa cung cấp aggregate doanh thu hoặc credit đã dùng.</p>
             </div>
             <div className="admin-revenue-header-actions">
-              <span className="admin-revenue-pill">
-                <TrendUp size={14} aria-hidden="true" /> +{revenue.growthPercent}%
-              </span>
-              <span className="admin-revenue-api-pill is-live" title="Dữ liệu kết nối trực tiếp API /subscriptions & /subscription-plans">
-                <span className="admin-source-indicator" /> Live API: /subscriptions
+              <span className="admin-revenue-api-pill" title="Swagger chưa có API tổng hợp doanh thu">
+                <span className="admin-source-indicator" /> Chưa có API doanh thu
               </span>
             </div>
-          </div>
-
-          <div className="admin-revenue-tabs" role="tablist" aria-label="Khoảng thời gian doanh thu">
-            <button
-              type="button"
-              className={`admin-revenue-tab-btn ${revenueTab === "30days" ? "is-active" : ""}`}
-              onClick={() => setRevenueTab("30days")}
-            >
-              30 ngày qua
-            </button>
-            <button
-              type="button"
-              className={`admin-revenue-tab-btn ${revenueTab === "quarter" ? "is-active" : ""}`}
-              onClick={() => setRevenueTab("quarter")}
-            >
-              Quý này
-            </button>
-            <button
-              type="button"
-              className={`admin-revenue-tab-btn ${revenueTab === "year" ? "is-active" : ""}`}
-              onClick={() => setRevenueTab("year")}
-            >
-              Năm 2026
-            </button>
           </div>
 
           <div className="admin-revenue-kpis">
@@ -149,7 +97,7 @@ export default function AdminOverviewPage() {
               <div className="admin-revenue-kpi-body">
                 <span className="admin-revenue-kpi-label">Tổng doanh thu</span>
                 <strong className="admin-revenue-kpi-value">{formatVND(revenue.total)}</strong>
-                <span className="admin-revenue-badge-pill is-growth">+{revenue.growthPercent}% so với kỳ trước</span>
+                <span className="admin-revenue-badge-pill">Chưa có số liệu theo kỳ</span>
               </div>
             </div>
             <div className="admin-revenue-kpi-card">
@@ -159,7 +107,7 @@ export default function AdminOverviewPage() {
               <div className="admin-revenue-kpi-body">
                 <span className="admin-revenue-kpi-label">Gói thuê bao</span>
                 <strong className="admin-revenue-kpi-value">{formatVND(revenue.subscriptionTotal)}</strong>
-                <span className="admin-revenue-kpi-note">{revenue.activeSubscriptionsCount || 2} tài khoản đang áp dụng</span>
+                <span className="admin-revenue-kpi-note">Chưa có số liệu thuê bao</span>
               </div>
             </div>
             <div className="admin-revenue-kpi-card">
@@ -169,7 +117,7 @@ export default function AdminOverviewPage() {
               <div className="admin-revenue-kpi-body">
                 <span className="admin-revenue-kpi-label">Số credit đã sử dụng</span>
                 <strong className="admin-revenue-kpi-value">
-                  {(revenue.creditUsed ?? 6190).toLocaleString("vi-VN")}{" "}
+                  Chưa có dữ liệu{" "}
                   <small style={{ fontSize: "13px", fontWeight: 600, color: "#64748b" }}>Credit</small>
                 </strong>
                 <span className="admin-revenue-kpi-note">Mức tiêu thụ AI trên toàn hệ thống</span>
@@ -191,7 +139,8 @@ export default function AdminOverviewPage() {
             </div>
 
             <div className="admin-revenue-bars" aria-label="Biểu đồ cột doanh thu theo tháng">
-              {revenue.monthlyTrend.map((m) => {
+              {!revenue.monthlyTrend?.length && <p>Chưa có chuỗi doanh thu từ Backend.</p>}
+              {(revenue.monthlyTrend || []).map((m) => {
                 const amount = m.sub || m.total || 0;
                 const isZero = amount === 0;
                 const subHeightPct = isZero ? 4 : Math.max(16, Math.round((amount / maxMonthTotal) * 100));
@@ -222,7 +171,8 @@ export default function AdminOverviewPage() {
               <small className="admin-filter-result-count">Tỷ trọng các gói dịch vụ</small>
             </div>
             <div className="admin-revenue-packages-grid">
-              {revenue.packages.map((pkg) => (
+              {!revenue.packages?.length && <p>Chưa có dữ liệu doanh thu theo gói.</p>}
+              {(revenue.packages || []).map((pkg) => (
                 <div className={`admin-revenue-package-card ${pkg.rawCount > 0 ? "is-active" : ""}`} key={pkg.name}>
                   <div className="admin-revenue-package-card-top">
                     <div>
@@ -349,8 +299,8 @@ export default function AdminOverviewPage() {
           ) : (
             <div className="workspace-state workspace-state-empty">
               <Flag size={25} aria-hidden="true" />
-              <strong>Không có báo cáo chờ xử lý</strong>
-              <p>Toàn bộ khiếu nại đã được giải quyết.</p>
+              <strong>{data.errors?.some((error) => error.section === "reports") ? "Chưa tải được hàng đợi báo cáo" : "Không có báo cáo chờ xử lý"}</strong>
+              <p>{data.errors?.some((error) => error.section === "reports") ? "Thử làm mới để tải lại dữ liệu." : "Không có báo cáo nào đang chờ xử lý."}</p>
             </div>
           )}
           <Link className="admin-overview-section-link" to="/admin/reports">
@@ -408,7 +358,7 @@ export default function AdminOverviewPage() {
 }
 
 function OverviewStat({ icon: Icon, label, value, to, tone }) {
-  const displayValue = value === null || value === undefined || value === "" ? "0" : typeof value === "number" && Number.isFinite(value) ? new Intl.NumberFormat("vi-VN").format(value) : String(value);
+  const displayValue = value === null || value === undefined || value === "" ? "Chưa có" : typeof value === "number" && Number.isFinite(value) ? new Intl.NumberFormat("vi-VN").format(value) : String(value);
   return (
     <Link className={`admin-overview-stat admin-overview-stat-${tone}`} to={to}>
       <span className="workspace-stat-icon"><Icon size={20} aria-hidden="true" /></span>

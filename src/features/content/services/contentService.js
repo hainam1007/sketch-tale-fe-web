@@ -2,8 +2,9 @@ import { featureApiModes, featureApiRequest } from "../../../lib/api/featureApi"
 import { ApiError } from "../../../lib/api/errors";
 import { SESSION_KEY } from "../../../mocks/mockServer";
 import { deleteAsset, listAssets, uploadAsset } from "./assetService";
-import { mergeContentMockOverlay, mergeMockStoryDraft, removeMockSlot, removeMockQuizDraft, saveMockPageOrder, saveMockQuizDraft, saveMockSlotDraft, saveMockStoryDraft } from "./contentMockOverlay";
+import { mergeContentMockOverlay, mergeMockStoryDraft, readContentMockOverlay, reconcileContentMockOverlay, removeMockSlot, removeMockQuizDraft, removeMockStoryDraftFields, saveMockPageOrder, saveMockSlotDraft, saveMockStoryDraft, summarizeLocalOnlyChanges } from "./contentMockOverlay";
 import { normalizeStory } from "../models";
+import { hydratePageFromComposition, parseStoryComposition, serializeCompositionString } from "./storyComposition";
 
 const contentRequest = (options) => featureApiRequest("content", options);
 
@@ -20,20 +21,12 @@ function isBackendUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || ""));
 }
 
-function requireBackendUserId() {
-  const userId = activeUserId();
-  if (!isBackendUuid(userId)) {
-    throw new ApiError({ status: 401, code: "CONTENT_SLOT_USER_ID_UNAVAILABLE", message: "Không thể lưu vị trí nhân vật vì phiên đăng nhập chưa có User ID hợp lệ. Hãy đăng nhập lại." });
-  }
-  return userId;
-}
-
-function normalizeBackendStory(story) {
+function normalizeBackendStory(story, { includeLocalChanges = true } = {}) {
   const status = ({ 0: "draft", 1: "pending", 2: "published", 3: "hidden", 4: "archived" })[story.status]
     || ({ draft: "draft", pending: "pending", active: "published", published: "published", inactive: "hidden", hidden: "hidden", archived: "archived" })[String(story.status).toLowerCase()]
     || "unknown";
 
-  return mergeMockStoryDraft({
+  const normalized = {
     ...story,
     id: story.id,
     title: story.title || "",
@@ -47,7 +40,8 @@ function normalizeBackendStory(story) {
     pagesCount: Number(story.totalPageNumbers) || 0,
     updatedAt: story.updatedAt || story.createdAt,
     status,
-  }, activeUserId(), story.id);
+  };
+  return includeLocalChanges ? mergeMockStoryDraft(normalized, activeUserId(), story.id) : normalized;
 }
 
 function responseRows(response) {
@@ -83,7 +77,7 @@ function backendFormData(fields) {
 }
 
 function backendStoryFormData(payload, { creating = false } = {}) {
-  if (payload.ageGroup == null) {
+  if (!creating && payload.ageGroup == null) {
     throw new ApiError({
       status: 501,
       code: "CONTENT_STORY_ENUM_UNCONFIRMED",
@@ -94,8 +88,8 @@ function backendStoryFormData(payload, { creating = false } = {}) {
     EducationThemeId: payload.category,
     Title: payload.title,
     Description: payload.description,
-    AgeGroup: payload.ageGroup,
   };
+  if (!creating) fields.AgeGroup = payload.ageGroup;
   if (!creating && payload.status != null) {
     const status = ({ 0: 0, 1: 1, 2: 2, 3: 3, 4: 4, draft: 0, pending: 1, active: 2, published: 2, inactive: 3, hidden: 3, archived: 4 })[String(payload.status).toLowerCase()];
     if (status === undefined) {
@@ -131,6 +125,9 @@ function backendPageFormData(payload, { creating = false } = {}) {
   };
   if (!creating) fields.Status = payload.status;
   const form = backendFormData(fields);
+  if (Object.hasOwn(payload, "compositionJson")) {
+    form.append("CompositionJson", String(payload.compositionJson ?? ""));
+  }
   if (payload.backgroundFile instanceof Blob) form.append("file", payload.backgroundFile, payload.backgroundFile.name || "background-image");
   if (payload.audioFile instanceof Blob) form.append("audioFile", payload.audioFile, payload.audioFile.name || "page-audio");
   return form;
@@ -163,6 +160,7 @@ async function mutateBackendStoryAndRefresh(storyId, performMutation, { decorate
   try {
     result = await performMutation();
   } catch (error) {
+    if (error?.mutationAccepted || error?.mutationOutcomeUnknown) throw error;
     const localContractBlock = ["CONTENT_OPERATION_NOT_SUPPORTED", "CONTENT_STORY_ENUM_UNCONFIRMED", "CONTENT_PAGE_STATUS_UNAVAILABLE", "CONTENT_ROLE_ENUM_UNAVAILABLE", "CONTENT_SLOT_STATUS_UNAVAILABLE", "CONTENT_SLOT_USER_ID_UNAVAILABLE", "CONTENT_SLOT_RESOURCE_ID_UNAVAILABLE", "CONTENT_SLOT_VALUES_INVALID"].includes(error?.code);
     if (!localContractBlock && (error?.code === "NETWORK_ERROR" || (Number(error?.status) >= 500 && Number(error?.status) <= 599))) {
       const unknown = new ApiError({
@@ -207,7 +205,7 @@ async function mutateBackendStoryAndRefresh(storyId, performMutation, { decorate
 }
 
 function normalizeBackendPage(page) {
-  return {
+  const normalized = {
     ...page,
     order: Number(page.pageNumber) || 1,
     text: page.rawText || "",
@@ -223,6 +221,8 @@ function normalizeBackendPage(page) {
       }],
     } : {}),
   };
+  const parsed = parseStoryComposition(page.compositionJson);
+  return hydratePageFromComposition(normalized, parsed);
 }
 
 function normalizeBackendRole(role) {
@@ -284,8 +284,6 @@ function backendSlotCreateBody(roleId, payload) {
     posY: y,
     scale,
     flipHorizontal: Boolean(payload.flip),
-    createdAt: new Date().toISOString(),
-    createBy: requireBackendUserId(),
   };
 }
 
@@ -301,7 +299,6 @@ function backendSlotUpdateBody(payload) {
     scale,
     flipHorizontal: Boolean(payload.flip),
     status,
-    updateBy: requireBackendUserId(),
   };
 }
 
@@ -378,52 +375,276 @@ async function getBackendStory({ storyId, signal }) {
   return normalizeBackendStory(story);
 }
 
-async function getBackendEditor({ storyId, signal }) {
+async function getBackendPage({ pageId, signal }) {
+  const response = await contentRequest({ path: `/storypage-template/page/${pageId}`, signal });
+  if (!response || response.id !== pageId || !(response.compositionJson == null || typeof response.compositionJson === "string")) {
+    throw new ApiError({
+      status: 502,
+      code: "CONTENT_PAGE_RESPONSE_INVALID",
+      message: "Không thể xác nhận dữ liệu trang trước khi lưu. Tải lại truyện rồi thử lại.",
+    });
+  }
+  // Nullable CompositionJson may be omitted by serializers configured to skip nulls.
+  return { ...response, compositionJson: response.compositionJson ?? null };
+}
+
+function stableJsonValue(value) {
+  if (Array.isArray(value)) return value.map(stableJsonValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJsonValue(value[key])]));
+  }
+  return value;
+}
+
+function sameCompositionValue(left, right) {
+  const normalizeEmpty = (value) => value == null || value === "" ? null : value;
+  const normalizedLeft = normalizeEmpty(left);
+  const normalizedRight = normalizeEmpty(right);
+  if (normalizedLeft === null || normalizedRight === null) return normalizedLeft === normalizedRight;
+  if (typeof normalizedLeft !== "string" || typeof normalizedRight !== "string") return false;
+  try {
+    return JSON.stringify(stableJsonValue(JSON.parse(normalizedLeft)))
+      === JSON.stringify(stableJsonValue(JSON.parse(normalizedRight)));
+  } catch {
+    return normalizedLeft === normalizedRight;
+  }
+}
+
+function acceptedPageReadbackError(pageId, cause, mismatch = false) {
+  const error = new ApiError({
+    status: 503,
+    code: mismatch ? "CONTENT_PAGE_READBACK_MISMATCH" : "CONTENT_PAGE_READBACK_FAILED",
+    message: mismatch
+      ? "Máy chủ đã nhận cập nhật trang nhưng dữ liệu đọc lại không khớp. Bản chỉnh sửa vẫn được giữ; hãy tải lại trang trước khi lưu tiếp."
+      : "Máy chủ đã nhận cập nhật trang nhưng chưa thể xác nhận dữ liệu đọc lại. Bản chỉnh sửa vẫn được giữ; hãy tải lại trang trước khi lưu tiếp.",
+    requestId: cause?.requestId || "frontend-content-page-readback",
+  });
+  error.mutationAccepted = true;
+  error.pageId = pageId;
+  if (cause) error.cause = cause;
+  return error;
+}
+
+async function writeBackendPageAndVerify({ pageId, payload, currentPage }) {
+  const baseline = currentPage || await getBackendPage({ pageId });
+  const mode = payload.compositionMode || "preserve";
+  if (payload.expectedCompositionJson !== undefined
+    && !sameCompositionValue(baseline.compositionJson, payload.expectedCompositionJson)) {
+    throw new ApiError({ status: 409, code: "CONTENT_COMPOSITION_CONFLICT", message: "Bố cục trang đã được thay đổi ở nơi khác. Bản đang sửa vẫn được giữ lại; hãy tải lại trước khi lưu tiếp." });
+  }
+  if (mode === "replace" && !Object.hasOwn(payload, "compositionJson")) {
+    throw new ApiError({ status: 422, code: "CONTENT_COMPOSITION_REPLACEMENT_MISSING", message: "Thiếu dữ liệu bố cục mới; chưa gửi cập nhật trang." });
+  }
+
+  const updatePayload = { text: baseline.rawText, status: baseline.status, ...payload };
+  const expectedComposition = mode === "replace" ? payload.compositionJson ?? "" : baseline.compositionJson;
+  if (mode === "replace") updatePayload.compositionJson = expectedComposition;
+  else if (baseline.compositionJson == null || baseline.compositionJson === "") delete updatePayload.compositionJson;
+  else updatePayload.compositionJson = baseline.compositionJson;
+  delete updatePayload.compositionMode;
+  delete updatePayload.expectedCompositionJson;
+
+  await contentRequest({
+    path: `/storypage-template/${pageId}`,
+    method: "PUT",
+    body: backendPageFormData(updatePayload),
+  });
+
+  let savedPage;
+  try {
+    savedPage = await getBackendPage({ pageId });
+  } catch (error) {
+    throw acceptedPageReadbackError(pageId, error);
+  }
+  const expectedText = String(updatePayload.text ?? updatePayload.rawText ?? "");
+  const expectedStatus = updatePayload.status;
+  const textMatches = savedPage.rawText === expectedText;
+  const statusMatches = expectedStatus == null || String(savedPage.status) === String(expectedStatus);
+  if (!textMatches || !statusMatches || !sameCompositionValue(savedPage.compositionJson, expectedComposition)) {
+    throw acceptedPageReadbackError(pageId, undefined, true);
+  }
+  return savedPage;
+}
+
+async function getBackendEditor({ storyId, signal, includeLocalChanges = true }) {
   const [story, pageResponse, roleResponse, quizResponse] = await Promise.all([
     contentRequest({ path: `/story-template/stories/${storyId}`, signal }),
     // `GET /storypage-template/pages/{id}` is duplicated in the backend with
     // the same route template for story and page IDs. Use the Content Manager
     // all-pages route to avoid ASP.NET's ambiguous route match (500).
     contentRequest({ path: `/storypage-template/all-pages/${storyId}`, signal }),
-    contentRequest({ path: `/story-template/${storyId}/roles`, signal }),
+    contentRequest({ path: `/story-template/${storyId}/all-roles`, signal }),
     contentRequest({ path: `/story-template/${storyId}/all-quizzes`, signal }),
   ]);
   // The authorized all-pages endpoint includes inactive pages. The editor lists
   // editable drafts/pending/active pages and hides soft-deleted or archived rows.
-  const backendPages = responseRows(pageResponse).filter((page) => ![3, 4].includes(Number(page.status)));
+  const allBackendPages = responseRows(pageResponse);
+  if (story?.id !== storyId || allBackendPages.some((page) => page.storyTemplateId !== storyId)) {
+    throw new ApiError({ status: 502, code: "CONTENT_STORY_RESPONSE_MISMATCH", message: "Dữ liệu trả về không thuộc truyện đang mở." });
+  }
+  // Reorder excludes Inactive rows but includes Archived rows. Keep this full
+  // server order so the UI can move visible pages without dropping hidden IDs.
+  const reorderablePageIds = allBackendPages.filter((page) => Number(page.status) !== 3).map((page) => page.id);
+  const backendPages = allBackendPages.filter((page) => ![3, 4].includes(Number(page.status)));
   const pages = backendPages.map(normalizeBackendPage);
-  const roles = responseRows(roleResponse).map(normalizeBackendRole);
+  const roles = responseRows(roleResponse).filter((role) => ![3, 4].includes(Number(role.status))).map(normalizeBackendRole);
+  if (roles.some((role) => role.storyTemplateId !== storyId)) throw new ApiError({ status: 502, code: "CONTENT_ROLE_STORY_MISMATCH", message: "Vai nhân vật không thuộc truyện đang mở." });
+  const quizRows = responseRows(quizResponse).filter((quiz) => ![3, 4].includes(Number(quiz.status)));
+  const slotLoadErrors = new Set();
   const slotGroups = await mapWithConcurrency(pages, 4, async (page) => {
-    const response = await contentRequest({ path: `/story-pages/${page.id}/slots`, signal });
-    return responseRows(response).map((slot) => normalizeBackendSlot(slot, page.id));
+    try {
+      const response = await contentRequest({ path: `/story-pages/${page.id}/slots`, signal });
+      const slots = responseRows(response).map((slot) => normalizeBackendSlot(slot, page.id));
+      if (slots.some((slot) => slot.pageId !== page.id)) throw new Error("Slot không thuộc trang.");
+      return slots;
+    } catch (error) {
+      if (signal?.aborted || error?.name === "AbortError") throw error;
+      slotLoadErrors.add(page.id);
+      return [];
+    }
   });
   const slotsByRoleId = new Map(roles.map((role) => [role.id, []]));
   for (const slot of slotGroups.flat()) {
     const roleSlots = slotsByRoleId.get(slot.roleId);
     if (!roleSlots) {
-      throw new ApiError({ status: 502, code: "CONTENT_SLOT_ROLE_NOT_FOUND", message: "Có vị trí nhân vật không khớp với danh sách nhân vật của truyện. Hãy tải lại hoặc liên hệ nhóm hỗ trợ." });
+      slotLoadErrors.add(slot.pageId);
+      continue;
     }
     roleSlots.push(slot);
   }
-  const rolesWithSlots = roles.map((role) => ({ ...role, slots: slotsByRoleId.get(role.id) || [] }));
+  const pagesWithSlotState = pages.map((page) => {
+    const slotIds = new Set(slotGroups.flat().filter((slot) => slot.pageId === page.id).map((slot) => slot.id));
+    const targets = new Set([...slotIds, ...(page.imageObjects || []).map((item) => item.id)]);
+    const issues = [...(page.compositionIssues || [])];
+    for (const clip of page.animationClips || []) if (!targets.has(clip.targetId)) issues.push({ code: "composition.target_missing", entityId: clip.id, message: "Chuyển động tham chiếu đối tượng không thuộc trang." });
+    for (const id of Object.keys(page.compositionData?.slotExtensions || {})) if (!slotIds.has(id)) issues.push({ code: "composition.slot_missing", entityId: id, message: "Tùy chọn nhân vật tham chiếu vị trí không thuộc trang." });
+    for (const id of Object.keys(page.compositionData?.quizExtensions || {})) if (!quizRows.some((quiz) => quiz.id === id)) issues.push({ code: "composition.quiz_missing", entityId: id, message: "Bố cục tham chiếu câu hỏi không thuộc truyện." });
+    return ({
+    ...page,
+    compositionIssues: issues,
+    ...(page.compositionData?.background?.mode === "inherit" && story.coverImageUrl ? { backgroundAssetId: `story-cover:${story.id}` } : {}),
+    slotsUnavailable: slotLoadErrors.has(page.id),
+    ...(slotLoadErrors.has(page.id) ? { compositionIssues: [...issues, { code: "composition.slots.unavailable", message: "Không thể kiểm tra vị trí nhân vật của trang. Tải lại truyện trước khi tiếp tục." }] } : {}),
+  }); });
+  const rolesWithSlots = roles.map((role) => ({
+    ...role,
+    slots: (slotsByRoleId.get(role.id) || []).map((slot) => {
+      const extension = pagesWithSlotState.find((page) => page.id === slot.pageId)?.slotExtensions?.[slot.id];
+      return extension ? { ...slot, ...extension, id: slot.id, pageId: slot.pageId, roleId: slot.roleId, source: "backend" } : slot;
+    }),
+  }));
   const vocabularyGroups = await mapWithConcurrency(backendPages, 4, (page) => listBackendVocabularyForPage(page.id, signal));
   const vocabulary = vocabularyGroups.flat();
-  const quizzes = responseRows(quizResponse).map(normalizeBackendQuiz);
-  const backendStory = normalizeBackendStory(story);
+  const quizzes = quizRows.map(normalizeBackendQuiz);
+  const quizExtensionOwners = new Map();
+  for (const page of pagesWithSlotState) {
+    for (const [quizId, extension] of Object.entries(page.quizExtensions || {})) {
+      if (quizExtensionOwners.has(quizId)) {
+        page.compositionIssues = [...(page.compositionIssues || []), { code: "composition.quiz.duplicate", entityId: quizId, message: "Câu hỏi đang được gắn với nhiều trang." }];
+        continue;
+      }
+      quizExtensionOwners.set(quizId, { pageId: page.id, extension });
+    }
+  }
+  const quizzesWithExtensions = quizzes.map((quiz) => {
+    const owner = quizExtensionOwners.get(quiz.id);
+    return owner ? { ...quiz, pageId: owner.pageId, feedback: owner.extension?.feedback || "" } : quiz;
+  });
+  const slotsByPageId = new Map(pagesWithSlotState.map((page) => [page.id, new Set(slotGroups.flat().filter((slot) => slot.pageId === page.id).map((slot) => slot.id))]));
+  const knownQuizIds = new Set(quizRows.map((quiz) => quiz.id));
+  for (const page of pagesWithSlotState) {
+    const knownSlotIds = slotsByPageId.get(page.id) || new Set();
+    const staleSlots = Object.keys(page.slotExtensions || {}).filter((slotId) => !knownSlotIds.has(slotId));
+    const knownTargets = new Set([...knownSlotIds, ...(page.imageObjects || []).map((item) => item.id)]);
+    const staleAnimationTargets = (page.animationClips || []).map((clip) => clip.targetId).filter((targetId) => !knownTargets.has(targetId));
+    const staleQuizIds = Object.keys(page.quizExtensions || {}).filter((quizId) => !knownQuizIds.has(quizId));
+    if (staleSlots.length || staleAnimationTargets.length || staleQuizIds.length) page.compositionIssues = [...(page.compositionIssues || []), {
+      code: "composition.reference.slot_missing",
+      entityId: staleSlots[0] || staleAnimationTargets[0] || staleQuizIds[0],
+      message: staleQuizIds.length ? "Bố cục còn lời giải thích tham chiếu câu hỏi không tồn tại." : "Bố cục còn tùy chọn hoặc chuyển động tham chiếu nhân vật không tồn tại trên trang này.",
+    }];
+  }
+  const backendStory = normalizeBackendStory(story, { includeLocalChanges: false });
     const normalized = normalizeStory({
     ...backendStory,
+    reorderablePageIds,
     category: story.educationThemeName || "",
     coverAssetId: backendStory.coverAssetId || (story.coverImageUrl ? `story-cover:${story.id}` : null),
-    pages,
+    pages: pagesWithSlotState,
     roles: rolesWithSlots,
     vocabulary,
-    quizzes,
+    quizzes: quizzesWithExtensions,
     versions: [],
     revision: story.revision,
   });
 
+  // Clear only local recovery fields whose values are confirmed by this server read.
+  if (includeLocalChanges) reconcileContentMockOverlay(activeUserId(), storyId, normalized);
   // The current Backend DTO does not expose a draft revision or version history.
-  return mergeContentMockOverlay({ ...normalized, revision: story.revision ?? null, versionHistoryAvailable: false }, activeUserId(), storyId);
+  const localOnly = includeLocalChanges ? summarizeLocalOnlyChanges(activeUserId(), storyId) : { hasChanges: false, sections: [], changeCount: 0 };
+  const editorStory = { ...normalized, revision: story.revision ?? null, versionHistoryAvailable: false };
+  return {
+    ...(includeLocalChanges ? mergeContentMockOverlay(editorStory, activeUserId(), storyId) : editorStory),
+    localOnlyChanges: featureApiModes.content === "real" ? localOnly : { hasChanges: false, sections: [], changeCount: 0 },
+    hasUnverifiedComposition: featureApiModes.content === "real" && pagesWithSlotState.some((page) => ["invalid", "unsupported"].includes(page.compositionState) || (page.compositionIssues || []).length > 0),
+  };
+}
+
+async function persistBackendQuizExtension({ storyId, quizId, fromPageId = "", toPageId = "", feedback = "" }) {
+  // Add the destination first. If cleanup of the old page fails, the quiz stays
+  // attached to at least one page and the duplicate-owner check blocks publish.
+  const targets = [...new Set([toPageId, fromPageId].filter(Boolean))];
+  for (const pageId of targets) {
+    const serverPage = await getBackendPage({ pageId });
+    const parsed = parseStoryComposition(serverPage.compositionJson);
+    if (["invalid", "unsupported"].includes(parsed.kind) || parsed.issues.length) {
+      const error = new Error(parsed.issues[0]?.message || "Không thể cập nhật liên kết câu hỏi trong bố cục trang.");
+      error.code = "CONTENT_COMPOSITION_INVALID";
+      throw error;
+    }
+    const page = normalizeBackendPage(serverPage);
+    const quizExtensions = { ...(parsed.value?.quizExtensions || {}) };
+    if (pageId === toPageId) quizExtensions[quizId] = { feedback: String(feedback || "") };
+    else delete quizExtensions[quizId];
+    const assets = serverPage.audioNarrationUrl ? [{ id: `page-audio:${pageId}`, name: "Lời kể", kind: "audio", mimeType: "audio/*", size: 0, url: serverPage.audioNarrationUrl, source: "backend", readOnly: true }] : [];
+    const encoded = serializeCompositionString({ ...page, quizExtensions }, assets, parsed.value);
+    if (!encoded.ok) throw new Error(encoded.issues[0]?.message || "Không thể lưu liên kết câu hỏi.");
+    if (!String(serverPage.rawText || "").trim()) throw new Error("Không thể lưu liên kết câu hỏi vì trang chưa có nội dung. Hãy thêm nội dung trang rồi lưu lại.");
+    await writeBackendPageAndVerify({
+      pageId,
+      currentPage: serverPage,
+      payload: { text: serverPage.rawText, status: serverPage.status, compositionJson: encoded.json, compositionMode: "replace", expectedCompositionJson: serverPage.compositionJson ?? null },
+    });
+  }
+}
+
+async function removeBackendSlotCompositionReference(storyId, slotId, pageId) {
+  const serverPage = await getBackendPage({ pageId });
+  const parsed = parseStoryComposition(serverPage.compositionJson);
+  if (parsed.kind !== "supported" || parsed.issues.length) return;
+  const page = normalizeBackendPage(serverPage);
+  const slotExtensions = { ...(parsed.value.slotExtensions || {}) };
+  const hadSlotExtension = Object.hasOwn(slotExtensions, slotId);
+  delete slotExtensions[slotId];
+  const animationClips = (page.animationClips || []).filter((clip) => clip.targetId !== slotId);
+  const sequence = (page.sequence || []).filter((item) => item.slotId !== slotId);
+  if (!hadSlotExtension && animationClips.length === (page.animationClips || []).length && sequence.length === (page.sequence || []).length) return;
+  const encoded = serializeCompositionString({ ...page, slotExtensions, animationClips, sequence }, [], parsed.value);
+  if (!encoded.ok) throw new Error(encoded.issues[0]?.message || "Không thể dọn tùy chọn của nhân vật đã xóa.");
+  if (!String(serverPage.rawText || "").trim()) throw new Error("Nhân vật đã xóa nhưng trang không có nội dung để cập nhật bố cục.");
+  await writeBackendPageAndVerify({
+    pageId,
+    currentPage: serverPage,
+    payload: { text: serverPage.rawText, status: serverPage.status, compositionJson: encoded.json, compositionMode: "replace", expectedCompositionJson: serverPage.compositionJson ?? null },
+  });
+}
+
+function acceptedQuizCompositionError(error, storyId) {
+  const accepted = new ApiError({ status: 503, code: "CONTENT_QUIZ_COMPOSITION_SYNC_FAILED", message: "Thao tác câu hỏi đã hoàn tất một phần, nhưng liên kết trang hoặc lời giải thích chưa đồng bộ. Hãy tải lại truyện trước khi thử tiếp." });
+  accepted.mutationAccepted = true;
+  accepted.storyId = storyId;
+  accepted.cause = error;
+  return accepted;
 }
 
 async function validateBackendStory({ storyId, signal }) {
@@ -432,6 +653,11 @@ async function validateBackendStory({ storyId, signal }) {
   if (!story.title.trim()) issues.push("Tên truyện");
   if (!story.categoryId) issues.push("Danh mục");
   if (!story.pages.length) issues.push("Ít nhất một trang");
+  if (story.pages.some((page) => !page.text?.trim())) issues.push("Nội dung mỗi trang");
+  if (story.hasUnverifiedComposition) issues.push(...story.pages.flatMap((page) => (page.compositionIssues || []).map((issue) => issue.message)));
+  if (story.pages.some((page) => page.slotsUnavailable)) issues.push("Không thể tải đầy đủ vị trí nhân vật");
+  if (story.quizzes.some((quiz) => !Number.isInteger(quiz.correctIndex) || quiz.correctIndex < 0 || quiz.correctIndex >= (quiz.options || []).length)) issues.push("Mỗi câu hỏi cần có một đáp án đúng hợp lệ");
+  if (story.localOnlyChanges?.hasChanges) issues.push("Còn thay đổi chỉ lưu trên thiết bị");
   return {
     valid: issues.length === 0,
     issues,
@@ -444,7 +670,7 @@ async function validateBackendStory({ storyId, signal }) {
 
 async function listBackendStories({ search, status, category, sort, page, pageSize, signal }) {
   const response = await contentRequest({ path: "/story-template/all-stories", signal });
-  const rows = Array.isArray(response) ? response : response?.items || [];
+  const rows = responseRows(response);
   const normalizedSearch = search.trim().toLowerCase();
   const filtered = rows
     .map(normalizeBackendStory)
@@ -471,7 +697,7 @@ async function listBackendStories({ search, status, category, sort, page, pageSi
 
 async function getBackendStatistics(signal) {
   const response = await contentRequest({ path: "/story-template/all-stories", signal });
-  const rows = (Array.isArray(response) ? response : response?.items || []).map(normalizeBackendStory);
+  const rows = responseRows(response).map(normalizeBackendStory);
   return {
     summary: {
       publishedStories: rows.filter((story) => story.status === "published").length,
@@ -479,7 +705,8 @@ async function getBackendStatistics(signal) {
     },
     trend: [],
     topStories: [],
-    errors: [{ section: "analytics", message: "Một số thống kê hiện chưa thể hiển thị." }],
+    analyticsAvailable: false,
+    errors: [{ section: "analytics", message: "Swagger hiện chưa có API thống kê lượt đọc." }],
   };
 }
 
@@ -488,12 +715,18 @@ function revisionBody(payload, revision) {
 }
 
 function decorateStoryCoverAsset(story, storyId, payload) {
-  if (payload.coverAssetId) {
+  if (payload.coverFile instanceof Blob) {
+    if (!story.coverImageUrl) {
+      const accepted = new ApiError({ status: 503, code: "CONTENT_COVER_READBACK_MISSING", message: "Thông tin truyện đã được lưu nhưng máy chủ chưa trả về ảnh bìa để xác nhận. Hãy tải lại truyện trước khi tiếp tục." });
+      accepted.mutationAccepted = true;
+      accepted.storyId = storyId;
+      throw accepted;
+    }
+    removeMockStoryDraftFields(activeUserId(), storyId, ["coverAssetId", "coverImageUrl"]);
+  } else if (payload.coverAssetId) {
     saveMockStoryDraft(activeUserId(), storyId, { coverAssetId: payload.coverAssetId });
-  } else if (payload.coverFile) {
-    saveMockStoryDraft(activeUserId(), storyId, { coverAssetId: "" });
   }
-  return mergeContentMockOverlay(story, activeUserId(), storyId);
+  return mergeContentMockOverlay(mergeMockStoryDraft(story, activeUserId(), storyId), activeUserId(), storyId);
 }
 
 export const contentService = {
@@ -507,17 +740,48 @@ export const contentService = {
   listCategories: async ({ signal } = {}) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: "/content/catalog/categories", signal });
     const response = await contentRequest({ path: "/education-themes", signal });
-    const rows = Array.isArray(response) ? response : response?.items || [];
-    return { items: rows.map((theme) => ({ id: theme.id, label: theme.name || "Chưa đặt tên" })) };
+    const rows = responseRows(response);
+    return { items: rows.map((theme) => ({
+      id: theme.id ?? theme.Id,
+      label: theme.nameVi || theme.name || theme.NameVi || theme.Name || "Chưa đặt tên",
+    })) };
   },
   getStory: (params) => featureApiModes.content === "real"
     ? getBackendStory(params)
     : contentRequest({ path: `/content/stories/${params.storyId}`, signal: params.signal }),
   createStory: async (payload) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: "/content/stories", method: "POST", body: payload });
-    return mutateBackendStoryAndRefresh(undefined, () => contentRequest({ path: "/story-template", method: "POST", body: backendStoryFormData(payload, { creating: true }) }), {
+    const createdStory = await mutateBackendStoryAndRefresh(undefined, () => contentRequest({ path: "/story-template", method: "POST", body: backendStoryFormData(payload, { creating: true }) }), {
       decorate: (story) => decorateStoryCoverAsset(story, story.id, payload),
     });
+    if (payload.ageGroup == null) return createdStory;
+
+    try {
+      return await mutateBackendStoryAndRefresh(createdStory.id, () => contentRequest({
+        path: `/story-template/${createdStory.id}`,
+        method: "PUT",
+        body: backendStoryFormData({
+          category: createdStory.categoryId,
+          title: createdStory.title,
+          description: createdStory.description,
+          ageGroup: payload.ageGroup,
+          status: createdStory.backendStatus,
+        }),
+      }), {
+        decorate: (story) => decorateStoryCoverAsset(story, story.id, payload),
+      });
+    } catch (error) {
+      const accepted = new ApiError({
+        status: 503,
+        code: "CONTENT_CREATE_AGE_GROUP_UPDATE_FAILED",
+        message: "Truyện đã được tạo nhưng chưa lưu được nhóm tuổi. Mở truyện để kiểm tra trước khi tiếp tục.",
+        requestId: error?.requestId || "frontend-content-create-age-group",
+      });
+      accepted.mutationAccepted = true;
+      accepted.storyId = createdStory.id;
+      accepted.createdStoryId = createdStory.id;
+      throw accepted;
+    }
   },
   updateStory: async ({ storyId, revision, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}`, method: "PATCH", body: revisionBody(payload, revision) });
@@ -539,14 +803,37 @@ export const contentService = {
   },
   updatePage: async ({ storyId, pageId, revision, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/pages/${pageId}`, method: "PATCH", body: revisionBody(payload, revision) });
-    return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/storypage-template/${pageId}`, method: "PUT", body: backendPageFormData(payload) }));
+    const currentPage = await getBackendPage({ pageId });
+    if (currentPage.storyTemplateId !== storyId) throw new ApiError({ status: 409, code: "CONTENT_PAGE_STORY_MISMATCH", message: "Trang không thuộc truyện đang sửa. Chưa gửi cập nhật." });
+    return mutateBackendStoryAndRefresh(storyId, () => writeBackendPageAndVerify({ pageId, payload, currentPage }));
   },
   deletePage: ({ storyId, pageId, revision }) => featureApiModes.content === "real"
     ? mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/storypage-template/story-pages/${pageId}`, method: "DELETE" }))
     : contentRequest({ path: `/content/stories/${storyId}/pages/${pageId}`, method: "DELETE", body: revisionBody({}, revision) }),
-  reorderPages: async ({ storyId, pageIds, revision }) => featureApiModes.content === "real"
-    ? (saveMockPageOrder(activeUserId(), storyId, pageIds), getBackendEditor({ storyId }))
-    : contentRequest({ path: `/content/stories/${storyId}/pages/reorder`, method: "PATCH", body: revisionBody({ pageIds }, revision) }),
+  reorderPages: async ({ storyId, pageIds, revision }) => {
+    if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/pages/reorder`, method: "PATCH", body: revisionBody({ pageIds }, revision) });
+    const story = await mutateBackendStoryAndRefresh(storyId, () => contentRequest({
+      path: `/storypage-template/${storyId}/reorder-pages`,
+      method: "PUT",
+      body: { orderedPageIds: pageIds },
+    }));
+    if (!readContentMockOverlay(activeUserId(), storyId).pageOrder.length) return story;
+
+    try {
+      saveMockPageOrder(activeUserId(), storyId, []);
+      return await getBackendEditor({ storyId });
+    } catch (error) {
+      const accepted = new ApiError({
+        status: 503,
+        code: "CONTENT_MUTATION_REFRESH_FAILED",
+        message: "Thứ tự đã được cập nhật trên máy chủ nhưng bản sắp xếp local cũ chưa thể gỡ. Hãy tải lại hoặc bỏ thay đổi local để xem thứ tự mới.",
+        requestId: error?.requestId || "frontend-content-reorder-reconcile",
+      });
+      accepted.mutationAccepted = true;
+      accepted.storyId = storyId;
+      throw accepted;
+    }
+  },
   listRoles: async ({ storyId, signal }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/roles`, signal });
     const response = await contentRequest({ path: `/story-template/${storyId}/roles`, signal });
@@ -560,14 +847,20 @@ export const contentService = {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/roles/${roleId}`, method: "PATCH", body: revisionBody(payload, revision) });
     return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-role/${roleId}`, method: "PUT", body: backendRoleFormData(payload) }));
   },
+  deleteRole: ({ storyId, roleId, revision }) => featureApiModes.content === "real"
+    ? mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-role/${roleId}`, method: "DELETE" }))
+    : contentRequest({ path: `/content/stories/${storyId}/roles/${roleId}`, method: "DELETE", body: revisionBody({}, revision) }),
   addSlot: async ({ storyId, roleId, revision, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/roles/${roleId}/slots`, method: "POST", body: revisionBody(payload, revision) });
+    let createdSlotId = "";
     const story = await mutateBackendStoryAndRefresh(storyId, () => contentRequest({
       path: `/story-pages/${payload.pageId}/slot`,
       method: "POST",
       body: backendSlotCreateBody(roleId, payload),
-    }));
-    const createdSlot = story.roles.find((role) => role.id === roleId)?.slots.find((slot) => slot.pageId === payload.pageId && slot.source === "backend");
+    }), { decorate: (nextStory, result) => { createdSlotId = result?.id || ""; return nextStory; } });
+    const createdSlot = createdSlotId
+      ? story.roles.find((role) => role.id === roleId)?.slots.find((slot) => slot.id === createdSlotId)
+      : null;
     if (!createdSlot) {
       const accepted = new ApiError({ status: 503, code: "CONTENT_MUTATION_REFRESH_FAILED", message: "Vị trí nhân vật đã được tạo nhưng danh sách chưa thể làm mới. Hãy tải lại truyện để kiểm tra." });
       accepted.mutationAccepted = true;
@@ -582,13 +875,28 @@ export const contentService = {
     };
     try {
       saveMockSlotDraft(activeUserId(), storyId, createdSlot.id, mockFields);
+      const page = story.pages.find((item) => item.id === payload.pageId);
+      const parsed = parseStoryComposition(page?.compositionJson);
+      if (!page || ["invalid", "unsupported"].includes(parsed.kind) || parsed.issues.length) throw new Error("Bố cục trang chưa hợp lệ.");
+      let assets = [
+        ...story.pages.flatMap((item) => item.compositionData?.assets || []),
+        ...story.roles.filter((role) => role.defaultAssetUrl).map((role) => ({ id: role.defaultAssetId, kind: "image", url: role.defaultAssetUrl })),
+      ];
+      if (mockFields.assetId && !assets.some((asset) => asset.id === mockFields.assetId)) assets = (await listAssets()).items;
+      const slotExtensions = { ...(parsed.value?.slotExtensions || {}), [createdSlot.id]: mockFields };
+      const encoded = serializeCompositionString({ ...page, slotExtensions }, assets, parsed.value);
+      if (!encoded.ok) throw new Error(encoded.issues[0]?.message || "Không thể lưu tùy chọn nhân vật.");
+      await writeBackendPageAndVerify({ pageId: page.id, payload: {
+        text: page.text, status: page.status, compositionJson: encoded.json,
+        compositionMode: "replace", expectedCompositionJson: page.compositionJson ?? null,
+      } });
+      return await getBackendEditor({ storyId });
     } catch {
       const accepted = new ApiError({ status: 503, code: "CONTENT_MUTATION_REFRESH_FAILED", message: "Vị trí nhân vật đã được tạo nhưng chưa thể lưu đầy đủ tùy chọn. Hãy tải lại truyện để kiểm tra." });
       accepted.mutationAccepted = true;
       accepted.storyId = storyId;
       throw accepted;
     }
-    return mergeContentMockOverlay(story, activeUserId(), storyId);
   },
   updateSlot: async ({ storyId, roleId, slotId, revision, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/roles/${roleId}/slots/${slotId}`, method: "PATCH", body: revisionBody(payload, revision) });
@@ -610,9 +918,19 @@ export const contentService = {
       return getBackendEditor({ storyId });
     }
     if (!isBackendUuid(slotId)) throw new ApiError({ status: 501, code: "CONTENT_SLOT_RESOURCE_ID_UNAVAILABLE", message: "Vị trí này không còn khả dụng để xóa. Hãy tải lại truyện trước khi tiếp tục." });
-    const story = await mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-slots/${slotId}`, method: "DELETE" }));
+    const before = await getBackendEditor({ storyId });
+    const pageId = before.roles.flatMap((role) => role.slots || []).find((slot) => slot.id === slotId)?.pageId || "";
+    await mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-slots/${slotId}`, method: "DELETE" }));
+    try { if (pageId) await removeBackendSlotCompositionReference(storyId, slotId, pageId); }
+    catch (error) {
+      const accepted = new ApiError({ status: 503, code: "CONTENT_SLOT_COMPOSITION_CLEANUP_FAILED", message: "Nhân vật đã được xóa nhưng bố cục chưa dọn được chuyển động/tùy chọn tham chiếu. Tải lại truyện để kiểm tra trước khi xuất bản." });
+      accepted.mutationAccepted = true;
+      accepted.storyId = storyId;
+      accepted.cause = error;
+      throw accepted;
+    }
     removeMockSlot(activeUserId(), storyId, slotId);
-    return mergeContentMockOverlay(story, activeUserId(), storyId);
+    return getBackendEditor({ storyId });
   },
   listVocabulary: async ({ storyId, signal }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/vocabulary`, signal });
@@ -637,38 +955,65 @@ export const contentService = {
   },
   addQuiz: async ({ storyId, revision, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/quizzes`, method: "POST", body: revisionBody(payload, revision) });
-    return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-template/${storyId}/quizz`, method: "POST", body: backendQuizFormData(payload, { creating: true }) }), {
-      decorate: (story, result) => {
-        if (result?.id && (payload.pageId || payload.feedback)) saveMockQuizDraft(activeUserId(), storyId, result.id, { pageId: payload.pageId || "", feedback: payload.feedback || "" });
-        return mergeContentMockOverlay(story, activeUserId(), storyId);
-      },
+    if (String(payload.feedback || "").trim() && !payload.pageId) {
+      throw new ApiError({ status: 422, code: "CONTENT_QUIZ_FEEDBACK_PAGE_REQUIRED", message: "Lời giải thích chỉ được lưu khi câu hỏi gắn với một trang. Hãy chọn trang hoặc bỏ lời giải thích." });
+    }
+    let createdId = "";
+    const story = await mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-template/${storyId}/quizz`, method: "POST", body: backendQuizFormData(payload, { creating: true }) }), {
+      decorate: (nextStory, result) => { createdId = result?.id || ""; return nextStory; },
     });
+    if (!createdId) {
+      if (payload.pageId || payload.feedback) throw acceptedQuizCompositionError(new Error("Backend không trả về ID câu hỏi."), storyId);
+      return story;
+    }
+    try {
+      if (payload.pageId || payload.feedback) await persistBackendQuizExtension({ storyId, quizId: createdId, toPageId: payload.pageId || "", feedback: payload.feedback || "" });
+      removeMockQuizDraft(activeUserId(), storyId, createdId);
+      return await getBackendEditor({ storyId });
+    } catch (error) { throw acceptedQuizCompositionError(error, storyId); }
   },
   updateQuiz: async ({ storyId, quizId, revision, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/quizzes/${quizId}`, method: "PATCH", body: revisionBody(payload, revision) });
-    return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-quiz/${quizId}/with-image`, method: "PUT", body: backendQuizFormData(payload) }), {
-      decorate: (story) => {
-        saveMockQuizDraft(activeUserId(), storyId, quizId, { pageId: payload.pageId || "", feedback: payload.feedback || "" });
-        return mergeContentMockOverlay(story, activeUserId(), storyId);
-      },
-    });
+    if (String(payload.feedback || "").trim() && !payload.pageId) {
+      throw new ApiError({ status: 422, code: "CONTENT_QUIZ_FEEDBACK_PAGE_REQUIRED", message: "Lời giải thích chỉ được lưu khi câu hỏi gắn với một trang. Hãy chọn trang hoặc bỏ lời giải thích." });
+    }
+    const before = await getBackendEditor({ storyId });
+    const previous = before.quizzes.find((item) => item.id === quizId);
+    const story = await mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-quiz/${quizId}/with-image`, method: "PUT", body: backendQuizFormData(payload) }));
+    try {
+      const fromPageId = previous?.pageId || "";
+      const toPageId = payload.pageId || "";
+      if (fromPageId !== toPageId || (payload.feedback || "") !== (previous?.feedback || "")) {
+        await persistBackendQuizExtension({ storyId, quizId, fromPageId, toPageId, feedback: payload.feedback || "" });
+      }
+      removeMockQuizDraft(activeUserId(), storyId, quizId);
+      return await getBackendEditor({ storyId });
+    } catch (error) { throw acceptedQuizCompositionError(error, storyId); }
   },
   deleteQuiz: async ({ storyId, quizId, revision }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/quizzes/${quizId}`, method: "DELETE", body: revisionBody({}, revision) });
-    return mutateBackendStoryAndRefresh(storyId, async () => {
-      const result = await contentRequest({ path: `/story-quiz/${quizId}`, method: "DELETE" });
+    const before = await getBackendEditor({ storyId });
+    const pageId = before.quizzes.find((item) => item.id === quizId)?.pageId || "";
+    await mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-quiz/${quizId}`, method: "DELETE" }));
+    try {
+      if (pageId) await persistBackendQuizExtension({ storyId, quizId, fromPageId: pageId });
       removeMockQuizDraft(activeUserId(), storyId, quizId);
-      return result;
-    });
+      return getBackendEditor({ storyId });
+    } catch (error) { throw acceptedQuizCompositionError(error, storyId); }
   },
   previewStory: ({ storyId, signal }) => featureApiModes.content === "real"
-    ? getBackendEditor({ storyId, signal })
+    ? getBackendEditor({ storyId, signal, includeLocalChanges: false })
     : contentRequest({ path: `/content/stories/${storyId}/preview`, signal }),
   validateStory: ({ storyId, revision }) => featureApiModes.content === "real"
     ? validateBackendStory({ storyId })
     : contentRequest({ path: `/content/stories/${storyId}/validate`, method: "POST", body: revisionBody({}, revision) }),
   publishStory: async ({ storyId, revision }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/publish`, method: "POST", body: { revision } });
+    const current = await getBackendEditor({ storyId });
+    if (current.localOnlyChanges?.hasChanges) throw new ApiError({ status: 422, code: "CONTENT_LOCAL_CHANGES_PENDING", message: "Còn thay đổi chỉ lưu trên thiết bị. Đồng bộ hoặc bỏ phần đó trước khi xuất bản." });
+    if (current.hasUnverifiedComposition) throw new ApiError({ status: 422, code: "CONTENT_COMPOSITION_INVALID", message: "Có bố cục lỗi hoặc tham chiếu media/nhân vật chưa hợp lệ. Sửa các trang đó trước khi xuất bản." });
+    const validation = await validateBackendStory({ storyId });
+    if (!validation.valid) throw new ApiError({ status: 422, code: "CONTENT_PUBLISH_INVALID", message: validation.message });
     return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-template/${storyId}/publish`, method: "POST" }), {
       decorate: (story, publishResult) => {
         if (story.status !== "published") {
@@ -686,7 +1031,7 @@ export const contentService = {
     });
   },
   hideStory: ({ storyId, revision }) => featureApiModes.content === "real"
-    ? contentRequest({ path: `/story-template/${storyId}`, method: "DELETE" })
+    ? mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-template/${storyId}`, method: "DELETE" }))
     : contentRequest({ path: `/content/stories/${storyId}/hide`, method: "POST", body: { revision } }),
   listAssets,
   deleteAsset,
@@ -695,3 +1040,20 @@ export const contentService = {
     : contentRequest({ path: `/content/statistics?range=${range}`, signal }),
   uploadAsset,
 };
+
+// Serialize the complete preflight/write/read-back operation, including callers
+// outside React Query (media and composition extensions). This is per browser
+// module only; the server still needs a revision/ETag for cross-client conflicts.
+const storyWrites = new Map();
+for (const name of ["updateStory", "addPage", "updatePage", "deletePage", "reorderPages", "addRole", "updateRole", "deleteRole", "addSlot", "updateSlot", "deleteSlot", "addVocabulary", "updateVocabulary", "deleteVocabulary", "addQuiz", "updateQuiz", "deleteQuiz", "publishStory", "hideStory"]) {
+  const operation = contentService[name];
+  contentService[name] = (params) => {
+    if (featureApiModes.content !== "real") return operation(params);
+    const key = `${activeUserId()}:${params.storyId}`;
+    const next = (storyWrites.get(key) || Promise.resolve()).then(() => operation(params));
+    const tail = next.catch(() => undefined);
+    storyWrites.set(key, tail);
+    void tail.then(() => { if (storyWrites.get(key) === tail) storyWrites.delete(key); });
+    return next;
+  };
+}

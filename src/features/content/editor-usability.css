@@ -1,0 +1,49 @@
+/* Daily authoring: compact navigation, readable forms, persistent save controls. */
+.workspace-app-content .story-editor-shell:not(.story-editor-shell-studio) { max-width: 1440px; }
+.workspace-app-content .story-editor-back { margin-bottom: 4px; }
+.workspace-app-content .story-editor-back a { padding-left: 0; }
+.workspace-app-content .story-editor-header { align-items: center; margin-bottom: 16px; padding-bottom: 0; }
+.workspace-app-content .story-editor-header > div:first-child { min-width: 0; }
+.workspace-app-content .story-editor-header .workspace-eyebrow { margin-bottom: 6px; font-size: 10px; }
+.workspace-app-content .story-editor-title-row h1 { font-size: clamp(20px, 1.7vw, 26px); overflow-wrap: anywhere; }
+.workspace-app-content .story-editor-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.workspace-app-content .story-editor-save-status { background: transparent; border-color: transparent; padding-left: 0; }
+.workspace-app-content .story-editor-actions { flex-shrink: 0; }
+.workspace-app-content .story-editor-tabs { position: sticky; top: 0; z-index: 5; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 3px 8px #25324a06; }
+.workspace-app-content .story-editor-tabs a { display: inline-flex; align-items: center; gap: 7px; }
+.workspace-app-content .story-tab-count { display: inline-grid; place-items: center; min-width: 20px; padding: 1px 4px; border-radius: 4px; background: var(--cm-surface-subtle); color: var(--cm-text-secondary); font-size: 11px; font-variant-numeric: tabular-nums; }
+.workspace-app-content .story-editor-more { position: relative; }
+.workspace-app-content .story-editor-more summary { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--cm-border); border-radius: 8px; cursor: pointer; list-style: none; background: var(--cm-surface); }
+.workspace-app-content .story-editor-more summary::-webkit-details-marker { display: none; }
+.workspace-app-content .story-editor-more[open] summary { background: var(--cm-selected-bg); }
+.workspace-app-content .story-editor-more > div { position: absolute; right: 0; top: calc(100% + 6px); z-index: 10; width: 248px; padding: 12px; background: var(--cm-surface); border: 1px solid var(--cm-border); border-radius: 10px; box-shadow: 0 8px 24px #25324a16; }
+.workspace-app-content .story-editor-more small { display: block; margin-top: 8px; color: var(--cm-text-secondary); font-size: 12px; }
+.workspace-app-content .story-editor-shell .story-editor-panel { padding: 20px; }
+.workspace-app-content .story-editor-shell .content-story-form { padding: 0; border: 0; box-shadow: none; }
+.workspace-app-content .story-editor-shell .content-form-grid { grid-template-columns: minmax(0, 1.35fr) minmax(260px, .85fr); gap: 28px; }
+.workspace-app-content .story-editor-shell .content-cover-picker { background: var(--cm-surface-subtle); border: 0; border-radius: 8px; }
+.workspace-app-content .story-editor-shell .content-cover-picker .content-form-section p { max-width: 38ch; }
+.workspace-app-content .story-editor-shell .content-story-form textarea { resize: vertical; min-height: 108px; height: auto; }
+.workspace-app-content .story-editor-shell .content-field-hint { font-variant-numeric: tabular-nums; }
+.workspace-app-content .story-editor-shell :is(input, textarea, select) { scroll-margin-top: 84px; scroll-margin-bottom: 140px; }
+.workspace-app-content .content-story-form .story-form-savebar { position: sticky; bottom: 0; z-index: 4; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 14px 0 4px; border-top: 1px solid var(--cm-border); background: var(--cm-surface); }
+.workspace-app-content .story-form-save-hint { margin-right: auto; font-size: 13px; font-weight: 700; color: var(--cm-text-secondary); }
+.workspace-app-content .story-form-save-hint small { display: block; margin-top: 3px; font-size: 11px; font-weight: 500; color: var(--cm-text-muted); }
+.workspace-app-content .story-effect-search { display: grid; gap: 6px; margin: 12px 0; color: var(--cm-text-secondary); font-size: 12px; font-weight: 700; }
+.workspace-app-content .story-effect-search input { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--cm-border); border-radius: 7px; background: var(--cm-surface); color: var(--cm-text); font: inherit; }
+.workspace-app-content .story-editor-shell :is(button, a, summary, input, select, textarea):focus-visible { outline: 2px solid var(--cm-selected-border); outline-offset: 3px; }
+@media (max-width: 1100px) {
+  .workspace-app-content .story-editor-header { flex-wrap: wrap; }
+  .workspace-app-content .story-editor-actions { margin-top: 0; }
+  .workspace-app-content .story-editor-shell .content-form-grid { gap: 20px; grid-template-columns: minmax(0, 1fr) minmax(240px, .8fr); }
+}
+@media (max-width: 760px) {
+  .workspace-app-content .story-editor-shell .content-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .workspace-app-content .story-editor-shell .story-editor-panel { padding: 14px; }
+  .workspace-app-content .story-editor-tabs { top: 0; }
+  .workspace-app-content .story-editor-actions { display: flex; flex-wrap: nowrap; width: 100%; }
+  .workspace-app-content .story-editor-actions > .workspace-button { flex: 1; width: auto; }
+  .workspace-app-content .story-form-save-hint { flex-basis: 100%; display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+  .workspace-app-content .story-form-save-hint small { margin-top: 0; }
+  .workspace-app-content .story-form-savebar > button { flex: 1; padding-inline: 10px; font-size: 12px; }
+}

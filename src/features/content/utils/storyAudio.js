@@ -11,11 +11,12 @@ export function normalizeStoryAudioTracks(tracks = []) {
     const startMs = Number.isFinite(Number(track.startMs)) && Number(track.startMs) >= 0 ? Number(track.startMs) : nextStartMs;
     const durationMs = Number(track.durationMs) > 0 ? Number(track.durationMs) : 3000;
     nextStartMs = Math.max(nextStartMs, startMs + durationMs);
+    const normalizedTrack = { ...track };
+    delete normalizedTrack.trimStartMs;
     return {
-      ...track,
+      ...normalizedTrack,
       id: track.id || `legacy-audio-${index + 1}`,
       startMs,
-      trimStartMs: Math.max(0, Number(track.trimStartMs) || 0),
       volume: Number.isFinite(Number(track.volume)) ? Number(track.volume) : 1,
     };
   });
@@ -67,25 +68,26 @@ export function syncStoryAudio(players, tracks = [], assets = [], timeMs = 0, is
     }
 
     const startMs = Math.max(0, Number(track.startMs) || 0);
-    const trimStartMs = Math.max(0, Number(track.trimStartMs) || 0);
     const sourceDurationMs = Number(asset.duration) > 0 ? Number(asset.duration) * 1000 : Number(player.duration) > 0 ? player.duration * 1000 : 0;
-    const requestedDurationMs = Number(track.durationMs) > 0 ? Number(track.durationMs) : Math.max(0, sourceDurationMs - trimStartMs);
+    const requestedDurationMs = Number(track.durationMs) > 0 ? Number(track.durationMs) : sourceDurationMs;
     const endMs = requestedDurationMs > 0 ? startMs + requestedDurationMs : Infinity;
     const beforeTrack = timeMs < startMs;
     const afterTrack = timeMs >= endMs;
-    const expectedSeconds = trimStartMs / 1000 + Math.max(0, timeMs - startMs) / 1000;
+    const expectedSeconds = Math.max(0, timeMs - startMs) / 1000;
     player.volume = Math.max(0, Math.min(1, Number.isFinite(Number(track.volume)) ? Number(track.volume) : 1));
     player.muted = muted;
 
     if (!isPlaying || beforeTrack || afterTrack) {
       player.pause();
       player.dataset.storyPendingPlay = "false";
-      if (beforeTrack && player.readyState >= 1 && Math.abs(player.currentTime - trimStartMs / 1000) > 0.25) {
-        try { player.currentTime = trimStartMs / 1000; } catch { /* metadata can still be settling */ }
+      if (beforeTrack && player.readyState >= 1 && Math.abs(player.currentTime) > 0.25) {
+        try { player.currentTime = 0; } catch { /* metadata can still be settling */ }
       }
       continue;
     }
-    if (player.ended) continue;
+    if (player.ended && player.readyState >= 1) {
+      try { player.currentTime = Math.min(expectedSeconds, Math.max(0, player.duration - 0.02)); } catch { /* metadata can still be settling */ }
+    }
     if (player.paused && player.dataset.storyPendingPlay !== "true") {
       if (player.readyState >= 1) {
         try { player.currentTime = Math.min(expectedSeconds, Math.max(0, player.duration - 0.02)); } catch { /* wait for the next clock tick */ }

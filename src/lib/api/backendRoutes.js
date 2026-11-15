@@ -1,9 +1,10 @@
 import { ApiError } from "./errors";
 
-// Routes from the SketchTale OpenAPI snapshot dated 2026-10-19.
-// Swagger includes the /api base path; apiRequest paths do not.
+// Routes from the SketchTale OpenAPI snapshot dated 2026-11-14 plus local source additions.
+// Swagger includes the /api base path; apiRequest paths do not. Local additions are pending release.
 // Keep this allowlist in sync so stale or mock-only paths are stopped early.
 const documentedRoutes = [
+  "GET /child-quiz-answers/child-profiles/:childProfileId",
   "GET /audit-logs",
   "GET /audit-logs/:id",
   "GET /audit-logs/user-id/:id",
@@ -39,6 +40,17 @@ const documentedRoutes = [
   "GET /child-profiles/:id/target-age-group",
   "GET /child-profiles/:id/daily-time-limit",
   "GET /child-profiles/:id/daily-character-limit",
+  "GET /characters/pending-approval",
+  "GET /characters/:id",
+  "PUT /characters/:id/approve",
+  "PUT /characters/:id/reject",
+  "POST /characters/:id/accept",
+  "POST /characters/:id/cancel-preview",
+  "GET /reading-logs/child-profiles/:childProfileId/quiz-answers",
+  "GET /reading-logs/:readingLogId/quiz-answers",
+  // Legacy mapping inbox is not present in live Swagger; kept only for unrelated mapping operations.
+  "GET /user-story-character-mappings/child/:childProfileId",
+  "PATCH /user-story-character-mappings/:id",
   "GET /credit-costs",
   "POST /credit-costs",
   "GET /credit-costs/:id",
@@ -69,10 +81,15 @@ const documentedRoutes = [
   "GET /prohibited-themes/:id",
   "PATCH /prohibited-themes/:id",
   "DELETE /prohibited-themes/:id",
+  // Parent reader endpoint confirmed in live Swagger 2026-11-05.
   "GET /storypage-template/pages/:storyId",
-  "GET /storypage-template/pages/:id",
+  "GET /storypage-template/pages/by-story/:storyId",
+  "GET /storypage-template/page/:pageId",
+  "GET /storypage-template/published/:storyId",
   "GET /storypage-template/all-pages/:storyId",
   "POST /storypage-template/:storyId/page",
+  // ReorderStoryPagesDto.orderedPageIds, confirmed in live Swagger 2026-11-09.
+  "PUT /storypage-template/:storyId/reorder-pages",
   "PUT /storypage-template/:id",
   "DELETE /storypage-template/story-pages/:id",
   "GET /story-template/:storyId/all-quizzes",
@@ -102,6 +119,13 @@ const documentedRoutes = [
   "DELETE /subscriptions/:id",
   "GET /subscriptions/parent-profile/:parentProfileId",
   "GET /subscriptions/subscription-plan/:subscriptionPlanId",
+  "POST /payments/create-checkout",
+  "GET /users",
+  "POST /users",
+  "GET /users/:id",
+  "PUT /users/:id",
+  "PATCH /users/:id/status",
+  "PUT /users/:id/status",
   "GET /subscription-plans",
   "POST /subscription-plans",
   "GET /subscription-plans/:id",

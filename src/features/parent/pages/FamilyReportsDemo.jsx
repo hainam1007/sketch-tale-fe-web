@@ -10,7 +10,7 @@ export default function FamilyReportsDemo({ exports: showExports = false }) {
   const { user } = useAuth();
   const family = useQuery({
     queryKey: ["parent-live-profiles", user.id],
-    queryFn: parentProfileService.list,
+    queryFn: ({ signal }) => parentProfileService.list({ user, signal }),
   });
   return (
     <div className="parent-page family-workspace">

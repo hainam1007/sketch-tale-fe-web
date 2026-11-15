@@ -1,0 +1,46 @@
+{
+  "source": "https://sketch-tale-be.onrender.com/swagger/v1/swagger.json",
+  "checkedDate": "2026-10-31",
+  "operationCount": 124,
+  "comparisons": [
+    {
+      "baseline": "artifacts/swagger-admin-2026-10-23.json",
+      "added": [
+        "GET /api/users",
+        "POST /api/users",
+        "GET /api/users/{id}",
+        "PUT /api/users/{id}",
+        "PATCH /api/users/{id}/status",
+        "PUT /api/users/{id}/status"
+      ],
+      "removed": [],
+      "changed": [],
+      "schemasAdded": [
+        "AdminCreateUserDto",
+        "AdminUpdateUserDto",
+        "UpdateUserStatusDto"
+      ],
+      "schemasChanged": [
+        "CreateSubscriptionPlanDto",
+        "SubscriptionPlanDto",
+        "UpdateSubscriptionPlanDto"
+      ]
+    },
+    {
+      "baseline": "artifacts/swagger-parent-2026-10-29.json",
+      "added": [],
+      "removed": [],
+      "changed": [],
+      "schemasAdded": [],
+      "schemasChanged": []
+    },
+    {
+      "baseline": "artifacts/swagger-content-manager-2026-10-31.json",
+      "added": [],
+      "removed": [],
+      "changed": [],
+      "schemasAdded": [],
+      "schemasChanged": []
+    }
+  ]
+}

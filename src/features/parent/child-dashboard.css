@@ -6,7 +6,7 @@
 .child-workspace:has(.child-dashboard-page) .child-heading h1 { font-size: 30px; }
 .child-workspace:has(.child-dashboard-page) .child-tabs { margin-bottom: 24px; }
 .child-workspace:has(.child-dashboard-page) .child-tabs a { transition: background 180ms, color 180ms; }
-.child-workspace:has(.child-dashboard-page) .child-tabs a.active { background: #f8edce; border-radius: 10px 10px 0 0; }
+.child-workspace:has(.child-dashboard-page) .child-tabs a.active { background: #173754; border-radius: 10px; color: #fff; box-shadow: 0 4px 10px #1737542b; }
 .child-dashboard-page { gap: 24px; }
 .child-dashboard-page .child-dashboard-intro { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; min-height: 208px; padding: 30px 32px; overflow: hidden; border: 1px solid #eadfc1; border-radius: 24px; color: #17254f; background: #f9edcb; box-shadow: none; }
 .child-dashboard-intro > div { position: relative; z-index: 1; max-width: 64%; }

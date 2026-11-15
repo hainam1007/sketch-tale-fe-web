@@ -1,4 +1,4 @@
-import { Plus, BookOpen, Package, ArrowRight } from "@phosphor-icons/react";
+import { Plus, BookOpen, ChartBar, Package, ArrowRight } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import FamilyProfilesLive from "../components/FamilyProfilesLive";
@@ -44,6 +44,12 @@ export default function ParentOverviewPage() {
           <BookOpen size={28} weight="duotone" />
           <strong>Mở một câu chuyện</strong>
           <span>Chọn điều bé muốn khám phá hôm nay</span>
+          <ArrowRight size={20} />
+        </Link>
+        <Link to="/parent/children">
+          <ChartBar size={28} weight="duotone" />
+          <strong>Theo dõi từng bé</strong>
+          <span>Chọn hồ sơ để xem thông tin của bé</span>
           <ArrowRight size={20} />
         </Link>
         <Link to="/parent/plan">

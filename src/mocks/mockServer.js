@@ -1,6 +1,7 @@
 import { ApiError } from "../lib/api/errors";
 import { multiRoleStoryFixture } from "../features/content/data/contentFixtures";
 import { bobbyAssetFixtures, bobbyStoryFixture } from "../features/content/data/bobbyStoryFixture";
+import { gardenGiftAudio, gardenGiftStoryFixture } from "../features/content/data/gardenGiftStoryFixture";
 
 const DATABASE_KEY = "sketchtale.mock.database.v1";
 const SESSION_KEY = "sketchtale.session.v1";
@@ -360,6 +361,7 @@ const seedDatabase = {
       createdAt: "2026-09-06T08:00:00.000Z",
     },
     ...bobbyAssetFixtures,
+    gardenGiftAudio,
   ],
   stories: [
     {
@@ -411,6 +413,7 @@ const seedDatabase = {
       versions: [{ id: "version-seed-1", version: 1, publishedAt: "2026-09-10T08:00:00.000Z", revision: 2 }],
     },
     bobbyStoryFixture,
+    gardenGiftStoryFixture,
     multiRoleStoryFixture,
   ],
 };
@@ -421,7 +424,8 @@ function clone(value) {
 
 function readDatabase() {
   try {
-    const stored = sessionStorage.getItem(DATABASE_KEY);
+    const storage = import.meta.env.VITE_LOCAL_STORY_LIBRARY === "true" ? localStorage : sessionStorage;
+    const stored = storage.getItem(DATABASE_KEY);
     if (stored) return JSON.parse(stored);
   } catch {
     // Storage can be disabled in privacy mode; the in-memory seed is enough.
@@ -431,7 +435,8 @@ function readDatabase() {
 
 function writeDatabase(database) {
   try {
-    sessionStorage.setItem(DATABASE_KEY, JSON.stringify(database));
+    const storage = import.meta.env.VITE_LOCAL_STORY_LIBRARY === "true" ? localStorage : sessionStorage;
+    storage.setItem(DATABASE_KEY, JSON.stringify(database));
   } catch {
     // Keep the mock usable when storage is unavailable.
   }
@@ -551,11 +556,14 @@ function ensureContentCollections(database) {
   if (!database.stories.some((story) => story.id === multiRoleStoryFixture.id)) {
     database.stories.push(clone(multiRoleStoryFixture));
   }
-  bobbyAssetFixtures.forEach((asset) => {
+  [...bobbyAssetFixtures, gardenGiftAudio].forEach((asset) => {
     if (!database.assets.some((item) => item.id === asset.id)) database.assets.push(clone(asset));
   });
   if (!database.stories.some((story) => story.id === bobbyStoryFixture.id)) {
     database.stories.push(clone(bobbyStoryFixture));
+  }
+  if (!database.stories.some((story) => story.id === gardenGiftStoryFixture.id)) {
+    database.stories.push(clone(gardenGiftStoryFixture));
   }
   Object.values(database.children).flat().forEach((child) => {
     database.childSettings[child.id] ||= { readingTimeLimitMinutes: null, allowedCategories: [], revision: 1, updatedAt: new Date().toISOString() };
@@ -689,7 +697,6 @@ function validatePage(body) {
     if (!track?.assetId) errors[`audioTracks.${index}.assetId`] = "Chọn tệp âm thanh.";
     if (!Number.isFinite(Number(track?.startMs || 0)) || Number(track?.startMs || 0) < 0) errors[`audioTracks.${index}.startMs`] = "Thời điểm bắt đầu phải từ 0 trở lên.";
     if (track?.durationMs !== undefined && (!Number.isFinite(Number(track.durationMs)) || Number(track.durationMs) <= 0)) errors[`audioTracks.${index}.durationMs`] = "Thời lượng phải lớn hơn 0.";
-    if (track?.trimStartMs !== undefined && (!Number.isFinite(Number(track.trimStartMs)) || Number(track.trimStartMs) < 0)) errors[`audioTracks.${index}.trimStartMs`] = "Điểm cắt đầu phải từ 0 trở lên.";
     if (track?.volume !== undefined && (!Number.isFinite(Number(track.volume)) || Number(track.volume) < 0 || Number(track.volume) > 1)) errors[`audioTracks.${index}.volume`] = "Âm lượng phải từ 0 đến 1.";
   });
   (body?.animationClips || []).forEach((clip, index) => {
@@ -748,8 +755,8 @@ function validateForPublish(story, database) {
     page.audioTracks?.forEach((track, trackIndex) => {
       const asset = database.assets.find((item) => item.id === track.assetId && item.kind === "audio");
       if (!asset) errors[`pages.${index}.audioTracks.${trackIndex}.assetId`] = `Trang ${index + 1} có audio không còn trong thư viện.`;
-      if (!Number.isFinite(Number(track.startMs || 0)) || Number(track.startMs || 0) < 0 || (track.durationMs !== undefined && (!Number.isFinite(Number(track.durationMs)) || Number(track.durationMs) <= 0)) || (track.trimStartMs !== undefined && (!Number.isFinite(Number(track.trimStartMs)) || Number(track.trimStartMs) < 0)) || (track.volume !== undefined && (!Number.isFinite(Number(track.volume)) || Number(track.volume) < 0 || Number(track.volume) > 1))) errors[`pages.${index}.audioTracks.${trackIndex}`] = `Trang ${index + 1} có audio với thời điểm, đoạn cắt hoặc âm lượng không hợp lệ.`;
-      if (asset?.duration > 0 && (Number(track.trimStartMs || 0) >= asset.duration * 1000 || (Number(track.durationMs) > 0 && Number(track.trimStartMs || 0) + Number(track.durationMs) > asset.duration * 1000 + 1))) errors[`pages.${index}.audioTracks.${trackIndex}.durationMs`] = `Trang ${index + 1} có đoạn âm thanh vượt quá thời lượng tệp.`;
+      if (!Number.isFinite(Number(track.startMs || 0)) || Number(track.startMs || 0) < 0 || (track.durationMs !== undefined && (!Number.isFinite(Number(track.durationMs)) || Number(track.durationMs) <= 0)) || (track.volume !== undefined && (!Number.isFinite(Number(track.volume)) || Number(track.volume) < 0 || Number(track.volume) > 1))) errors[`pages.${index}.audioTracks.${trackIndex}`] = `Trang ${index + 1} có audio với thời điểm, thời lượng hoặc âm lượng không hợp lệ.`;
+      if (asset?.duration > 0 && Number(track.durationMs) > asset.duration * 1000 + 1) errors[`pages.${index}.audioTracks.${trackIndex}.durationMs`] = `Trang ${index + 1} có đoạn âm thanh vượt quá thời lượng tệp.`;
     });
     const pageSlots = story.roles?.flatMap((role) => (role.slots || []).filter((slot) => slot.pageId === page.id)) || [];
     const slotIds = new Set(pageSlots.map((slot) => slot.id));

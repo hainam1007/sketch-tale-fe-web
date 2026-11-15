@@ -37,7 +37,7 @@ Frontend dùng React 19, Vite 8, JavaScript/JSX, React Router, TanStack Query, C
 
 API có sẵn và contract đủ rõ dùng API thật theo từng operation. Chức năng chưa có API tiếp tục dùng mock ở cả local và production, có nhãn **“Dữ liệu mô phỏng”**. Lỗi từ API thật không được tự chuyển sang mock.
 
-Một số API đã có adapter trong source, nhưng chưa được kiểm tra đầy đủ trên Backend thật. Parent/Child profile đã có adapter thật và mặc định bật khi `VITE_API_MODE=real`; ownership vẫn cần nghiệm thu trên backend. Admin reports có adapter đọc thật; Admin core và các field editor chưa có API tiếp tục mock. Xem [kiến trúc hiện tại](docs/ARCHITECTURE.md) và [mục lục tài liệu](docs/README.md) để biết trạng thái cụ thể.
+Một số API đã có adapter trong source, nhưng chưa được kiểm tra đầy đủ trên Backend thật. Parent profile có mode riêng kế thừa Parent, không tự bật theo `VITE_API_MODE`; `.env.production` hiện bật profile/catalog/payment/quiz/approvals real. Admin users/catalog/reports/audit đã có caller thật; các capability còn thiếu tiếp tục mock. Ownership, persistence và luồng thanh toán vẫn cần nghiệm thu backend. Xem [kiến trúc hiện tại](docs/ARCHITECTURE.md) và [mục lục tài liệu](docs/README.md) để biết trạng thái cụ thể.
 
 Không chép token hoặc secret vào tài liệu. Cấu hình môi trường chỉ chọn nguồn dữ liệu; không dùng cờ frontend thay cho kiểm tra quyền của Backend.
 

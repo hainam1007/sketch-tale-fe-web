@@ -4,6 +4,10 @@ function storageKey(userId, storyId) {
   return `${STORAGE_PREFIX}:${encodeURIComponent(userId || "unknown")}:${encodeURIComponent(storyId || "unknown")}`;
 }
 
+export function clearContentMockOverlay(userId, storyId) {
+  localStorage.removeItem(storageKey(userId, storyId));
+}
+
 export function readContentMockOverlay(userId, storyId) {
   try {
     const raw = localStorage.getItem(storageKey(userId, storyId));
@@ -22,6 +26,24 @@ export function readContentMockOverlay(userId, storyId) {
   }
 }
 
+export function summarizeLocalOnlyChanges(userId, storyId) {
+  const overlay = readContentMockOverlay(userId, storyId);
+  const sections = [];
+  const storyFields = Object.keys(overlay.storyDraft);
+  const pageFields = Object.values(overlay.pageDrafts).reduce((count, fields) => count + Object.keys(fields || {}).length, 0);
+  const slotFields = Object.values(overlay.slotDrafts).reduce((count, fields) => count + Object.keys(fields || {}).length, 0);
+  const quizFields = Object.values(overlay.quizDrafts).reduce((count, fields) => count + Object.keys(fields || {}).length, 0);
+  if (storyFields.length) sections.push("thông tin/ảnh truyện");
+  if (pageFields || overlay.pageOrder.length) sections.push("trang, thứ tự hoặc nội dung dựng trang");
+  if (slotFields || overlay.slots.length) sections.push("tùy chọn vị trí nhân vật");
+  if (quizFields) sections.push("liên kết trang hoặc lời giải thích quiz");
+  return {
+    hasChanges: sections.length > 0,
+    sections,
+    changeCount: storyFields.length + pageFields + slotFields + quizFields + overlay.slots.length + (overlay.pageOrder.length ? 1 : 0),
+  };
+}
+
 function updateOverlay(userId, storyId, update) {
   const current = readContentMockOverlay(userId, storyId);
   const next = update(current);
@@ -36,6 +58,14 @@ export function saveMockStoryDraft(userId, storyId, fields) {
   }));
 }
 
+export function removeMockStoryDraftFields(userId, storyId, fields) {
+  return updateOverlay(userId, storyId, (current) => {
+    const storyDraft = { ...current.storyDraft };
+    fields.forEach((field) => delete storyDraft[field]);
+    return { ...current, storyDraft };
+  });
+}
+
 export function mergeMockStoryDraft(story, userId, storyId) {
   const { storyDraft } = readContentMockOverlay(userId, storyId);
   return { ...story, ...storyDraft };
@@ -48,11 +78,85 @@ export function saveMockPageDraft(userId, storyId, pageId, fields) {
   }));
 }
 
+export function removeMockPageDraftFields(userId, storyId, pageId, fields) {
+  return updateOverlay(userId, storyId, (current) => {
+    const pageDrafts = { ...current.pageDrafts };
+    const page = { ...(pageDrafts[pageId] || {}) };
+    fields.forEach((field) => delete page[field]);
+    if (Object.keys(page).length) pageDrafts[pageId] = page;
+    else delete pageDrafts[pageId];
+    return { ...current, pageDrafts };
+  });
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
+  return value;
+}
+
+function sameValue(left, right) {
+  return JSON.stringify(stableValue(left)) === JSON.stringify(stableValue(right));
+}
+
+/** Drop overlay fields only after a fresh server read contains the same value. */
+export function reconcileContentMockOverlay(userId, storyId, serverStory) {
+  const current = readContentMockOverlay(userId, storyId);
+  let changed = false;
+  const prune = (draft, source, excluded = []) => {
+    const next = { ...(draft || {}) };
+    for (const key of Object.keys(next)) {
+      if (excluded.includes(key) || !Object.hasOwn(source || {}, key) || !sameValue(next[key], source[key])) continue;
+      delete next[key];
+      changed = true;
+    }
+    return next;
+  };
+  const storyDraft = prune(current.storyDraft, serverStory);
+  if (serverStory.coverImageUrl && (storyDraft.coverAssetId === "" || storyDraft.coverAssetId === `story-cover:${serverStory.id}`)) {
+    delete storyDraft.coverAssetId;
+    changed = true;
+  }
+  const serverPages = new Map((serverStory.pages || []).map((page) => [page.id, page]));
+  const pageDrafts = Object.fromEntries(Object.entries(current.pageDrafts).flatMap(([id, draft]) => {
+    const next = prune(draft, serverPages.get(id));
+    return Object.keys(next).length ? [[id, next]] : [];
+  }));
+  const serverSlots = new Map((serverStory.roles || []).flatMap((role) => (role.slots || []).map((slot) => [slot.id, slot])));
+  const slotDrafts = Object.fromEntries(Object.entries(current.slotDrafts).flatMap(([id, draft]) => {
+    const next = prune(draft, serverSlots.get(id), ["__deleted"]);
+    return Object.keys(next).length ? [[id, next]] : [];
+  }));
+  const serverQuizzes = new Map((serverStory.quizzes || []).map((quiz) => [quiz.id, quiz]));
+  const quizDrafts = Object.fromEntries(Object.entries(current.quizDrafts).flatMap(([id, draft]) => {
+    const next = prune(draft, serverQuizzes.get(id));
+    return Object.keys(next).length ? [[id, next]] : [];
+  }));
+  const orderedIds = (serverStory.pages || []).map((page) => page.id);
+  const pageOrder = current.pageOrder.length === orderedIds.length && current.pageOrder.every((id, index) => id === orderedIds[index]) ? [] : current.pageOrder;
+  if (pageOrder.length !== current.pageOrder.length) changed = true;
+  if (!changed) return current;
+  const next = { ...current, storyDraft, pageDrafts, slotDrafts, quizDrafts, pageOrder };
+  try { localStorage.setItem(storageKey(userId, storyId), JSON.stringify(next)); } catch { return current; }
+  return next;
+}
+
 export function saveMockSlotDraft(userId, storyId, slotId, fields) {
   return updateOverlay(userId, storyId, (current) => ({
     ...current,
     slotDrafts: { ...current.slotDrafts, [slotId]: { ...current.slotDrafts[slotId], ...fields } },
   }));
+}
+
+export function removeMockSlotDraftFields(userId, storyId, slotId, fields) {
+  return updateOverlay(userId, storyId, (current) => {
+    const slotDrafts = { ...current.slotDrafts };
+    const slot = { ...(slotDrafts[slotId] || {}) };
+    fields.forEach((field) => delete slot[field]);
+    if (Object.keys(slot).length) slotDrafts[slotId] = slot;
+    else delete slotDrafts[slotId];
+    return { ...current, slotDrafts };
+  });
 }
 
 export function removeMockSlot(userId, storyId, slotId) {
@@ -135,6 +239,7 @@ export function removeMockPage(userId, storyId, pageId, slotIds = [], quizIds = 
 
 export function mergeContentMockOverlay(story, userId, storyId) {
   const overlay = readContentMockOverlay(userId, storyId);
+  const localOnlyChanges = summarizeLocalOnlyChanges(userId, storyId);
   let pages = story.pages.map((page) => {
     const draft = Object.fromEntries(Object.entries(overlay.pageDrafts[page.id] || {}).filter(([key]) => key !== "title"));
     return { ...page, ...draft };
@@ -166,5 +271,13 @@ export function mergeContentMockOverlay(story, userId, storyId) {
   });
   const quizzes = story.quizzes.map((quiz) => ({ ...quiz, ...(overlay.quizDrafts[quiz.id] || {}) }));
   const hasData = Object.keys(overlay.storyDraft).length > 0 || Object.keys(overlay.pageDrafts).length > 0 || Object.keys(overlay.slotDrafts).length > 0 || Object.keys(overlay.quizDrafts).length > 0 || overlay.slots.length > 0 || overlay.pageOrder.length > 0;
-  return { ...story, ...overlay.storyDraft, pages, roles, quizzes, mockOverlay: { hasData, source: "mock" } };
+  return {
+    ...story,
+    ...overlay.storyDraft,
+    pages,
+    roles,
+    quizzes,
+    localOnlyChanges,
+    mockOverlay: { hasData, source: "mock" },
+  };
 }

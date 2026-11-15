@@ -43,7 +43,7 @@ test("metadata uploads and saves a cover, then cancels with one confirmation", a
   await page.reload();
   await expect(page.locator(".asset-picker-selected")).toContainText("regression-cover.png");
   await page.locator("#story-title").fill("Unsaved metadata title");
-  await page.getByRole("button", { name: "Hủy", exact: true }).click();
+  await page.getByRole("button", { name: "Sang dựng truyện", exact: true }).click();
   await expect(page.getByRole("alertdialog")).toBeVisible();
   await page.getByRole("alertdialog").getByRole("button", { name: "Rời trang", exact: true }).click();
   await expect(page).toHaveURL(/\/content\/stories\/story-first-spark\/pages$/);

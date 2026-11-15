@@ -7,10 +7,36 @@ import { childrenService } from "../services/childrenService";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { EmptyState, ErrorState, LoadingState } from "../../../components/feedback/States";
 import StatusBadge from "../../../components/ui/StatusBadge";
+import ParentApprovalsLive from "../components/ParentApprovalsLive";
+import { moduleApiModes } from "../../../lib/api/featureApi";
 
 const APPROVAL_STATUSES = ["pending", "approved", "rejected"];
 
 export default function ChildApprovalsPage() {
+  if (moduleApiModes.parentApprovals === "real") return <LiveApprovalsRoute />;
+  return <ChildApprovalsMockPage />;
+}
+
+function LiveApprovalsRoute() {
+  const { user } = useAuth();
+  const { childId } = useParams();
+  const { child } = useOutletContext();
+
+  if (moduleApiModes.parentProfile !== "real") {
+    return (
+      <div className="parent-approval-page">
+        <header className="parent-feature-heading">
+          <div><p className="workspace-eyebrow">PHỤ HUYNH / PHÊ DUYỆT</p><h2>Inbox thật cần hồ sơ bé từ Backend</h2><p>Đang hiển thị hồ sơ mẫu. Bật Parent profile API cùng với approval API để dùng đúng ChildProfile ID.</p></div>
+        </header>
+        <section className="approval-detail-card" role="status">Chưa gửi yêu cầu nào tới Backend.</section>
+      </div>
+    );
+  }
+
+  return <ParentApprovalsLive child={{ ...child, nickName: child.displayName }} userId={user.id} childId={childId} />;
+}
+
+function ChildApprovalsMockPage() {
   const { user } = useAuth();
   const { childId } = useParams();
   const { child } = useOutletContext();

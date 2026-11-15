@@ -21,13 +21,14 @@ function getBackgroundOverflow(imageWidth, imageHeight, stageWidth, stageHeight,
   };
 }
 
-export default function StoryPageRenderer({ story, page, assets, onSlotSelect, onSlotPositionStart, onSlotPositionEnd, onSlotPositionChange, onSlotTransformChange, onBackgroundTransformChange, onBackgroundTransformStart, onBackgroundTransformEnd, selectedSlotId, isPlaying = false, playToken = 0, playheadMs, isDrawingPath = false, pathStartPoint, onPathCommit, onPathCancel, onPathPointChange, onPathPointStart, onPathPointEnd, onPathPointSelect, selectedPathPointIndex, selectedAnimationClipId, showPageText = true }) {
+export default function StoryPageRenderer({ story, page, assets, onSlotSelect, onSlotPositionStart, onSlotPositionEnd, onSlotPositionChange, onSlotTransformChange, onBackgroundTransformChange, onBackgroundTransformStart, onBackgroundTransformEnd, selectedSlotId, isPlaying = false, playToken = 0, playheadMs, isDrawingPath = false, pathStartPoint, onPathCommit, onPathCancel, onPathPointChange, onPathPointStart, onPathPointEnd, onPathPointSelect, selectedPathPointIndex, selectedAnimationClipId, showPageText = true, stageSubtitle, showBranding = true, isThumbnail = false }) {
   const stageRef = useRef(null);
   const backgroundImageRef = useRef(null);
   const backgroundGestureRef = useRef(null);
   const [drawPoints, setDrawPoints] = useState([]);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [backgroundSize, setBackgroundSize] = useState({ width: 0, height: 0 });
+  const [backgroundFailed, setBackgroundFailed] = useState(false);
   const [isDraggingBackground, setIsDraggingBackground] = useState(false);
   const drawingPointerRef = useRef(null);
   const canvasGestureRef = useRef(null);
@@ -43,9 +44,12 @@ export default function StoryPageRenderer({ story, page, assets, onSlotSelect, o
   }, [page?.id]);
 
   const assetById = new Map((assets || []).map((asset) => [asset.id, asset]));
-  const background = assetById.get(page?.backgroundAssetId || story.coverAssetId)
-    || (page?.backgroundUrl ? { url: page.backgroundUrl } : null)
-    || (story.coverImageUrl ? { url: story.coverImageUrl } : null);
+  const backgroundMode = page?.backgroundMode || page?.compositionData?.background?.mode;
+  const background = backgroundMode === "none"
+    ? null
+    : assetById.get(page?.backgroundAssetId)
+      || (backgroundMode === "asset" ? null : page?.backgroundUrl ? { url: page.backgroundUrl } : null);
+  useEffect(() => setBackgroundFailed(false), [background?.url]);
   useEffect(() => {
     setBackgroundSize({ width: Number(background?.width) || 0, height: Number(background?.height) || 0 });
   }, [background?.url, background?.width, background?.height]);
@@ -108,25 +112,21 @@ export default function StoryPageRenderer({ story, page, assets, onSlotSelect, o
   };
 
   return (
-    <div ref={stageRef} className={`story-preview-stage${isPlaying ? " story-preview-stage-playing" : ""}${onSlotSelect || onSlotPositionChange || onSlotTransformChange ? " story-preview-stage-editable" : ""}${canTransformBackground ? " story-preview-stage-background-editable" : ""}${isDraggingBackground ? " story-preview-stage-background-dragging" : ""}`}>
+    <div ref={stageRef} className={`story-preview-stage${background?.url ? "" : " story-preview-stage-white"}${isThumbnail ? " story-preview-stage-thumbnail" : ""}${isPlaying ? " story-preview-stage-playing" : ""}${onSlotSelect || onSlotPositionChange || onSlotTransformChange ? " story-preview-stage-editable" : ""}${canTransformBackground ? " story-preview-stage-background-editable" : ""}${isDraggingBackground ? " story-preview-stage-background-dragging" : ""}`}>
       {background?.url && <div className="story-preview-background-viewport" role="presentation" onPointerDown={beginBackgroundGesture} onPointerMove={moveBackgroundGesture} onPointerUp={endBackgroundGesture} onPointerCancel={endBackgroundGesture} onLostPointerCapture={endBackgroundGesture}>
         <div className="story-preview-background-pan" style={{ transform: `translate(${backgroundTranslateX}%, ${backgroundTranslateY}%)` }}>
-          <img ref={backgroundImageRef} className="story-preview-background-image" src={background.url} alt="" draggable="false" onLoad={(event) => setBackgroundSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} style={{ transform: `scale(${backgroundScale})` }} />
+          <img ref={backgroundImageRef} className={`story-preview-background-image${backgroundFailed ? " is-failed" : ""}`} src={background.url} alt="" draggable="false" onLoad={(event) => setBackgroundSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} onError={() => setBackgroundFailed(true)} style={{ transform: `scale(${backgroundScale})` }} />
         </div>
       </div>}
+      {backgroundFailed && <div className="story-preview-background-error" role="status">Không tải được ảnh nền đã lưu</div>}
 
-      {!background && <div className="story-preview-missing-asset" role="alert">Chưa chọn ảnh nền</div>}
-      <div className="story-preview-stage-copy">
-        <span>SKETCHTALE{story.category ? ` · ${story.category}` : ""}</span>
-        {showPageText && subtitleAt(page, playheadMs || 0) && <p>{subtitleAt(page, playheadMs || 0)}</p>}
-
-      </div>
+      {!isThumbnail && (showBranding || showPageText || stageSubtitle) && <div className={`story-preview-stage-copy${stageSubtitle ? " story-preview-stage-subtitle" : ""}`}>
+        {showBranding && <span>SKETCHTALE{story.category ? ` · ${story.category}` : ""}</span>}
+        {stageSubtitle !== undefined ? stageSubtitle && <p>{stageSubtitle}</p> : showPageText && subtitleAt(page, playheadMs || 0) && <p>{subtitleAt(page, playheadMs || 0)}</p>}
+      </div>}
       {placements.map(({ role, slot }) => {
         const roleAsset = assetById.get(slot.assetId || role.defaultAssetId)
           || (role.defaultAssetUrl ? { url: role.defaultAssetUrl } : null);
-        const roleName = (role.name || "").trim().toLocaleLowerCase();
-        const localRoleFallback = roleName && (assets || []).find((asset) => asset.source === "mock" && asset.kind === "image" && asset.url && asset.name.toLocaleLowerCase().includes(roleName));
-        const fallbackUrl = roleAsset?.fallbackUrl || localRoleFallback?.url;
         const motions = (page.sequence || []).map((item, index) => ({ item, index })).filter(({ item }) => item.slotId === slot.id);
         const motionNames = { appear: "story-appear", move: "story-move", jump: "story-jump", spin: "story-spin", walk: "story-walk" };
         const motionDelay = (index) => (page.sequence || []).slice(0, index).reduce((total, item) => total + Number(item.durationMs || 900), 0);
@@ -220,7 +220,7 @@ export default function StoryPageRenderer({ story, page, assets, onSlotSelect, o
           <div
             className={`story-preview-slot${roleAsset?.url ? "" : " story-preview-slot-missing"}${selectedSlotId === slot.id ? " story-preview-slot-selected" : ""}`}
             key={`${slot.id}-${isPlaying ? playToken : "idle"}`}
-            style={{ left: `${x}%`, top: `${y}%`, width: `${(onSlotSelect ? 19 : 24) * Math.max(0.1, Number(scale) || 1)}%`, transform: `${transform} rotate(${animated?.rotation ?? slot.rotation ?? 0}deg)`, transformOrigin: "center", opacity: animated?.opacity ?? 1, zIndex: Number(slot.layer || 0) + 1, touchAction: canTransform || isDrawingPath ? "none" : undefined, animationName: Number.isFinite(playheadMs) ? undefined : isPlaying ? motions.map(({ item }) => motionNames[item.preset]).filter(Boolean).join(", ") : undefined, animationDuration: motions.map(({ item }) => `${item.durationMs || 900}ms`).join(", "), animationDelay: motions.map(({ index }) => `${motionDelay(index)}ms`).join(", "), animationFillMode: "both" }}
+            style={{ left: `${x}%`, top: `${y}%`, width: `${24 * Math.max(0.1, Number(scale) || 1)}%`, transform: `${transform} rotate(${animated?.rotation ?? slot.rotation ?? 0}deg)`, transformOrigin: "center", opacity: animated?.opacity ?? 1, zIndex: Number(slot.layer || 0) + 1, touchAction: canTransform || isDrawingPath ? "none" : undefined, animationName: Number.isFinite(playheadMs) ? undefined : isPlaying ? motions.map(({ item }) => motionNames[item.preset]).filter(Boolean).join(", ") : undefined, animationDuration: motions.map(({ item }) => `${item.durationMs || 900}ms`).join(", "), animationDelay: motions.map(({ index }) => `${motionDelay(index)}ms`).join(", "), animationFillMode: "both" }}
             aria-label={`Vị trí của nhân vật ${role.name}`}
             data-role-id={role.id}
             data-slot-id={slot.id}
@@ -271,7 +271,7 @@ export default function StoryPageRenderer({ story, page, assets, onSlotSelect, o
             onLostPointerCapture={canTransform ? (event) => { if (canvasGestureRef.current?.pointerId === event.pointerId) { canvasGestureRef.current = null; onSlotPositionEnd?.(slot.id); } } : undefined}
             onKeyDown={onSlotSelect ? (event) => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); onSlotSelect(slot.id); } } : undefined}
           >
-            <span className="story-preview-slot-visual" style={{ transform: visualTransform }}>{roleAsset?.url ? <AssetImage src={roleAsset.url} fallbackSrc={fallbackUrl} alt={role.name} missingLabel={role.name} /> : <span>{role.name}<small>Thiếu ảnh</small></span>}</span>
+            {(roleAsset?.url || !isThumbnail) && <span className="story-preview-slot-visual" style={{ transform: visualTransform }}>{roleAsset?.url ? <AssetImage src={roleAsset.url} alt={role.name} missingLabel={role.name} hideMissingLabel={isThumbnail} /> : <span>{role.name}<small>Thiếu ảnh</small></span>}</span>}
             {canTransform && selectedSlotId === slot.id && <>
               <button className="story-canvas-transform-handle story-canvas-rotate-handle" type="button" aria-label={`Xoay ${role.name}`} title="Kéo để xoay; dùng ← hoặc → để chỉnh chính xác" onKeyDown={(event) => handleKeyboardTransform(event, "rotate")} onPointerDown={(event) => beginGesture(event, "rotate")} />
               <button className="story-canvas-transform-handle story-canvas-scale-handle is-top-left" data-corner="top-left" type="button" aria-label={`Phóng to hoặc thu nhỏ ${role.name} từ góc trên trái`} title="Kéo góc hoặc dùng phím mũi tên để đổi kích thước" onKeyDown={(event) => handleKeyboardTransform(event, "scale")} onPointerDown={(event) => beginGesture(event, "scale")} />
@@ -322,7 +322,6 @@ export default function StoryPageRenderer({ story, page, assets, onSlotSelect, o
         setDrawPoints([]);
       }} onPointerCancel={() => { drawingPointerRef.current = null; setDrawPoints([]); onPathCancel?.(); }}><polyline points={drawPoints.map((point) => `${point.x},${point.y}`).join(" ")} /></svg>}
       {isDrawingPath && <PathPointsRef points={drawPoints} />}
-      {!placements.length && !isDrawingPath && <div className="story-preview-no-slots">Chưa có nhân vật trên trang này</div>}
     </div>
   );
 }
@@ -331,10 +330,9 @@ function PathPointsRef({ points }) {
   return points.length > 0 ? <div className="story-path-helper" aria-live="polite">{points.length < 2 ? "Kéo chuột để vẽ đường đi" : `Đường đi · ${points.length} điểm`}</div> : null;
 }
 
-function AssetImage({ src, fallbackSrc, alt, missingLabel }) {
-  const [errorCount, setErrorCount] = useState(0);
-  useEffect(() => setErrorCount(0), [src, fallbackSrc]);
-  const imageSrc = errorCount === 0 ? src : errorCount === 1 ? fallbackSrc : "";
-  if (!imageSrc) return <span>{missingLabel}<small>Không tải được ảnh nhân vật</small></span>;
-  return <img src={imageSrc} alt={alt} onError={() => setErrorCount((count) => Math.min(count + 1, 2))} />;
+function AssetImage({ src, alt, missingLabel, hideMissingLabel = false }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+  if (failed) return hideMissingLabel ? null : <span>{missingLabel}<small>Không tải được ảnh nhân vật</small></span>;
+  return <img src={src} alt={alt} onError={() => setFailed(true)} />;
 }

@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1760" height="950" viewBox="0 0 1760 950">
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,5 L0,10 z" fill="#333333"/></marker></defs>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<rect x="30" y="25" width="1370" height="870" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+<text x="715" y="62" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#111">Sketch-Tale Web Package</text>
+<path d="M400 215 L455 215" fill="none" stroke="#333333" stroke-width="1.8" stroke-dasharray="4 5" marker-end="url(#arrow)"/>
+<path d="M235 325 L235 400" fill="none" stroke="#333333" stroke-width="1.8" stroke-dasharray="4 5" marker-end="url(#arrow)"/>
+<path d="M130 325 L50 325 L50 715 L70 715" fill="none" stroke="#333333" stroke-width="1.8" stroke-dasharray="4 5" marker-end="url(#arrow)"/>
+<path d="M400 295 L445 295 L445 720 L455 720" fill="none" stroke="#333333" stroke-width="1.8" stroke-dasharray="4 5" marker-end="url(#arrow)"/>
+<path d="M455 490 L430 490 L430 535 L400 535" fill="none" stroke="#333333" stroke-width="1.8" stroke-dasharray="4 5" marker-end="url(#arrow)"/>
+<path d="M905 535 L905 590" fill="none" stroke="#333333" stroke-width="1.8" stroke-dasharray="4 5" marker-end="url(#arrow)"/>
+<path d="M690 795 L690 812 L1235 812 L1235 795" fill="none" stroke="#333333" stroke-width="1.8" stroke-dasharray="4 5" marker-end="url(#arrow)"/>
+<path d="M1355 712 L1455 712" fill="none" stroke="#333333" stroke-width="1.8" stroke-dasharray="4 5" marker-end="url(#arrow)"/>
+
+<rect x="70" y="119" width="330" height="206" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M70 119 L70 105 L122 105 L122 119" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="235" y="141" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#111">sketch_tale.Web.App</text>
+<rect x="455" y="109" width="900" height="426" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M455 109 L455 95 L507 95 L507 109" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="905" y="131" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#111">sketch_tale.Web.Features</text>
+<rect x="70" y="414" width="330" height="156" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M70 414 L70 400 L122 400 L122 414" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="235" y="436" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#111">sketch_tale.Web.Shared</text>
+<rect x="70" y="634" width="330" height="176" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M70 634 L70 620 L122 620 L122 634" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="235" y="656" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#111">sketch_tale.Web.Styles</text>
+<rect x="455" y="604" width="900" height="231" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M455 604 L455 590 L507 590 L507 604" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="905" y="626" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#111">sketch_tale.Web.Platform</text>
+<rect x="1455" y="664" width="260" height="146" fill="#f5f5f5" stroke="#777777" stroke-width="1.7"/>
+<path d="M1455 664 L1455 650 L1507 650 L1507 664" fill="#f5f5f5" stroke="#777777" stroke-width="1.7"/>
+<text x="1585" y="686" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#111">SketchTale Backend REST API</text>
+<rect x="485" y="159" width="270" height="156" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M485 159 L485 145 L527 145 L527 159" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="620" y="181" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">Public</text>
+<rect x="780" y="159" width="270" height="156" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M780 159 L780 145 L822 145 L822 159" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="915" y="181" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">Auth</text>
+<rect x="1075" y="159" width="250" height="156" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M1075 159 L1075 145 L1117 145 L1117 159" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="1200" y="181" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">Profile</text>
+<rect x="485" y="354" width="270" height="156" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M485 354 L485 340 L527 340 L527 354" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="620" y="376" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">Parent</text>
+<rect x="780" y="354" width="270" height="156" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M780 354 L780 340 L822 340 L822 354" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="915" y="376" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">Content</text>
+<rect x="1075" y="354" width="250" height="156" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M1075 354 L1075 340 L1117 340 L1117 354" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="1200" y="376" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">Admin</text>
+<rect x="480" y="659" width="420" height="136" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M480 659 L480 645 L522 645 L522 659" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="690" y="681" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">API Client</text>
+<rect x="920" y="659" width="200" height="136" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M920 659 L920 645 L962 645 L962 659" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="1020" y="681" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">Permissions</text>
+<rect x="1140" y="659" width="190" height="136" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M1140 659 L1140 645 L1182 645 L1182 659" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="1235" y="681" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">Mock Server</text>
+<rect x="85" y="452" width="300" height="108" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<path d="M85 452 L85 438 L137 438 L137 452" fill="#fff2cc" stroke="#d6b656" stroke-width="1.7"/>
+<text x="235" y="474" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111">Components</text>
+<rect x="95" y="500" width="80" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/><text x="135" y="524" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Branding</text>
+<rect x="195" y="500" width="80" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/><text x="235" y="524" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Feedback</text>
+<rect x="295" y="500" width="80" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/><text x="335" y="524" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">UI</text>
+<rect x="170" y="280" width="125" height="30" fill="#ffffff" stroke="#333333" stroke-width="1.3"/><text x="232.5" y="299" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Layouts</text>
+<rect x="95" y="165" width="125" height="42" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="157.5" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Bootstrap</text>
+<rect x="245" y="165" width="125" height="42" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="307.5" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Router</text>
+<rect x="95" y="230" width="125" height="42" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="157.5" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Providers</text>
+<rect x="245" y="230" width="125" height="42" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="307.5" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#111">Guards</text>
+
+
+
+
+<rect x="95" y="680" width="130" height="42" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="160" y="705" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Design Tokens</text>
+<rect x="245" y="680" width="130" height="42" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="310" y="705" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Global CSS</text>
+<rect x="95" y="740" width="130" height="42" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="160" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Fonts</text>
+<rect x="245" y="740" width="130" height="42" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="310" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#111">Interaction CSS</text>
+<rect x="505" y="205" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="560" y="227" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Pages</text>
+<rect x="635" y="205" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="690" y="227" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Components</text>
+<rect x="505" y="255" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="560" y="277" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Layouts</text>
+<rect x="635" y="255" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="690" y="277" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#111">Data / Services</text>
+<rect x="800" y="205" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="855" y="227" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Pages</text>
+<rect x="930" y="205" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="985" y="227" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Provider</text>
+<rect x="800" y="255" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="855" y="277" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Auth Service</text>
+<rect x="930" y="255" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="985" y="277" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Context / Hook</text>
+<rect x="1095" y="205" width="100" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="1145" y="227" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Profile Page</text>
+<rect x="1205" y="205" width="100" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="1255" y="227" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Profile CSS</text>
+<rect x="505" y="400" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="560" y="422" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Pages</text>
+<rect x="635" y="400" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="690" y="422" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Components</text>
+<rect x="505" y="450" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="560" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Services</text>
+<rect x="635" y="450" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="690" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Models / CSS</text>
+<rect x="800" y="400" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="855" y="422" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Pages</text>
+<rect x="930" y="400" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="985" y="422" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Components</text>
+<rect x="800" y="450" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="855" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Services</text>
+<rect x="930" y="450" width="110" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="985" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Hooks / Utils</text>
+<rect x="1095" y="400" width="100" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="1145" y="422" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Pages</text>
+<rect x="1205" y="400" width="100" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="1255" y="422" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Components</text>
+<rect x="1095" y="450" width="100" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="1145" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Services</text>
+<rect x="1205" y="450" width="100" height="36" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="1255" y="472" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Models / CSS</text>
+<rect x="495" y="700" width="115" height="34" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="552.5" y="721" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">HTTP Client</text>
+<rect x="625" y="700" width="115" height="34" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="682.5" y="721" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Feature API</text>
+<rect x="755" y="700" width="115" height="34" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="812.5" y="721" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Routes</text>
+<rect x="495" y="750" width="115" height="34" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="552.5" y="771" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Token Store</text>
+<rect x="625" y="750" width="115" height="34" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="682.5" y="771" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Errors</text>
+<rect x="755" y="750" width="115" height="34" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="812.5" y="771" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Query Keys</text>
+<rect x="940" y="710" width="160" height="34" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="1020" y="731" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Roles</text>
+
+<rect x="1160" y="710" width="150" height="34" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="1235" y="731" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">mockServer.js</text>
+
+<rect x="1480" y="710" width="210" height="34" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="1585" y="731" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">REST / JSON</text>
+<rect x="1480" y="755" width="210" height="34" fill="#ffffff" stroke="#333333" stroke-width="1.3"/>
+<text x="1585" y="776" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#111">Bearer Token</text>
+<text x="30" y="925" font-family="Arial, sans-serif" font-size="13" fill="#444">Dashed arrows show package dependencies. Scope: runtime source under src/; tests, docs, and build tooling are omitted.</text>
+</svg>
