@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BookOpenText, FloppyDisk, PencilSimple, Trash, X } from "@phosphor-icons/react";
 import { useConfirmToast } from "../../../components/feedback/useConfirmToast";
@@ -25,6 +25,10 @@ export default function StoryVocabularyPage() {
     if (action === "delete") return contentService.deleteVocabulary({ storyId, vocabularyId, revision });
     throw new Error("Thao tác từ vựng không được hỗ trợ.");
   });
+  useEffect(() => {
+    if (editingId) document.getElementById("story-editor-vocabulary-word")?.focus();
+  }, [editingId]);
+
   const dirty = JSON.stringify(values) !== JSON.stringify(baseline);
   const mutationOutcomeBlocked = Boolean(mutation.error?.mutationAccepted || mutation.error?.mutationOutcomeUnknown);
   useEditorSaveState({ dirty, isSaving: mutation.isPending, error: mutation.error, onDirtyChange: setEditorDirty });
@@ -69,7 +73,7 @@ export default function StoryVocabularyPage() {
     mutation.mutate({ action: "delete", vocabularyId: item.id }, { onSuccess: () => { if (editingId === item.id) resetForm(); } });
   }
 
-  return <EditorPanel isSaving={mutation.isPending} eyebrow="TỪ VỰNG" title="Từ vựng theo ngữ cảnh" description="Gắn mỗi từ với một trang để hiển thị đúng lúc đọc; có thể bổ sung âm thanh phát âm sau." action={<span className="story-editor-count"><BookOpenText size={17} aria-hidden="true" /> {story.vocabulary.length} từ</span>}>
+  return <EditorPanel className="story-collection-editor" isSaving={mutation.isPending} eyebrow="TỪ VỰNG" title="Từ vựng theo ngữ cảnh" description="Gắn mỗi từ với một trang để hiển thị đúng lúc đọc; có thể bổ sung âm thanh phát âm sau." action={<span className="story-editor-count"><BookOpenText size={17} aria-hidden="true" /> {story.vocabulary.length} từ</span>}>
     {!story.pages.length ? <div className="editor-empty"><h3>Tạo trang trước khi thêm từ vựng</h3><p className="editor-help">Mỗi từ vựng cần được gắn với một trang trong truyện.</p><Link className="workspace-button" to={`/content/stories/${storyId}/pages`}>Tạo trang đầu tiên</Link></div> : <div className="editor-form-card">
       <div className="editor-form-card-heading"><div><h3>{editingId ? "Sửa từ vựng" : "Thêm từ vựng"}</h3><p className="editor-help">Từ và nghĩa nên xuất hiện đúng trong câu chuyện.</p></div>{editingId && <button className="workspace-text-link" type="button" onClick={async () => { if (!dirty || await confirmToast({ title: "Hủy sửa từ vựng?", message: "Các thay đổi chưa lưu trong từ vựng sẽ bị bỏ.", confirmLabel: "Hủy sửa", tone: "danger" })) resetForm(); }}><X size={15} aria-hidden="true" /> Hủy sửa</button>}</div>
       <div className="editor-form-grid">
@@ -80,7 +84,7 @@ export default function StoryVocabularyPage() {
         <EditorField label="Đường dẫn âm thanh (không bắt buộc)" name="vocabulary-audio" value={values.audioUrl} onChange={(value) => update("audioUrl", value)} placeholder="https://..." />
       </div>
       {validationError && <p className="editor-field-error" role="alert">{validationError}</p>}
-      <button className="workspace-button" type="button" onClick={saveVocabulary} disabled={mutation.isPending || mutationOutcomeBlocked || !story.pages.length}><FloppyDisk size={16} aria-hidden="true" /> {mutation.isPending ? "Đang lưu..." : editingId ? "Lưu từ" : "Thêm từ"}</button>
+      <div className="editor-form-actions"><button className="workspace-button" type="button" onClick={saveVocabulary} disabled={mutation.isPending || mutationOutcomeBlocked || !story.pages.length}><FloppyDisk size={16} aria-hidden="true" /> {mutation.isPending ? "Đang lưu..." : editingId ? "Lưu từ" : "Thêm từ"}</button></div>
     </div>}
     <EditorMutationMessage mutation={mutation} showSuccess={false} />
     {story.vocabulary.length ? <div className="editor-list" aria-label="Danh sách từ vựng">{story.vocabulary.map((item) => {

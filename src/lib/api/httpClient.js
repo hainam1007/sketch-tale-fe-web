@@ -181,12 +181,13 @@ async function realRequest({ path, method, body, signal, skipAuth = false, acces
  * Single HTTP boundary for feature services. VITE_API_MODE=real switches to
  * the backend without changing pages or hooks.
  */
-export async function apiRequest({ path, method = "GET", body, signal, forceReal = false, skipAuth = false, skipRefresh = false }) {
+export async function apiRequest({ path, method = "GET", body, signal, forceReal = false, skipAuth = false, skipRefresh = false, accessToken }) {
   try {
     if (useMock && !forceReal) return await mockRequest({ path, method, body, signal });
 
     const requestPair = skipAuth ? null : getTokenPair();
-    const requestToken = requestPair?.accessToken || null;
+    // Explicit tokens are only used by detached requests such as logout.
+    const requestToken = (skipAuth ? accessToken : requestPair?.accessToken) || null;
     const ensureSameSession = (result) => {
       const currentPair = getTokenPair();
       if (requestPair && (!currentPair || (requestPair.sessionId

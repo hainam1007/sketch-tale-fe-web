@@ -68,6 +68,7 @@ const documentedRoutes = [
   "DELETE /restricted-keywords/:id",
   "GET /parent-profiles",
   "GET /parent-profiles/:id",
+  "GET /parent-profiles/child",
   "PUT /parent-profiles/:id",
   "PATCH /parent-profiles/:id/mark-trial-plan-used",
   "GET /content-reports",

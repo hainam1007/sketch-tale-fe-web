@@ -123,6 +123,7 @@
   box-shadow: 0 3px 10px #081c3c20;
 }
 .family-workspace:has(.family-child-heading) .family-tabs {
+  justify-content: center;
   gap: 5px;
   padding: 7px;
   margin-bottom: 0;
@@ -199,6 +200,7 @@
     width: 100%;
   }
   .family-workspace:has(.family-child-heading) .family-tabs {
+    justify-content: flex-start;
     margin-inline: -2px;
     scrollbar-width: thin;
   }

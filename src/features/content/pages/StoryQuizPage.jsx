@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle, FloppyDisk, PencilSimple, Question, Trash, X } from "@phosphor-icons/react";
 import { useConfirmToast } from "../../../components/feedback/useConfirmToast";
@@ -29,6 +29,10 @@ export default function StoryQuizPage() {
     if (action === "delete") return contentService.deleteQuiz({ storyId, quizId, revision });
     throw new Error("Thao tác câu hỏi không được hỗ trợ.");
   });
+  useEffect(() => {
+    if (editingId) document.getElementById("story-editor-quiz-question")?.focus();
+  }, [editingId]);
+
   const dirty = JSON.stringify(values) !== JSON.stringify(baseline);
   const mutationOutcomeBlocked = Boolean(mutation.error?.mutationAccepted || mutation.error?.mutationOutcomeUnknown);
   useEditorSaveState({ dirty, isSaving: mutation.isPending, error: mutation.error, onDirtyChange: setEditorDirty });
@@ -111,13 +115,13 @@ export default function StoryQuizPage() {
     mutation.mutate({ action: "delete", quizId: quiz.id }, { onSuccess: () => { if (editingId === quiz.id) resetForm(true); } });
   }
 
-  return <EditorPanel isSaving={mutation.isPending} eyebrow="CÂU HỎI" title="Câu hỏi sau khi đọc" description="Thêm câu hỏi trắc nghiệm và đánh dấu một đáp án đúng để bé ôn lại nội dung truyện." action={<span className="story-editor-count"><Question size={17} aria-hidden="true" /> {story.quizzes.length} câu</span>}>
+  return <EditorPanel className="story-collection-editor" isSaving={mutation.isPending} eyebrow="CÂU HỎI" title="Câu hỏi sau khi đọc" description="Thêm câu hỏi trắc nghiệm và đánh dấu một đáp án đúng để bé ôn lại nội dung truyện." action={<span className="story-editor-count"><Question size={17} aria-hidden="true" /> {story.quizzes.length} câu</span>}>
     {!story.pages.length ? <div className="editor-empty"><h3>Tạo trang trước khi thêm câu hỏi</h3><p className="editor-help">Mỗi câu hỏi cần được gắn với một trang trong truyện.</p><Link className="workspace-button" to={`/content/stories/${storyId}/pages`}>Tạo trang đầu tiên</Link></div> : <div className="editor-form-card">
       <div className="editor-form-card-heading"><div><h3>{editingId ? "Sửa câu hỏi" : "Thêm câu hỏi"}</h3><p className="editor-help">Đánh dấu đáp án đúng; hệ thống không tự chọn đáp án mặc định.</p></div>{editingId && <button className="workspace-text-link" type="button" onClick={() => { void resetForm(); }}><X size={15} aria-hidden="true" /> Hủy sửa</button>}</div>
       <div className="editor-form-grid">
         <EditorField label="Trang có câu hỏi" name="quiz-page" value={values.pageId} onChange={(value) => update("pageId", value)}><select id="story-editor-quiz-page" value={values.pageId} onChange={(event) => update("pageId", event.target.value)}><option value="">Chọn trang</option>{story.pages.map((page) => <option key={page.id} value={page.id}>Trang {page.order}</option>)}</select></EditorField>
         <div className="editor-field editor-field-wide"><label htmlFor="story-editor-quiz-question">Câu hỏi</label><textarea id="story-editor-quiz-question" rows="3" value={values.question} onChange={(event) => update("question", event.target.value)} placeholder="Bé vừa nhìn thấy điều gì?" /></div>
-        {values.options.map((option, index) => <div className="editor-field quiz-option-field" key={index}><label htmlFor={`story-editor-quiz-option-${index}`}>Đáp án {index + 1}</label><div className="quiz-option-input"><input id={`story-editor-quiz-option-${index}`} value={option} onChange={(event) => updateOption(index, event.target.value)} placeholder="Nhập đáp án" /><label className="quiz-correct-radio"><input type="radio" name="quiz-correct-answer" checked={values.correctIndex !== null && Number(values.correctIndex) === index} onChange={() => update("correctIndex", index)} /> Đúng</label></div></div>)}
+        {values.options.map((option, index) => <div className="editor-field editor-field-wide quiz-option-field" key={index}><label htmlFor={`story-editor-quiz-option-${index}`}>Đáp án {index + 1}</label><div className="quiz-option-input"><input id={`story-editor-quiz-option-${index}`} value={option} onChange={(event) => updateOption(index, event.target.value)} placeholder="Nhập đáp án" /><label className="quiz-correct-radio"><input type="radio" name="quiz-correct-answer" aria-label={`Chọn đáp án ${index + 1} là đáp án đúng`} checked={values.correctIndex !== null && Number(values.correctIndex) === index} onChange={() => update("correctIndex", index)} /> Đúng</label></div></div>)}
         <div className="editor-field editor-field-wide"><label htmlFor="story-editor-quiz-feedback">Lời giải thích sau khi trả lời</label><textarea id="story-editor-quiz-feedback" rows="3" value={values.feedback} onChange={(event) => update("feedback", event.target.value)} placeholder="Một lời động viên ngắn cho bé." /></div>
         {isRealApi ? <>
           <label className="editor-field"><span>Ảnh minh họa (không bắt buộc)</span><input type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0] || null; setMediaFiles((current) => ({ ...current, questionFile: file })); update("questionImageFileName", file?.name || ""); }} />{values.questionPicUrl && !mediaFiles.questionFile && <small>Đang dùng ảnh đã lưu. Chọn tệp mới sẽ thay ảnh này.</small>}{mediaFiles.questionFile && <small>Tệp mới: {mediaFiles.questionFile.name}</small>}</label>

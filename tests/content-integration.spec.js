@@ -75,6 +75,19 @@ test("codec keeps slot override assets and unknown row fields without reviving d
   expect(result.value.extensions.future).toBe(true);
 });
 
+test("codec stores fractional playback times as integer milliseconds without accepting invalid clips", () => {
+  const clip = { id: "clip", targetId: "slot", kind: "keyframes", startMs: 1234.567, durationMs: 900.2, keyframes: [{ timeMs: 0, x: 50 }, { timeMs: 900.2, x: 60 }] };
+  const page = { backgroundMode: "none", animationClips: [clip] };
+  const result = serializeCompositionString(page, []);
+  expect(result.ok).toBe(true);
+  expect(result.value.animationClips[0]).toMatchObject({ startMs: 1235, durationMs: 900, keyframes: [{ timeMs: 0, x: 50 }, { timeMs: 900, x: 60 }] });
+  expect(parseStoryComposition(result.json).issues).toEqual([]);
+  expect(clip.startMs).toBe(1234.567);
+  for (const patch of [{ targetId: "" }, { kind: "unknown" }, { startMs: -0.2 }, { durationMs: 0 }, { startMs: NaN }]) {
+    expect(serializeCompositionString({ ...page, animationClips: [{ ...clip, ...patch }] }, []).ok).toBe(false);
+  }
+});
+
 test("text-only PUT preserves composition and reload reads saved server data", async ({ page }) => {
   const state = await setup(page); const before = state.pages[0].compositionJson;
   expect((await update(page)).story.pages[0].text).toBe("After");

@@ -1,12 +1,45 @@
 /* Daily authoring: compact navigation, readable forms, persistent save controls. */
+/* Shared rhythm for characters, vocabulary and questions. */
+.workspace-app-content .story-collection-editor { container-type: inline-size; }
+.workspace-app-content .story-collection-editor .editor-form-card { padding: 24px; margin-bottom: 24px; }
+.workspace-app-content .story-collection-editor .editor-form-card > h3 { margin: 0 0 20px; }
+.workspace-app-content .story-collection-editor .editor-form-grid { align-items: start; gap: 20px 24px; }
+.workspace-app-content .story-collection-editor .editor-form-actions,
+.workspace-app-content .story-collection-editor .quiz-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; }
+.workspace-app-content .story-collection-editor .editor-form-actions > button { margin: 0; }
+.workspace-app-content .story-collection-editor .editor-checkboxes { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-block: 20px; }
+.workspace-app-content .story-collection-editor :is(.editor-list, .role-list) { display: grid; gap: 16px; }
+.workspace-app-content .story-collection-editor :is(.editor-item, .role-card) { padding: 20px; min-width: 0; }
+.workspace-app-content .story-collection-editor :is(.editor-item, .role-card-heading) { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.workspace-app-content .story-collection-editor :is(.editor-item, .role-card-heading) > div:first-child { min-width: 0; overflow-wrap: anywhere; }
+.workspace-app-content .story-collection-editor .editor-item-actions { display: flex; flex-shrink: 0; gap: 8px; }
+.workspace-app-content .story-collection-editor .editor-form-card-heading { flex-wrap: wrap; }
+.workspace-app-content .story-collection-editor audio { display: block; width: 100%; max-width: 320px; margin-top: 12px; }
+.workspace-app-content .story-collection-editor .slot-form { display: grid; gap: 16px; margin-top: 20px; padding-top: 20px; }
+.workspace-app-content .story-collection-editor .slot-form-main { grid-template-columns: minmax(160px, 2fr) repeat(4, minmax(0, 1fr)); gap: 12px; }
+.workspace-app-content .story-collection-editor .slot-form > .editor-checkbox { margin: 0; }
+.workspace-app-content .story-collection-editor .slot-form > .workspace-button { justify-self: start; margin: 0; }
+.workspace-app-content .story-collection-editor .slot-row { flex-wrap: wrap; gap: 12px; padding-block: 12px; }
+.workspace-app-content .story-collection-editor .slot-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.workspace-app-content .story-collection-editor .quiz-correct-radio { display: flex; justify-content: flex-start; white-space: nowrap; gap: 8px; padding: 0; min-height: 44px; }
+.workspace-app-content .story-collection-editor .quiz-correct-radio input[type="radio"] { width: 18px; height: 18px; min-height: 0; min-width: 0; flex: 0 0 18px; padding: 0; margin: 0; accent-color: var(--cm-selected-border); }
+.workspace-app-content .story-collection-editor .quiz-item ol { padding-left: 24px; margin-block: 12px; }
+.workspace-app-content .story-collection-editor .quiz-item li { padding-block: 4px; overflow-wrap: anywhere; }
+@container (max-width: 680px) {
+  .workspace-app-content .story-collection-editor .editor-form-card { padding: 16px; }
+  .workspace-app-content .story-collection-editor .editor-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .workspace-app-content .story-collection-editor .slot-form-main { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .workspace-app-content .story-collection-editor .slot-form-main .editor-field:first-child { grid-column: 1 / -1; }
+  .workspace-app-content .story-collection-editor :is(.editor-item, .role-card-heading) { flex-wrap: wrap; }
+  .workspace-app-content .story-collection-editor .editor-item-actions { margin-left: auto; }
+}
 .workspace-app-content .story-editor-shell:not(.story-editor-shell-studio) { max-width: 1440px; }
-.workspace-app-content .story-editor-back { margin-bottom: 4px; }
-.workspace-app-content .story-editor-back a { padding-left: 0; }
+.workspace-app-content .story-editor-back { margin-bottom: 16px; }
 .workspace-app-content .story-editor-header { align-items: center; margin-bottom: 16px; padding-bottom: 0; }
 .workspace-app-content .story-editor-header > div:first-child { min-width: 0; }
-.workspace-app-content .story-editor-header .workspace-eyebrow { margin-bottom: 6px; font-size: 10px; }
+.workspace-app-content .story-editor-header .workspace-eyebrow { margin-bottom: 8px; font-size: 10px; }
 .workspace-app-content .story-editor-title-row h1 { font-size: clamp(20px, 1.7vw, 26px); overflow-wrap: anywhere; }
-.workspace-app-content .story-editor-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.workspace-app-content .story-editor-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 12px; }
 .workspace-app-content .story-editor-save-status { background: transparent; border-color: transparent; padding-left: 0; }
 .workspace-app-content .story-editor-actions { flex-shrink: 0; }
 .workspace-app-content .story-editor-tabs { position: sticky; top: 0; z-index: 5; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 3px 8px #25324a06; }

@@ -193,14 +193,11 @@ export const authService = {
     return apiRequest({ path: "/auth/current-role" });
   },
   async logout() {
+    const accessToken = getTokenPair()?.accessToken;
+    clearAccessToken();
     localStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(SESSION_KEY);
-    try {
-      await apiRequest({ path: "/auth/logout", method: "POST" });
-    } finally {
-      localStorage.removeItem(SESSION_KEY);
-      sessionStorage.removeItem(SESSION_KEY);
-      clearAccessToken();
-    }
+    // Revoke the captured session without refreshing or touching a newer login.
+    await apiRequest({ path: "/auth/logout", method: "POST", skipAuth: true, skipRefresh: true, accessToken });
   },
 };

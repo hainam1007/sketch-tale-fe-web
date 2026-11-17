@@ -9,7 +9,7 @@ import "../parent-experience.css";
 export default function FamilyReportsDemo({ exports: showExports = false }) {
   const { user } = useAuth();
   const family = useQuery({
-    queryKey: ["parent-live-profiles", user.id],
+    queryKey: ["parent-live-profiles-v2", user.id],
     queryFn: ({ signal }) => parentProfileService.list({ user, signal }),
   });
   return (

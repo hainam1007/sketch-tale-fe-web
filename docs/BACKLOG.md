@@ -1,6 +1,6 @@
 # Backlog đang mở
 
-Cập nhật 14/11/2026. Chỉ giữ việc chưa hoàn tất; trạng thái source ở từng role. `source-wired` = có caller, `verified-intercept` = test FE giả lập response, `verified-runtime` = test BE thật. Đợt docs này không bổ sung kết quả runtime.
+Cập nhật 16/11/2026. Chỉ giữ việc chưa hoàn tất; trạng thái source ở từng role. `source-wired` = có caller, `verified-intercept` = test FE giả lập response, `verified-runtime` = test BE thật. Parent collection runtime đã bổ sung bằng chứng trong [ma trận Parent](roles/PARENT.md); không có mutation runtime.
 
 ## P0 — đường đọc, dữ liệu và quyền
 
@@ -14,9 +14,9 @@ Audit Parent 14/11 đã triển khai recovery hồ sơ, identity/session guards,
 | DOC-API-02 | BE + FE: upload background-image role alias/403 | Đúng token CM upload được, role khác bị chặn, URL đọc ở browser sạch; không bypass avatar |
 | WEB01–06 | FE: codec/reader/shared model/save queue/media migration/publish theo kế hoạch | JSON v1 và unknown fields không mất; text-only giữ composition; late response không xóa edits; browser sạch đọc đủ media/layout |
 | PUB-01 | BE + FE: publish chỉ Active story; không activate con/snapshot | Quy tắc trạng thái từng entity rõ, một truyện mới publish đọc đủ trang; giới hạn sửa bản phát hành được công bố |
-| SEC-01 | BE: auth/owner credit/subscription/ParentProfile/payment cancel | Parent A không đọc/sửa Parent B; non-Admin không quản trị; lỗi rõ; runtime kiểm tra cả list/detail/mutation |
+| SEC-01 | BE: auth/owner credit/subscription/ParentProfile/payment cancel; `GET /parent-profiles/child?parentId=` phải bind parentId với JWT | Theo yêu cầu người dùng, FE subscription GET chỉ bật trong `.env.development`, lấy ParentProfileId từ `/auth/profile` (fallback User.Id chỉ khi response đã xác minh, theo source relation), intercept chặn response sai owner/session; production vẫn disabled. Đây không thay authorization BE. Mapper thiếu `ParentProfile.Id` → `ParentProfileDto.ParentProfileId`; BE cần map field và bảo vệ endpoint. Parent A truyền ID B phải 403/404; non-Admin không quản trị; runtime IDOR trên route đúng chưa kiểm thử |
 | SEC-02 | BE/Mobile: accept/cancel-preview lấy child từ client | JWT + child owner, không truy cập chéo, hoàn quota không lặp |
-| PAY-01 | BE + FE: order status, cancel semantics, webhook entitlement | Parent-owned status từ server; webhook idempotent cấp đúng quyền; không tin return URL hoặc Active subscription cũ |
+| PAY-01 | BE + FE: order status, cancel semantics, webhook entitlement | PayOS success nhưng Parent còn Free đã được báo. Source local webhook active Subscription nhưng không cập nhật ParentProfile.SubscriptionPlanId; cần webhook atomic/idempotent ghi entitlement, GET status Parent-owned, rồi FE profile/status read-back; không tin return URL |
 | PAR-01 | FE/BE: nghiệm thu profile/register/Character approvals đã wired | Hai Parent, đổi bé/cache/logout, sai owner/status, gửi lặp, refetch sau approve/reject; không làm lại 4 adapter |
 | PAR-02 | BE: entitlement/usage + allowed themes | Plan hiệu lực/capability/quota/kỳ reset; giới hạn bé được enforce; themes lưu/read-back và áp dụng Mobile/catalog |
 | AUTH-01 | FE/BE: refresh, rotation, revocation | Expired access + refresh hợp lệ chạy; revoked/reuse bị chặn; multi-tab/logout race; blacklist theo deployment thực tế |
@@ -56,3 +56,11 @@ Audit Parent 14/11 đã triển khai recovery hồ sơ, identity/session guards,
 3. WEB07–09, Parent P1 và Admin theo nhu cầu; P2 không chặn MVP một narration/template reader.
 
 Khi đóng một ID, cập nhật contract/role và bằng chứng test; không chỉ đánh dấu xong vì có màn hình hoặc build pass. Chi tiết jobs: [WEB_READER](plans/WEB_READER.md). Yêu cầu API hiện tại và nguồn BE: [CONTRACTS](api/CONTRACTS.md).
+
+## Delta Admin 16/11/2026
+
+- **P0 SEC-ADM / AUDIT-DATA:** anonymous GET audit-logs/content-reports/parent-profiles runtime 200; bảo vệ endpoint và lọc Identity secrets trong audit persistence/response, actor thật. Không đóng bằng FE guard.
+- **ADM-01:** FE sửa isLockedOut, role ContentManager, changed-only PUT; tạm khóa tạo Child/gán gói theo người dùng. Còn BE self-demotion/last-admin/role-profile lifecycle, revoke token, phone/clear/reason/revision.
+- **ADM-02:** CharType đúng schema; catalog whitelist/code server; reports giữ reason/read-back recovery; audit scoped search và bỏ actor giả. Còn auth/transition/evidence/notes và quota/price/reference policy.
+- **ADM-03/04:** tổng chỉ từ full collection; metric chưa có API để trống, không dựng biểu đồ/cơ cấu giả; giữ redirect các route chưa mở.
+- Runtime mutation vẫn chờ dataset/ID test và non-Admin; [ma trận và toàn bộ yêu cầu BE](roles/ADMIN.md).

@@ -139,14 +139,13 @@ export default function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     cancelRestoreRef.current?.();
+    setSession({ status: "anonymous", user: null });
+    queryClient.clear();
     let serverLogoutSucceeded = true;
     try {
       await authService.logout();
     } catch {
       serverLogoutSucceeded = false;
-    } finally {
-      queryClient.clear();
-      setSession({ status: "anonymous", user: null });
     }
     return serverLogoutSucceeded;
   }, [queryClient]);
@@ -160,10 +159,11 @@ export default function AuthProvider({ children }) {
     const identity = pair?.sessionId || pair?.accessToken;
     const user = await authService.restore({ persist: false });
     const currentPair = getTokenPair();
-    if (isRealApi && (!identity || identity !== (currentPair?.sessionId || currentPair?.accessToken))) return;
+    if (isRealApi && (!identity || identity !== (currentPair?.sessionId || currentPair?.accessToken))) return false;
     setSession((current) => current.status === "authenticated" && current.user?.id === user.id
       ? { ...current, user }
       : current);
+    return true;
   }, []);
 
   const value = useMemo(

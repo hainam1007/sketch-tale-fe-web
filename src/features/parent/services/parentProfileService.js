@@ -55,12 +55,18 @@ async function getProfile(childId, signal) {
 }
 
 export const parentProfileService = {
-  async list({ signal } = {}) {
+  async list({ user, signal } = {}) {
     requireLiveApi();
-    // ChildProfileController scopes this collection to the authenticated
-    // parent (or returns the child's own profile). Avoid enumerating all
-    // ParentProfiles and trying to infer ownership on the client.
-    const response = await apiRequest({ path: "/child-profiles", signal, forceReal: true });
+    const parentId = user?.id ?? user?.userId;
+    if (typeof parentId !== "string" || !parentId.trim()) {
+      throw new ApiError({
+        status: 400,
+        code: "PARENT_PROFILE_PARENT_ID_MISSING",
+        message: "Không tìm thấy mã tài khoản phụ huynh để tải danh sách hồ sơ bé.",
+      });
+    }
+    const query = new URLSearchParams({ parentId });
+    const response = await apiRequest({ path: `/parent-profiles/child?${query}`, signal, forceReal: true });
     const rows = Array.isArray(response)
       ? response
       : response?.items ?? response?.childProfiles ?? response?.ChildProfiles;

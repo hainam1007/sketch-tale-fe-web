@@ -35,7 +35,6 @@ export function useContentAssets() {
   const assetsQuery = useQuery({
     queryKey: queryKeys.assets(user.id),
     queryFn: ({ signal }) => contentService.listAssets({ signal }),
-    enabled: !story?.localDemo,
     staleTime: 60_000,
   });
   const realAssets = useMemo(() => {
@@ -64,7 +63,6 @@ export function useContentAssets() {
     items.push(...libraryAssets);
     return [...new Map(items.map((asset) => [asset.id, asset])).values()];
   }, [assetsQuery.data?.items, story]);
-  if (story?.localDemo) return { data: { items: story.localDemo.assets }, isLoading: false, isError: false };
   if (featureApiModes.content !== "real") return assetsQuery;
   return {
     ...assetsQuery,

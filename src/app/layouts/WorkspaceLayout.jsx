@@ -112,8 +112,7 @@ export default function WorkspaceLayout() {
     const dirty = isContentEditorDirty();
     if (dirty && !await confirmToast({ title: "Đăng xuất?", message: "Bạn có thay đổi chưa lưu. Nếu rời trang, các thay đổi này sẽ bị bỏ.", confirmLabel: "Đăng xuất", cancelLabel: "Ở lại", tone: "danger" })) return;
     if (dirty && isStoryEditorRoute) approveNextContentEditorNavigation();
-    navigate("/", { replace: true });
-    if (dirty && isStoryEditorRoute) await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
+    navigate("/", { replace: true, flushSync: true });
     await logout();
   }
 

@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useConfirmToast } from "../../../components/feedback/useConfirmToast";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { parentProfileService } from "../services/parentProfileService";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
@@ -30,8 +29,6 @@ export default function LiveChildProfilePage({ childId }) {
 
 function ProfileEditor({ child, userId }) {
   const client = useQueryClient();
-  const navigate = useNavigate();
-  const confirm = useConfirmToast();
   const initial = {
     nickName: child.nickName,
     dailyTimeLimit: child.dailyTimeLimit ?? "",
@@ -66,7 +63,7 @@ function ProfileEditor({ child, userId }) {
       setMessage("Đã lưu hồ sơ và giới hạn sử dụng của bé.");
       await Promise.all([
         client.invalidateQueries({
-          queryKey: ["parent-live-profiles", userId],
+          queryKey: ["parent-live-profiles-v2", userId],
         }),
         client.invalidateQueries({
           queryKey: ["parent-live-profile", userId, child.id],
@@ -97,24 +94,6 @@ function ProfileEditor({ child, userId }) {
   }
   return (
     <div className="parent-page parent-entry-page">
-      <Link
-        to="/parent/children"
-        onClick={async (event) => {
-          if (!dirty) return;
-          event.preventDefault();
-          if (
-            await confirm({
-              title: "Rời hồ sơ bé?",
-              message: "Thay đổi của bạn chưa được lưu. Bạn có muốn rời trang?",
-              confirmLabel: "Rời trang",
-              tone: "danger",
-            })
-          )
-            navigate("/parent/children");
-        }}
-      >
-        ← Về hồ sơ bé
-      </Link>
       <header className="workspace-page-heading">
         <div>
           <p className="workspace-eyebrow">HỒ SƠ VÀ THÓI QUEN</p>
@@ -178,10 +157,6 @@ function ProfileEditor({ child, userId }) {
               />
             </label>
           </div>
-          <p className="parent-live-note">
-            Để trống giữ nguyên giới hạn đã lưu; API hiện chưa hỗ trợ xóa giới hạn.
-            Giá trị 0 được gửi nguyên vẹn cho hệ thống.
-          </p>
         </fieldset>
         {mutation.isError && (
           <p role="alert" className="parent-form-alert">

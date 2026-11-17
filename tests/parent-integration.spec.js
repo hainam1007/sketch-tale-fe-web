@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 const childId = "11111111-1111-1111-1111-111111111111";
+const parentId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 async function setup(page, { syncFailure = false } = {}) {
   const state = { creates: 0, profileReads: 0, writes: [], paths: [], failSync: syncFailure };
   let child = { id: childId, nickName: "Bé thật", dailyTimeLimit: 30, dailyCharacterLimit: 3, targetAgeGroup: "Age6To8" };
@@ -12,13 +13,16 @@ async function setup(page, { syncFailure = false } = {}) {
     if (path === "/api/auth/profile") {
       state.profileReads++;
       if (state.creates && state.failSync) return route.fulfill({ status: 500, json: { message: "Tạm thời mất kết nối" } });
-      return route.fulfill({ json: { id: "parent-test", name: "Mai", role: "Parent", parentProfile: { remainingChildProfile: 3 - state.creates } } });
+      return route.fulfill({ json: { id: parentId, name: "Mai", role: "Parent", parentProfile: { remainingChildProfile: 3 - state.creates } } });
     }
     if (path === "/api/auth/register/child") {
       state.creates++;
       return route.fulfill({ json: { childProfileId: childId } });
     }
-    if (path === "/api/child-profiles") return route.fulfill({ json: [child] });
+    if (path === "/api/parent-profiles/child") {
+      expect(new URL(request.url()).searchParams.get("parentId")).toBe(parentId);
+      return route.fulfill({ json: [child] });
+    }
     if (path === `/api/child-profiles/${childId}`) {
       if (request.method() === "PUT") {
         state.writes.push(request.postDataJSON());
@@ -103,4 +107,5 @@ test("catalog reader works when profiles are disabled without requesting them", 
   await expect(page.getByText("Nội dung trang đã xuất bản")).toBeVisible();
   await expect(page.getByText("Chưa thể tải danh sách hồ sơ bé để chọn người nhận.")).toBeVisible();
   expect(state.paths).not.toContain("/api/child-profiles");
+  expect(state.paths).not.toContain("/api/parent-profiles/child");
 });

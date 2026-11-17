@@ -154,14 +154,14 @@ export default function ParentLibraryPage() {
                     <Sparkle size={16} weight="fill" aria-hidden="true" /> CÙNG
                     BÉ KHÁM PHÁ
                   </p>
-                  <span className="library-topic-label">
-                    {topicLabel(featured.category)}
-                  </span>
                   <h2>{featured.title}</h2>
                   <p>
                     {featured.description ||
                       "Mở câu chuyện và cùng bé khám phá những điều thú vị qua từng trang sách."}
                   </p>
+                  <span className="library-topic-label">
+                    {topicLabel(featured.category)}
+                  </span>
                   <button
                     className="workspace-button"
                     onClick={() => update("story", featured.id)}
@@ -354,15 +354,15 @@ export default function ParentLibraryPage() {
                       </button>
                     </div>
                     <div className="catalog-book-copy">
-                      <p className="catalog-category">
-                        {topicLabel(story.category)}
-                      </p>
                       <h3>
                         <button onClick={() => update("story", story.id)}>
                           {story.title}
                         </button>
                       </h3>
                       <p>{story.description}</p>
+                      <p className="catalog-category">
+                        {topicLabel(story.category)}
+                      </p>
                       <button
                         className="parent-text-link"
                         onClick={() => update("story", story.id)}
@@ -416,7 +416,7 @@ function StoryDetail({ story, userId, user, returnTo, onBack }) {
     enabled: moduleApiModes.parentCatalog === "real",
   });
   const family = useQuery({
-    queryKey: ["parent-live-profiles", userId],
+    queryKey: ["parent-live-profiles-v2", userId],
     queryFn: ({ signal }) => parentProfileService.list({ user, signal }),
     enabled: moduleApiModes.parentProfile === "real",
   });

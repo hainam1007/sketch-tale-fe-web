@@ -4,7 +4,6 @@ import { Link, NavLink, Outlet, useBlocker, useLocation, useNavigate, useParams 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../auth/useAuth";
 import { contentService } from "../services/contentService";
-import { readLocalStoryDemo } from "../services/localStoryDemo";
 import { queryKeys } from "../../../lib/api/queryKeys";
 import { ErrorState } from "../../../components/feedback/States";
 import DismissButton from "../../../components/feedback/DismissButton";
@@ -30,8 +29,7 @@ export default function StoryEditorLayout() {
   const blocker = useBlocker(editorDirty);
   const blockerRef = useRef(null);
   const confirmToast = useConfirmToast();
-  const localDemo = location.pathname.endsWith("/preview") && new URLSearchParams(location.search).get("localDemo") === "1";
-  const storyQuery = useQuery({ queryKey: localDemo ? ["local-story-demo", user.id, storyId] : queryKeys.story(user.id, storyId), queryFn: ({ signal }) => localDemo ? readLocalStoryDemo(storyId, user.id) : contentService.getEditor({ storyId, signal }) });
+  const storyQuery = useQuery({ queryKey: queryKeys.story(user.id, storyId), queryFn: ({ signal }) => contentService.getEditor({ storyId, signal }) });
 
   useEffect(() => { blockerRef.current = blocker; }, [blocker]);
 
@@ -72,13 +70,6 @@ export default function StoryEditorLayout() {
     });
     return () => { active = false; };
   }, [blocker.state, blocker.location?.key, confirmToast, isStudio]);
-  const validateMutation = useMutation({
-    mutationFn: () => contentService.validateStory({ storyId, revision: storyQuery.data?.revision }),
-    scope: { id: `content-story-${storyId}` },
-    retry: false,
-    onSuccess: (result) => setValidation({ type: result.valid === false ? "error" : "success", message: result.message, revision: result.revision }),
-    onError: () => setValidation(null),
-  });
   const publishMutation = useMutation({
     mutationFn: () => {
       if (isContentEditorDirty()) throw new Error("Còn thay đổi hoặc thao tác lưu chưa hoàn tất. Hãy lưu trước khi xuất bản.");
@@ -114,19 +105,9 @@ export default function StoryEditorLayout() {
   const hasLocalOnlyChanges = Boolean(localOnlyChanges?.hasChanges);
   const hasUnverifiedComposition = featureApiModes.content === "real" && Boolean(story.hasUnverifiedComposition);
   const visibleValidation = validation?.revision !== undefined && validation.revision !== story.revision ? null : validation;
-  const actionError = validateMutation.error || publishMutation.error || hideMutation.error;
-  const mutationOutcomeBlocked = [validateMutation, publishMutation, hideMutation].some(({ error }) => error?.mutationAccepted || error?.mutationOutcomeUnknown);
-  const busy = validateMutation.isPending || publishMutation.isPending || hideMutation.isPending;
-
-  if (localDemo) return <section className="story-editor-layout"><Outlet context={{ story, storyId }} /></section>;
-
-  function validate() {
-    if (mutationOutcomeBlocked) return;
-    if (hasLocalOnlyChanges) return setValidation({ type: "error", message: "Một số thay đổi mới chỉ được lưu trên thiết bị, chưa đồng bộ lên máy chủ. Cần đồng bộ đầy đủ trước khi kiểm tra hoặc xuất bản." });
-    if (hasUnverifiedComposition) return setValidation({ type: "error", message: "Có trang chứa bố cục lỗi, tham chiếu không hợp lệ hoặc chưa tải đủ vị trí nhân vật. Hãy xử lý các trang đó trước khi kiểm tra." });
-    if (editorDirty) return setValidation({ type: "error", message: "Hãy lưu thay đổi thông tin truyện trước khi kiểm tra." });
-    validateMutation.mutate();
-  }
+  const actionError = publishMutation.error || hideMutation.error;
+  const mutationOutcomeBlocked = [publishMutation, hideMutation].some(({ error }) => error?.mutationAccepted || error?.mutationOutcomeUnknown);
+  const busy = publishMutation.isPending || hideMutation.isPending;
 
   async function publish() {
     if (mutationOutcomeBlocked) return;
@@ -177,7 +158,7 @@ export default function StoryEditorLayout() {
   }
 
   return <section className={`story-editor-shell${isStudio ? " story-editor-shell-studio" : ""}`}>
-    <div className="story-editor-back"><Link to="/content/stories"><ArrowLeft size={17} aria-hidden="true" /> Quay lại kho truyện</Link></div>
+    <div className="story-editor-back"><Link className="workspace-button workspace-button-quiet story-editor-back-button" to="/content/stories"><ArrowLeft size={16} aria-hidden="true" /> Quay lại kho truyện</Link></div>
     <header className="story-editor-header">
       <div>
         <p className="workspace-eyebrow">CHỈNH SỬA TRUYỆN</p>
@@ -186,11 +167,10 @@ export default function StoryEditorLayout() {
           <span>{story.pages.length} trang · {story.roles.length} nhân vật</span>
           {story.versionHistoryAvailable !== false && <span>{story.versions.length} phiên bản đã xuất bản</span>}
           {story.draftDirty && !editorDirty && <span className="story-draft-chip">Bản nháp có thay đổi chưa xuất bản</span>}
-          <span className={`story-editor-save-status${actionError ? " story-editor-save-status-error" : editorDirty || hasLocalOnlyChanges ? " story-editor-save-status-dirty" : ""}`} role="status" aria-live="polite"><FloppyDisk size={15} aria-hidden="true" /> {busy ? "Đang xử lý..." : actionError ? "Cần xử lý lỗi" : editorDirty ? "Chưa lưu thay đổi" : hasLocalOnlyChanges ? "Có thay đổi chỉ lưu trên thiết bị" : "Bản nháp đã lưu"}</span>
+          {(!hasLocalOnlyChanges || busy || actionError || editorDirty) && <span className={`story-editor-save-status${actionError ? " story-editor-save-status-error" : editorDirty || hasLocalOnlyChanges ? " story-editor-save-status-dirty" : ""}`} role="status" aria-live="polite"><FloppyDisk size={15} aria-hidden="true" /> {busy ? "Đang xử lý..." : actionError ? "Cần xử lý lỗi" : editorDirty ? "Chưa lưu thay đổi" : "Bản nháp đã lưu"}</span>}
         </div>
       </div>
       <div className="story-editor-actions">
-        <button className="workspace-button workspace-button-quiet" type="button" onClick={validate} disabled={busy || mutationOutcomeBlocked || editorDirty || hasLocalOnlyChanges || hasUnverifiedComposition}><CheckCircle size={17} aria-hidden="true" /> Kiểm tra</button>
         <button className="workspace-button" type="button" onClick={publish} disabled={busy || mutationOutcomeBlocked || editorDirty || hasLocalOnlyChanges || hasUnverifiedComposition || story.status === "unknown"} title={hasLocalOnlyChanges ? "Có thay đổi chỉ lưu trên thiết bị." : hasUnverifiedComposition ? "Có bố cục hoặc tham chiếu cần xử lý." : mutationOutcomeBlocked ? "Tải lại truyện để kiểm tra trạng thái thao tác trước khi tiếp tục." : story.status === "unknown" ? "Truyện chưa thể xuất bản lúc này." : undefined}><Rocket size={17} aria-hidden="true" /> {publishMutation.isPending ? "Đang xuất bản..." : "Xuất bản"}</button>
         {(story.status === "published" || hasLocalOnlyChanges) && <details className="story-editor-more"><summary aria-label="Thao tác khác" title="Thao tác khác"><DotsThree size={23} aria-hidden="true" /></summary><div>{story.status === "published" && <><button className="workspace-button workspace-button-danger" type="button" onClick={hide} disabled={busy || editorDirty || hasLocalOnlyChanges || mutationOutcomeBlocked}><EyeSlash size={17} aria-hidden="true" /> Ẩn truyện</button><small>Gỡ truyện khỏi danh mục của người đọc.</small></>}{hasLocalOnlyChanges && <><button className="workspace-button workspace-button-quiet" type="button" onClick={downloadLocalBackup}>Tải bản sao JSON</button><button className="workspace-button workspace-button-danger" type="button" onClick={discardLocalChanges}>Bỏ thay đổi local</button><small>Bản sao JSON không đính kèm file ảnh hoặc âm thanh.</small></>}</div></details>}
       </div>
@@ -203,7 +183,7 @@ export default function StoryEditorLayout() {
     })}</nav>
     {visibleValidation && !(hasLocalOnlyChanges && visibleValidation.message.includes("chỉ được lưu trên thiết bị")) && <div className={`story-action-message ${visibleValidation.type === "error" ? "story-action-error" : "story-action-success"}`} role="status">{visibleValidation.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />} {visibleValidation.message}{visibleValidation.type === "error" && <DismissButton onClick={() => setValidation(null)} />}</div>}
     <PublishIssues error={actionError} />
-    <Outlet context={{ story, assets: [], queryKey: queryKeys.story(user.id, storyId), setEditorDirty, refetchStory: storyQuery.refetch, onPublish: publish, onValidate: validate, isPublishing: publishMutation.isPending, isValidating: validateMutation.isPending, publishError: actionError, validation: visibleValidation }} />
+    <Outlet context={{ story, assets: [], queryKey: queryKeys.story(user.id, storyId), setEditorDirty, refetchStory: storyQuery.refetch, onPublish: publish, isPublishing: publishMutation.isPending, publishError: actionError, validation: visibleValidation }} />
   </section>;
 }
 

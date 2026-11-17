@@ -11,59 +11,53 @@ function normalizeAudit(item) {
 
 export function resolveUserFromDirectory(userId, usersMap = {}) {
   if (!userId || userId === "00000000-0000-0000-0000-000000000000") {
-    return { name: "Hệ thống", email: "system@sketchtale.io", role: "system" };
+    return { name: "", email: "", role: "" };
   }
-  const auditInfo = usersMap[userId] || {};
+  const auditInfo = usersMap[String(userId).toLowerCase()];
+  if (!auditInfo) return { name: "", email: "", role: "" };
   const email = auditInfo.email || "";
-  const name = auditInfo.userName || (email ? email.split("@")[0] : `Người dùng ${userId.slice(0, 8)}`);
-  return { name, email: email || "—", role: auditInfo.role || "" };
+  const fullName = [auditInfo.firstName, auditInfo.lastName].filter((value) => typeof value === "string" && value.trim()).join(" ");
+  const name = fullName || auditInfo.username || auditInfo.userName || "";
+  return { name, email, role: auditInfo.role || "" };
 }
 
-function extractUsersFromAudit(auditLogs) {
+function indexUserDirectory(users) {
   const usersMap = {};
-  if (!Array.isArray(auditLogs)) return usersMap;
-  for (const log of auditLogs) {
-    if (log.entityName === "User") {
-      try {
-        const data = typeof log.newValues === "string" ? JSON.parse(log.newValues) : (log.newValues || {});
-        const entity = data.Entity || data.ColumnValues || data;
-        const id = log.primaryKey || entity.Id;
-        const userName = entity.UserName || "";
-        const email = entity.Email || "";
-        if (id && (userName || email)) {
-          if (!usersMap[id] || (!usersMap[id].email && email)) {
-            usersMap[id] = {
-              id,
-              userName,
-              email,
-              lockoutEnd: entity.LockoutEnd || null,
-              lockoutEnabled: Boolean(entity.LockoutEnabled),
-              status: entity.LockoutEnd ? "locked" : "active",
-            };
-          }
-        }
-      } catch {
-        // ignore parse errors
-      }
-    }
+  if (!Array.isArray(users)) return usersMap;
+  for (const user of users) {
+    if (typeof user?.id !== "string" || !user.id || user.id === "00000000-0000-0000-0000-000000000000") continue;
+    usersMap[user.id.toLowerCase()] = {
+      id: user.id,
+      username: typeof user.username === "string" ? user.username : "",
+      firstName: typeof user.firstName === "string" ? user.firstName : "",
+      lastName: typeof user.lastName === "string" ? user.lastName : "",
+      email: typeof user.email === "string" ? user.email : "",
+      role: typeof user.role === "string" ? user.role : "",
+    };
   }
   return usersMap;
 }
 
+async function loadUserDirectory(signal) {
+  const response = await apiRequest({ path: "/users", signal, forceReal: true });
+  return indexUserDirectory(collectionItems(response, "tài khoản"));
+}
+
 function collectionItems(response, label) {
   if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.items)) return response.items;
+  if (Array.isArray(response?.items) && (response.total == null || response.total === response.items.length) && !(response.totalPages > 1) && !response.hasNextPage) return response.items;
   throw new Error(`Backend trả danh sách ${label} không đúng định dạng.`);
 }
 
 function mapAdminUser(user, profile = null) {
+  profile = user?.parentProfile ?? profile;
   if (!user || typeof user !== "object" || Array.isArray(user) || typeof user.id !== "string") {
     throw new Error("Backend trả tài khoản không có ID hợp lệ.");
   }
   const firstName = typeof user.firstName === "string" ? user.firstName.trim() : "";
   const lastName = typeof user.lastName === "string" ? user.lastName.trim() : "";
   const name = [firstName, lastName].filter(Boolean).join(" ") || user.username || user.email || `Người dùng ${user.id.slice(0, 8)}`;
-  const locked = typeof user.isLocked === "boolean" ? user.isLocked : null;
+  const locked = typeof user.isLockedOut === "boolean" ? user.isLockedOut : typeof user.isLocked === "boolean" ? user.isLocked : null;
   const status = locked === null
     ? (user.status === "active" || user.status === "locked" ? user.status : "unknown")
     : locked ? "locked" : "active";
@@ -76,7 +70,7 @@ function mapAdminUser(user, profile = null) {
     email: typeof user.email === "string" ? user.email : "",
     role: typeof user.role === "string" ? user.role : "",
     status,
-    plan: profile ? (profile.currentPlan || profile.subscriptionPlan?.name || "Free") : null,
+    plan: profile ? (profile.currentPlan || profile.subscriptionPlan?.name || null) : null,
     subscriptionPlanId: profile?.subscriptionPlanId || null,
     subscriptionPlan: profile?.subscriptionPlan || null,
     remainingMonthlyCredit: profile?.remainingMonthlyCredit ?? null,
@@ -148,6 +142,7 @@ export const adminService = {
 
     const total = items.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    page = Math.min(totalPages, Math.max(1, Number.isInteger(page) ? page : 1));
     const paginated = items.slice((page - 1) * pageSize, page * pageSize);
     return {
       items: paginated,
@@ -165,11 +160,11 @@ export const adminService = {
       findParentProfile(userId, signal),
     ]);
     const mapped = mapAdminUser(userRes, profileRes.profile);
-    return { ...mapped, parentProfile: profileRes.profile, profileLookupError: profileRes.error, allowedActions: profileRes.profile ? ["change_plan"] : [] };
+    return { ...mapped, parentProfile: userRes.parentProfile ?? profileRes.profile, profileLookupError: profileRes.error, allowedActions: [] };
   },
 
   createUser: ({ payload, signal }) =>
-    apiRequest({ path: "/users", method: "POST", body: payload, signal, forceReal: true }),
+    apiRequest({ path: "/users", method: "POST", body: { ...payload, role: ({ parent: "Parent", admin: "Admin", content_manager: "ContentManager", child: "Child" })[payload.role] || payload.role }, signal, forceReal: true }),
 
   updateUser: ({ userId, payload, signal }) =>
     apiRequest({ path: "/users/" + encodeURIComponent(userId), method: "PUT", body: mutationBody(payload), signal, forceReal: true }),
@@ -204,53 +199,38 @@ export const adminService = {
 
   // 2. Báo cáo nội dung vi phạm (Real API /content-reports)
   listContentReports: async ({ signal } = {}) => {
-    const [reportsRes, auditRes] = await Promise.allSettled([
+    const [reportsResult, usersResult] = await Promise.allSettled([
       moduleApiRequest("adminReports", { path: "/content-reports", signal }),
-      apiRequest({ path: "/audit-logs", signal, forceReal: true }),
+      loadUserDirectory(signal),
     ]);
-    if (reportsRes.status === "rejected") throw reportsRes.reason;
-    const items = Array.isArray(reportsRes.value) ? reportsRes.value : reportsRes.value?.items;
-    if (!Array.isArray(items) || items.some((item) => !item || typeof item !== "object" || Array.isArray(item) || typeof item.id !== "string")) {
-      throw new Error("Backend trả danh sách báo cáo nội dung không đúng định dạng.");
-    }
-    const auditLogs = auditRes.status === "fulfilled"
-      ? (Array.isArray(auditRes.value) ? auditRes.value : auditRes.value?.items || [])
-      : [];
-    const usersMap = extractUsersFromAudit(auditLogs);
-    return items.map((item) => {
-      const userInfo = resolveUserFromDirectory(item.createBy, usersMap);
-      return {
-        ...item,
-        reporterName: userInfo.name,
-        reporterEmail: userInfo.email,
-      };
-    });
+    if (reportsResult.status === "rejected") throw reportsResult.reason;
+    const items = collectionItems(reportsResult.value, "báo cáo");
+    if (items.some((item) => !item || typeof item.id !== "string")) throw new Error("Báo cáo không có ID hợp lệ.");
+    const usersMap = usersResult.status === "fulfilled" ? usersResult.value : {};
+    return items.map((item) => ({
+      ...item,
+      reporterName: resolveUserFromDirectory(item.createBy, usersMap).name,
+      reporterEmail: resolveUserFromDirectory(item.createBy, usersMap).email,
+    }));
   },
 
   getContentReport: async ({ reportId, signal }) => {
-    const [reportRes, auditRes] = await Promise.allSettled([
+    const [reportResult, usersResult] = await Promise.allSettled([
       moduleApiRequest("adminReports", { path: `/content-reports/${encodeURIComponent(reportId)}`, signal }),
-      apiRequest({ path: "/audit-logs", signal, forceReal: true }),
+      loadUserDirectory(signal),
     ]);
-    const item = reportRes.status === "fulfilled" ? reportRes.value : null;
-    if (!item || typeof item !== "object" || Array.isArray(item) || typeof item.id !== "string") {
-      throw new Error("Không thể tải chi tiết báo cáo nội dung.");
+    if (reportResult.status === "rejected") throw reportResult.reason;
+    const item = reportResult.value;
+    if (!item || typeof item !== "object" || Array.isArray(item) || item.id !== reportId) {
+      throw new Error("Backend trả chi tiết báo cáo không hợp lệ.");
     }
-    const auditLogs = auditRes.status === "fulfilled"
-      ? (Array.isArray(auditRes.value) ? auditRes.value : auditRes.value?.items || [])
-      : [];
-    const usersMap = extractUsersFromAudit(auditLogs);
-    const userInfo = resolveUserFromDirectory(item.createBy, usersMap);
-
-    return {
-      ...item,
-      reporterName: userInfo.name,
-      reporterEmail: userInfo.email,
-    };
+    const usersMap = usersResult.status === "fulfilled" ? usersResult.value : {};
+    const reporter = resolveUserFromDirectory(item.createBy, usersMap);
+    return { ...item, reporterName: reporter.name, reporterEmail: reporter.email };
   },
 
   updateContentReportStatus: async ({ reportId, status, reason = "", targetType = 0, targetId, signal }) => {
-    return apiRequest({
+    return moduleApiRequest("adminReports", {
       path: `/content-reports/${encodeURIComponent(reportId)}`,
       method: "PATCH",
       body: mutationBody({ status: Number(status), reason, targetType: Number(targetType), targetId }),
@@ -260,7 +240,7 @@ export const adminService = {
   },
 
   deleteContentReport: async ({ reportId, signal }) => {
-    return apiRequest({
+    return moduleApiRequest("adminReports", {
       path: `/content-reports/${encodeURIComponent(reportId)}`,
       method: "DELETE",
       signal,
@@ -276,13 +256,18 @@ export const adminService = {
   listAudit: async ({ scope = "all", value = "", signal } = {}) => {
     const scopes = { user: "user-id", entity: "entity-name", target: "entity-id" };
     const path = scopes[scope] && value.trim() ? `/audit-logs/${scopes[scope]}/${encodeURIComponent(value.trim())}` : "/audit-logs";
-    const response = await apiRequest({ path, signal, forceReal: true });
+    const [auditResult, usersResult] = await Promise.allSettled([
+      apiRequest({ path, signal, forceReal: true }),
+      loadUserDirectory(signal),
+    ]);
+    if (auditResult.status === "rejected") throw auditResult.reason;
+    const response = auditResult.value;
     let rawItems = [];
     if (Array.isArray(response)) rawItems = response;
     else if (Array.isArray(response?.items)) rawItems = response.items;
     else throw new Error("Backend trả nhật ký thao tác không đúng định dạng.");
 
-    const usersMap = extractUsersFromAudit(rawItems);
+    const usersMap = usersResult.status === "fulfilled" ? usersResult.value : {};
     return rawItems.map((item) => {
       const normalized = normalizeAudit(item);
       const userInfo = resolveUserFromDirectory(normalized.createBy, usersMap);
@@ -295,9 +280,15 @@ export const adminService = {
     });
   },
   getAudit: async ({ auditId, signal }) => {
-    const raw = await apiRequest({ path: `/audit-logs/${encodeURIComponent(auditId)}`, signal, forceReal: true });
+    const [auditResult, usersResult] = await Promise.allSettled([
+      apiRequest({ path: `/audit-logs/${encodeURIComponent(auditId)}`, signal, forceReal: true }),
+      loadUserDirectory(signal),
+    ]);
+    if (auditResult.status === "rejected") throw auditResult.reason;
+    const raw = auditResult.value;
     const normalized = normalizeAudit(raw);
-    const userInfo = resolveUserFromDirectory(normalized.createBy);
+    const usersMap = usersResult.status === "fulfilled" ? usersResult.value : {};
+    const userInfo = resolveUserFromDirectory(normalized.createBy, usersMap);
     return {
       ...normalized,
       actorName: userInfo.name,
@@ -310,7 +301,7 @@ export const adminService = {
   listRestrictedKeywords: async ({ signal } = {}) => {
     const response = await apiRequest({ path: "/restricted-keywords", signal, forceReal: true });
     if (Array.isArray(response)) return response;
-    if (Array.isArray(response?.items)) return response.items;
+    if (Array.isArray(response?.items) && (response.total == null || response.total === response.items.length) && !(response.totalPages > 1) && !response.hasNextPage) return response.items;
     throw new Error("Backend trả danh sách từ khóa hạn chế không đúng định dạng.");
   },
   getRestrictedKeyword: ({ keywordId, signal }) =>
@@ -330,8 +321,8 @@ export const adminService = {
   listSubscriptions: async ({ signal } = {}) => {
     const response = await apiRequest({ path: "/subscriptions", signal, forceReal: true });
     if (Array.isArray(response)) return response;
-    if (Array.isArray(response?.items)) return response.items;
-    return [];
+    if (Array.isArray(response?.items) && (response.total == null || response.total === response.items.length) && !(response.totalPages > 1) && !response.hasNextPage) return response.items;
+    throw new Error("Backend trả danh sách không đúng định dạng.");
   },
   getSubscription: ({ subscriptionId, signal }) =>
     apiRequest({ path: `/subscriptions/${encodeURIComponent(subscriptionId)}`, signal, forceReal: true }),
@@ -342,8 +333,8 @@ export const adminService = {
   listSubscriptionPlans: async ({ signal } = {}) => {
     const response = await apiRequest({ path: "/subscription-plans", signal, forceReal: true });
     if (Array.isArray(response)) return response;
-    if (Array.isArray(response?.items)) return response.items;
-    return [];
+    if (Array.isArray(response?.items) && (response.total == null || response.total === response.items.length) && !(response.totalPages > 1) && !response.hasNextPage) return response.items;
+    throw new Error("Backend trả danh sách không đúng định dạng.");
   },
 
   // Admin overview counts; revenue and credit aggregates are not in the API yet.
@@ -378,15 +369,16 @@ export const adminService = {
       ? reportItems.filter((report) => [0, 1].includes(Number(report.status))).slice(0, 10).map((report) => ({
           id: report.id,
           kind: "report",
-          kindLabel: "Báo cáo đối tượng #" + String(report.targetType ?? "unknown"),
-          title: report.reason || ("Báo cáo đối tượng #" + String(report.targetType ?? "unknown")),
-          meta: report.createdAt ? "Tạo lúc " + new Date(report.createdAt).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }) : "Chưa rõ thời gian",
+          kindLabel: ({ 0: "Báo cáo nhân vật", 1: "Báo cáo truyện", 2: "Báo cáo nội dung" })[report.targetType] || "",
+          title: report.reason || "",
+          meta: report.createdAt && !Number.isNaN(Date.parse(report.createdAt)) ? "Tạo lúc " + new Date(report.createdAt).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }) : "",
           status: Number(report.status) === 0 ? "open" : "under_review",
           to: "/admin/reports/" + report.id,
         }))
       : [];
     return {
-      generatedAt: new Date().toISOString(),
+      generatedAt: null,
+      fetchedAt: new Date().toISOString(),
       errors,
       counts: { reportsOpen, reportsUnderReview, totalUsers: users.items?.length ?? null, activePlans },
       revenue: { total: null, growthPercent: null, subscriptionTotal: null, creditUsed: null, activeSubscriptionsCount: null, monthlyTrend: [], packages: [], recentSubscriptions: [] },
@@ -394,8 +386,8 @@ export const adminService = {
       recentAudit: auditLogs.slice(0, 6).map((log) => ({
         id: log.id,
         action: log.action || log.auditAction || "Thao tác",
-        actorName: log.actorName || (log.actor && !log.actor.includes("-") ? log.actor : "Chưa rõ người thao tác"),
-        target: log.entityName || "Dữ liệu hệ thống",
+        actorName: log.actorName || "",
+        target: log.entityName || "",
         createdAt: log.createdAt || log.timestamp || null,
       })),
     };

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowCounterClockwise, ArrowLeft, CaretDown, CaretLeft, CaretRight, CheckCircle, Eye, Image as ImageIcon, MagicWand, Plus, SpeakerHigh, Stack, TextT, Trash, UploadSimple, UserPlus, X } from "@phosphor-icons/react";
+import { ArrowCounterClockwise, ArrowLeft, CaretLeft, CaretRight, CheckCircle, Eye, Image as ImageIcon, MagicWand, Plus, SpeakerHigh, Stack, TextT, Trash, UploadSimple, UserPlus, X } from "@phosphor-icons/react";
 import { useIsMutating, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
@@ -13,7 +13,6 @@ import StoryAnimationEditor from "../components/StoryAnimationEditor";
 import { useContentAssets, useStoryEditorData, useStoryEditorMutation } from "../hooks/useStoryEditor";
 import { useEditorSaveState } from "../hooks/useEditorSaveState";
 import { contentService } from "../services/contentService";
-import { saveLocalStoryDemo, readLocalStoryDemo } from "../services/localStoryDemo";
 import { validateAssetFile } from "../services/assetService";
 import { mergeContentMockOverlay, removeMockPage, removeMockPageDraftFields, removeMockSlotDraftFields, saveMockPageDraft, saveMockSlotDraft } from "../services/contentMockOverlay";
 import { featureApiModes } from "../../../lib/api/featureApi";
@@ -29,6 +28,14 @@ const emptySlot = { pageId: "", x: 50, y: 50, scale: 1, rotation: 0, flip: false
 const EMPTY_ASSETS = [];
 const STORY_ROLE_TYPES = [[0, "Nhân vật chính"], [1, "Bạn đồng hành"], [2, "Nhân vật hỗ trợ"], [3, "Khác"]];
 const storyTools = [["images", "Hình ảnh", ImageIcon], ["audio", "Âm thanh", SpeakerHigh], ["subtitles", "Phụ đề", TextT], ["motion", "Chuyển động", MagicWand], ["layers", "Asset", Stack]];
+
+function compactAssetName(name = "") {
+  const fileName = String(name || "");
+  if (fileName.length <= 24) return fileName;
+  const extensionIndex = fileName.lastIndexOf(".");
+  if (extensionIndex <= 0) return `${fileName.slice(0, 8)}...`;
+  return `${fileName.slice(0, 6)}...${fileName.slice(extensionIndex)}`;
+}
 
 function pageValues(page) {
   return page ? {
@@ -139,10 +146,7 @@ function validateSlotDraft(values) {
 }
 
 function ImageFields({ values, assets, prefix, hasBackground, onBackgroundChange, onUploadBackground, uploadDisabled }) {
-  const [expanded, setExpanded] = useState(!hasBackground);
   const selectedBackground = assets.find((asset) => asset.id === values.backgroundAssetId);
-
-  useEffect(() => setExpanded(!hasBackground), [prefix, hasBackground]);
 
   function selectBackground(value, asset) {
     const backgroundMode = !value
@@ -154,23 +158,13 @@ function ImageFields({ values, assets, prefix, hasBackground, onBackgroundChange
     onBackgroundChange(value === values.backgroundAssetId
       ? { backgroundAssetId: value, backgroundMode, backgroundUrl }
       : { backgroundAssetId: value, backgroundMode, backgroundUrl, backgroundOffsetX: 0, backgroundOffsetY: 0, backgroundScale: 1 });
-    setExpanded(!value);
   }
 
-  return <section className={`story-background-section${expanded ? " is-expanded" : ""}`} aria-label="Ảnh nền trang">
-    <div className="story-background-section-heading">
-      <div className="story-background-section-title">
-        <h3>Ảnh nền</h3>
-        {hasBackground && !expanded && <span title={selectedBackground?.name || "Ảnh nền hiện tại"}>{selectedBackground?.name || "Đã chọn ảnh nền"}</span>}
-      </div>
-      <button className="story-background-toggle" type="button" aria-label={expanded ? "Thu gọn phần ảnh nền" : hasBackground ? "Mở thư viện để đổi ảnh nền" : "Mở thư viện ảnh nền"} title={expanded ? "Thu gọn phần ảnh nền" : hasBackground ? "Đổi ảnh nền" : "Chọn ảnh nền"} aria-expanded={expanded} aria-controls={`story-background-picker-${prefix}`} onClick={() => setExpanded((current) => !current)}>
-        <CaretDown size={15} aria-hidden="true" />
-      </button>
-    </div>
-    {expanded && <div className="story-background-section-body" id={`story-background-picker-${prefix}`}>
+  return <section className="story-background-section" aria-label="Thư viện ảnh trang">
+    <div className="story-background-section-body" id={`story-background-picker-${prefix}`}>
       <AssetPicker assets={assets} id={`story-editor-${prefix}-background`} label="Thư viện ảnh" category="background" value={values.backgroundAssetId} onChange={selectBackground} uploadFile={onUploadBackground} disabled={uploadDisabled} emptyLabel="Kho ảnh chưa có hình nào." presentation="gallery" showUploadHint={false} />
       <BackgroundTransformControls values={values} onChange={onBackgroundChange} disabled={!hasBackground} />
-    </div>}
+    </div>
   </section>;
 }
 
@@ -235,7 +229,7 @@ export default function StoryPagesPage() {
   const { user } = useAuth();
   const confirmToast = useConfirmToast();
   const queryClient = useQueryClient();
-  const { story, storyId, setEditorDirty, refetchStory, onPublish, onValidate, isPublishing, isValidating, publishError, validation } = useStoryEditorData();
+  const { story, storyId, setEditorDirty, refetchStory, onPublish, isPublishing, publishError, validation } = useStoryEditorData();
   const assetsQuery = useContentAssets();
   const pendingAssetUploads = useIsMutating({ mutationKey: ["content-upload", storyId] });
   const [assetsErrorDismissed, setAssetsErrorDismissed] = useState(false);
@@ -400,7 +394,7 @@ export default function StoryPagesPage() {
       const page = (queryClient.getQueryData(queryKeys.story(user.id, storyId)) || story).pages.find((item) => item.id === pageId);
       if (!page) throw new Error("Không tìm thấy trang cần thêm âm thanh.");
       const hasServerNarration = Boolean(page.audioNarrationUrl);
-      if (featureApiModes.content === "real" && !story.localDemo && !hasServerNarration) {
+      if (featureApiModes.content === "real" && !hasServerNarration) {
         const nextStory = await contentService.updatePage({
           storyId, pageId,
           ...(typeof page.compositionJson === "string" ? { compositionJson: page.compositionJson, compositionMode: "preserve", expectedCompositionJson: page.compositionJson } : {}),
@@ -487,15 +481,6 @@ export default function StoryPagesPage() {
     roles: story.roles.map((role) => ({ ...role, slots: (role.slots || []).filter((slot) => !slotDrafts[slot.id]?.__deleted).map((slot) => ({ ...slot, ...(slotDrafts[slot.id] || {}) })) })),
   }), [pageDrafts, slotDrafts, story]);
   const composedPage = composedStory.pages.find((page) => page.id === selectedPage?.id);
-  const localDemoMutation = useMutation({
-    retry: false,
-    mutationFn: async () => {
-      const savedAt = await saveLocalStoryDemo(composedStory, assets, user.id);
-      const saved = await readLocalStoryDemo(storyId, user.id);
-      queryClient.setQueryData(["local-story-demo", user.id, storyId], saved);
-      return savedAt;
-    },
-  });
 
   const syncPreviewAudio = useCallback((time, playing) => {
     syncStoryAudio(audioPlayersRef.current, pageDraft.audioTracks || [], assets, time, playing, undefined, (id, length) => setAudioDurations((previous) => previous[id] === length ? previous : { ...previous, [id]: length }));
@@ -793,7 +778,15 @@ export default function StoryPagesPage() {
               throw new Error(parsed.issues[0]?.message || "Không thể ghi đè bố cục chưa được hỗ trợ.");
             }
             const encoded = serializeCompositionString({ ...values, audioTracks: remoteDraftAudio }, assets, parsed.value);
-            if (!encoded.ok) throw new Error(encoded.issues[0]?.message || "Bố cục trang chưa hợp lệ.");
+            if (!encoded.ok) {
+              const issue = encoded.issues[0];
+              setSelectedPageId(pageId);
+              if (issue?.code?.startsWith("composition.animation")) {
+                setActiveTool("motion");
+                setSelectedClipId(issue.entityId || "");
+              }
+              throw new Error(`Trang ${originalPage.order}: ${issue?.message || "Bố cục trang chưa hợp lệ."}`);
+            }
             compositionJson = encoded.json;
             apiChanged = true;
           }
@@ -1263,31 +1256,33 @@ export default function StoryPagesPage() {
   const isSaving = isAutoSaving || mutation.isPending || uploadAudioMutation.isPending;
   const hasSaveError = Boolean(localError || mutation.error || uploadAudioMutation.error);
   const hasLocalOnlyChanges = featureApiModes.content === "real" && Boolean(story.localOnlyChanges?.hasChanges);
-  const saveStatus = isSaving ? "Đang lưu…" : hasSaveError ? "Lỗi lưu" : dirty ? "Chờ tự lưu…" : hasLocalOnlyChanges ? "Đã lưu trên thiết bị" : "Đã lưu";
+  const saveStatus = isSaving ? "Đang lưu…" : hasSaveError ? "Lỗi lưu" : dirty ? "Chờ tự lưu…" : "Đã lưu";
   const inspectorTitle = activeTool === "images" ? "Hình ảnh" : activeTool === "audio" ? "Âm thanh" : activeTool === "subtitles" ? "Phụ đề" : activeTool === "motion" ? "Chuyển động" : "Asset trên trang";
+  const addImageAssetToPage = (assetId, asset) => {
+    if (!assetId) return;
+    const item = { ...emptySlot, id: uid("image"), assetId, name: asset?.name || "Ảnh phụ", layer: (pageDraft.imageObjects || []).length + 1 };
+    updatePageField("imageObjects", [...(pageDraft.imageObjects || []), item]);
+    selectSlot(item.id);
+  };
 
   return <section className="story-editor-panel story-studio-page">
     {recovery?.conflict && <p role="alert" className="editor-field-error">Có bản khôi phục khác dữ liệu máy chủ. Bản gốc được giữ trên thiết bị, chưa tự áp dụng hoặc ghi đè. Hãy đối chiếu dữ liệu trước khi tiếp tục.</p>}
     <header className="story-studio-topbar">
       <Link className="story-studio-back" to="/content/stories" aria-label="Quay lại kho truyện"><ArrowLeft size={17} aria-hidden="true" /><span>Truyện</span></Link>
-      <div className="story-studio-identity"><small>STORY EDITOR</small><strong title={story.title}>{story.title}</strong><span className={dirty || isSaving || hasSaveError || hasLocalOnlyChanges ? "is-dirty" : ""} role="status" aria-live="polite">{saveStatus}</span></div>
+      <div className="story-studio-identity"><small>STORY EDITOR</small><strong title={story.title}>{story.title}</strong>{(!hasLocalOnlyChanges || dirty || isSaving || hasSaveError) && <span className={dirty || isSaving || hasSaveError ? "is-dirty" : ""} role="status" aria-live="polite">{saveStatus}</span>}</div>
       <div className="story-studio-topbar-actions"><button type="button" className="workspace-button workspace-button-quiet" onClick={() => void saveAllDrafts()} disabled={!dirty || isSaving || mutationOutcomeBlocked}>Lưu ngay</button>
-        <button type="button" className="workspace-button" onClick={() => localDemoMutation.mutate()} disabled={localDemoMutation.isPending || isSaving || assetsQuery.isLoading}>{localDemoMutation.isPending ? "Đang lưu demo…" : "Lưu demo trên máy"}</button>
-        <Link className="workspace-button workspace-button-quiet" to={`/content/stories/${storyId}/preview?localDemo=1`} target="_blank" rel="noreferrer">Đọc demo</Link>
         <button className="workspace-button workspace-button-quiet story-studio-undo" type="button" title="Hoàn tác thay đổi gần nhất (Ctrl+Z / ⌘Z)" aria-label="Hoàn tác thay đổi gần nhất" disabled={!undoCount || mutation.isPending || uploadAudioMutation.isPending || mutationOutcomeBlocked} onClick={undoDraftChange}><ArrowCounterClockwise size={16} aria-hidden="true" /> Hoàn tác</button>
         <button className="workspace-button workspace-button-quiet" type="button" title="Làm lại (Ctrl+Shift+Z / Ctrl+Y)" disabled={!redoCount || mutation.isPending || uploadAudioMutation.isPending || mutationOutcomeBlocked} onClick={redoDraftChange}>Làm lại</button>
-        <Link className="workspace-button workspace-button-quiet" to={`/content/stories/${storyId}/preview`} target="_blank" rel="noreferrer"><Eye size={16} aria-hidden="true" /> Bản đã lưu</Link>
+        <Link className="workspace-button workspace-button-quiet" to={`/content/stories/${storyId}/preview`} target="_blank" rel="noreferrer"><Eye size={16} aria-hidden="true" /> Xem trước</Link>
         <details className="story-studio-section-menu"><summary className="workspace-button workspace-button-quiet">Đi tới mục</summary><nav aria-label="Chuyển phần chỉnh sửa"><Link to={`/content/stories/${storyId}/pages`}>Dựng truyện</Link><Link to={`/content/stories/${storyId}`}>Thông tin truyện</Link><Link to={`/content/stories/${storyId}/roles`}>Nhân vật</Link><Link to={`/content/stories/${storyId}/vocabulary`}>Từ vựng</Link><Link to={`/content/stories/${storyId}/quizzes`}>Câu hỏi</Link><Link to={`/content/stories/${storyId}/preview`}>Xem thử</Link></nav></details>
-        <button className="workspace-button workspace-button-quiet story-studio-validate" type="button" onClick={onValidate} disabled={!onValidate || publishOutcomeBlocked || dirty || isPublishing || isValidating || story.hasUnverifiedComposition}><CheckCircle size={16} aria-hidden="true" />{isValidating ? "Đang kiểm tra…" : "Kiểm tra"}</button>
-        <button className="workspace-button" type="button" onClick={onPublish} disabled={!onPublish || publishOutcomeBlocked || dirty || isPublishing || isValidating || story.hasUnverifiedComposition}><CheckCircle size={16} aria-hidden="true" />{isPublishing ? "Đang xuất bản…" : "Xuất bản"}</button>
+        <button className="workspace-button" type="button" onClick={onPublish} disabled={!onPublish || publishOutcomeBlocked || dirty || isPublishing || story.hasUnverifiedComposition}><CheckCircle size={16} aria-hidden="true" />{isPublishing ? "Đang xuất bản…" : "Xuất bản"}</button>
       </div>
     </header>
 
-    {localDemoMutation.isError && <p role="alert" className="editor-field-error">Không lưu được demo: {localDemoMutation.error.message}</p>}
     {validation && !(hasLocalOnlyChanges && validation.message.includes("chỉ được lưu trên thiết bị")) && <p className={`story-studio-validation${validation.type === "error" ? " is-error" : ""}`} role="status">{validation.message}</p>}
     <PublishIssues error={publishError} />
     <EditorMutationMessage mutation={mutation} showSuccess={false} />
-    {localError && <div className="editor-mutation-message editor-mutation-error" role="alert"><span>{localError}</span><button className="workspace-text-link" type="button" onClick={() => { setLocalError(""); void saveAllDraftsRef.current?.(); }} disabled={mutation.isPending || uploadAudioMutation.isPending || mutationOutcomeBlocked}>Thử lưu lại</button><DismissButton onClick={() => setLocalError("")} /></div>}
+    {localError && <div className="editor-mutation-message editor-mutation-error" role="alert"><span>{localError}</span><button className="workspace-button workspace-button-quiet story-retry-button" type="button" onClick={() => { setLocalError(""); void saveAllDraftsRef.current?.(); }} disabled={mutation.isPending || uploadAudioMutation.isPending || mutationOutcomeBlocked}>Thử lại</button><DismissButton onClick={() => setLocalError("")} /></div>}
     {assetsQuery.isLoading && <p className="editor-help">Đang tải thư viện tư liệu…</p>}
     {assetsQuery.isError && !assetsErrorDismissed && <div className="editor-mutation-message editor-mutation-error" role="alert"><span>Không thể tải thư viện tư liệu: {assetsQuery.error?.message}</span><button className="workspace-text-link" type="button" onClick={() => { setAssetsErrorDismissed(false); void assetsQuery.refetch(); }}>Thử lại</button><DismissButton onClick={() => setAssetsErrorDismissed(true)} /></div>}
     {selectedPageHasComposition && <div className="editor-mutation-message editor-mutation-error" role="status"><span>{selectedPage.compositionIssues[0]?.message || "Trang có dữ liệu bố cục cần khôi phục trước khi lưu."}</span></div>}
@@ -1298,7 +1293,7 @@ export default function StoryPagesPage() {
       <aside id="story-inspector" className={`story-studio-panel${activeTool && selectedPage ? "" : " is-collapsed"}`} aria-label={`${activeTool === "motion" ? "Chuyển động" : activeTool === "audio" ? "Âm thanh" : activeTool === "subtitles" ? "Phụ đề" : activeTool === "layers" ? "Asset" : "Hình ảnh"}`}>
         {activeTool && <div className="story-inspector-header"><h2>{inspectorTitle}</h2><button type="button" className="icon-button story-inspector-close" aria-label="Đóng bảng công cụ" onClick={() => { workspaceRef.current?.querySelector('.story-tool-rail button[aria-pressed="true"]')?.focus(); setActiveTool(""); setIsDrawingPath(false); }}><X size={15} aria-hidden="true" /></button></div>}
         {activeTool === "images" && selectedPage && <ImageFields key={selectedPage.id} values={pageDraft} assets={assets} hasBackground={Boolean(pageDraft.backgroundMode !== "none" && (assets.some((asset) => asset.id === pageDraft.backgroundAssetId && asset.url) || selectedPage.backgroundUrl))} onBackgroundChange={updateBackgroundTransform} onUploadBackground={uploadPageBackground} uploadDisabled={mutation.isPending || mutationOutcomeBlocked} prefix={`page-${selectedPage.id}`} />}
-        {activeTool === "images" && selectedPage && <div className="story-add-image"><AssetPicker assets={assets} label="Thêm ảnh phụ" category="background" id={`overlay-${selectedPage.id}`} allowEmpty={false} showUploadHint={false} uploadFile={(file) => contentService.uploadAsset({ file, category: "background" })} onChange={(assetId, asset) => { if (!assetId) return; const item = { ...emptySlot, id: uid("image"), assetId, name: asset?.name || "Ảnh phụ", layer: (pageDraft.imageObjects || []).length + 1 }; updatePageField("imageObjects", [...(pageDraft.imageObjects || []), item]); selectSlot(item.id); }} /></div>}
+        
         {activeTool === "images" && selectedPage && (selectedImage || selectedSlotRecord) && <div className="story-image-object-fields"><div className="story-studio-panel-heading story-inspector-section-heading"><h3>{selectedImage?.name || selectedSlotRecord?.role.name}</h3></div>{selectedImage ? <SlotFields values={selectedImage} assets={assets} onChange={(name, value) => changeCanvasTransform(selectedImage.id, { [name]: value })} /> : <SlotFields key={selectedSlotRecord.slot.id} values={slotDraft} assets={assets} onChange={updateSlotField} />}</div>}
         {activeTool === "audio" && selectedPage && <AudioSequence values={pageDraft.audioTracks || []} assets={assets} audioDurations={audioDurations} onDuration={(id, length) => setAudioDurations((previous) => previous[id] === length ? previous : { ...previous, [id]: length })} onChange={(value) => updatePageField("audioTracks", value)} onUpload={uploadAudio} isUploading={uploadAudioMutation.isPending} uploadError={uploadAudioMutation.error?.message} />}
         {activeTool === "subtitles" && selectedPage && <section className="story-subtitle-editor" aria-label="Chỉnh sửa phụ đề">
@@ -1313,7 +1308,9 @@ export default function StoryPagesPage() {
           </article>)}
         </section>}
 
-        {activeTool === "layers" && <>{pageDraft.imageObjects?.length > 0 && <div className="story-inspector-image-objects" aria-label="Ảnh phụ trên trang">{pageDraft.imageObjects.map((item) => <button className="workspace-button workspace-button-quiet" type="button" key={item.id} onClick={() => selectSlot(item.id)}>{item.name}</button>)}</div>}{pageSlots.length ? <ul className="story-studio-layer-list">{pageSlots.map(({ role, slot }) => <li key={slot.id}><button type="button" className={selectedSlotId === slot.id ? "active" : ""} onClick={() => selectSlot(slot.id)}><span>{role.name}</span><small>Lớp {slot.layer}</small></button></li>)}</ul> : <p className="editor-help">{selectedPage.slotsUnavailable ? "Không tải được vị trí nhân vật của trang này." : "Trang chưa có nhân vật."}</p>}<label className="story-studio-add-character"><span>Thêm nhân vật</span><select aria-label="Chọn nhân vật để thêm" disabled={slotsUnavailable} value={roleToAdd} onChange={(event) => setRoleToAdd(event.target.value)}><option value="">Chọn nhân vật…</option>{story.roles.map((role) => { const existingSlot = (role.slots || []).find((slot) => slot.pageId === selectedPage?.id); return <option value={role.id} key={role.id} disabled={Boolean(existingSlot)}>{role.name}{existingSlot ? " · đã có trên trang" : ""}</option>; })}</select><button className="workspace-button" type="button" disabled={!roleToAdd || mutation.isPending || mutationOutcomeBlocked || slotsUnavailable} onClick={addCharacter}><Plus size={16} aria-hidden="true" /> Thêm</button></label></>}
+        {activeTool === "layers" && <>
+          {selectedPage && <div className="story-add-image"><AssetPicker assets={assets} label="Ảnh từ kho Asset" category="" id={`overlay-${selectedPage.id}`} allowEmpty={false} allowUpload={false} showUploadHint={false} emptyLabel="Chọn ảnh để thêm vào trang." onChange={addImageAssetToPage} /></div>}
+          {pageDraft.imageObjects?.length > 0 && <div className="story-inspector-image-objects" aria-label="Ảnh phụ trên trang">{pageDraft.imageObjects.map((item) => <button className="workspace-button workspace-button-quiet story-inspector-asset-name" type="button" key={item.id} title={item.name} onClick={() => selectSlot(item.id)}>{compactAssetName(item.name)}</button>)}</div>}{pageSlots.length ? <ul className="story-studio-layer-list">{pageSlots.map(({ role, slot }) => <li key={slot.id}><button type="button" className={selectedSlotId === slot.id ? "active" : ""} onClick={() => selectSlot(slot.id)}><span>{role.name}</span><small>Lớp {slot.layer}</small></button></li>)}</ul> : <p className="editor-help">{selectedPage.slotsUnavailable ? "Không tải được vị trí nhân vật của trang này." : "Trang chưa có nhân vật."}</p>}<label className="story-studio-add-character"><span>Thêm nhân vật</span><select aria-label="Chọn nhân vật để thêm" disabled={slotsUnavailable} value={roleToAdd} onChange={(event) => setRoleToAdd(event.target.value)}><option value="">Chọn nhân vật…</option>{story.roles.map((role) => { const existingSlot = (role.slots || []).find((slot) => slot.pageId === selectedPage?.id); return <option value={role.id} key={role.id} disabled={Boolean(existingSlot)}>{role.name}{existingSlot ? " · đã có trên trang" : ""}</option>; })}</select><button className="workspace-button" type="button" disabled={!roleToAdd || mutation.isPending || mutationOutcomeBlocked || slotsUnavailable} onClick={addCharacter}><Plus size={16} aria-hidden="true" /> Thêm</button></label></>}
         {activeTool === "layers" && <button className="workspace-button workspace-button-quiet story-quick-character-trigger" type="button" onClick={openQuickCharacterDialog} disabled={!selectedPage || slotsUnavailable || mutation.isPending || mutationOutcomeBlocked}><UserPlus size={16} aria-hidden="true" /> Tạo nhân vật mới</button>}
         {activeTool === "motion" && <StoryAnimationEditor {...animationEditorProps} showPanel showTimeline={false} />}
       </aside>
