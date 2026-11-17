@@ -22,6 +22,7 @@ export default defineConfig({
       VITE_PARENT_API_MODE: "mock",
       VITE_PARENT_PROFILE_API_MODE: profile,
       VITE_PARENT_CATALOG_API_MODE: "real",
+      VITE_PARENT_SUBSCRIPTION_API_MODE: profile === "real" ? "real" : "disabled",
       VITE_PARENT_APPROVALS_API_MODE: "real",
       VITE_PARENT_QUIZ_RESULTS_API_MODE: "real",
       VITE_PARENT_PAYMENT_API_MODE: "mock",

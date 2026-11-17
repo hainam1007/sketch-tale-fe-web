@@ -3,9 +3,11 @@ import { test, expect } from "@playwright/test";
 const childId = "11111111-1111-1111-1111-111111111111";
 const otherChildId = "22222222-2222-2222-2222-222222222222";
 const characterId = "33333333-3333-3333-3333-333333333333";
+const parentId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+const parentProfileId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 
 async function setup(page) {
-  const state = { writes: [], paths: [], failRead: false, wrongProfile: false, wrongCharacter: false, approved: false, failInbox: false };
+  const state = { writes: [], paths: [], failRead: false, wrongProfile: false, wrongCharacter: false, approved: false, failInbox: false, subscriptions: [], wrongSubscriptionOwner: false, failSubscriptions: false, emptyParentProfileId: false };
   let child = { childProfileId: childId, nickName: "Mây", dailyTimeLimit: 30, dailyCharacterLimit: 3 };
   const character = { characterId, childProfileId: childId, childNickName: "Mây", characterName: "Thỏ", status: 1, finalImageUrl: "https://images.example.test/rabbit.svg" };
   await page.addInitScript(() => {
@@ -17,8 +19,20 @@ async function setup(page) {
     const req = route.request();
     const path = new URL(req.url()).pathname;
     state.paths.push(`${req.method()} ${path}`);
-    if (path === "/api/auth/profile") return route.fulfill({ json: { id: "parent-a", name: "Parent A", role: "Parent" } });
-    if (path === "/api/child-profiles") return route.fulfill({ json: [child] });
+    if (path === "/api/auth/profile") return route.fulfill({ json: { id: parentId, name: "Parent A", role: "Parent", parentProfile: { parentProfileId: state.emptyParentProfileId ? "00000000-0000-0000-0000-000000000000" : parentProfileId, currentPlan: "Plus" } } });
+    if (path === "/api/subscription-plans") return route.fulfill({ json: [] });
+    const expectedSubscriptionParentId = state.emptyParentProfileId ? parentId : parentProfileId;
+    if (path === `/api/subscriptions/parent-profile/${expectedSubscriptionParentId}`) {
+      if (state.failSubscriptions) return route.fulfill({ status: 503, json: { message: "Subscription history unavailable" } });
+      const rows = state.wrongSubscriptionOwner
+        ? state.subscriptions.map(row => ({ ...row, parentProfileId: "cccccccc-cccc-cccc-cccc-cccccccccccc" }))
+        : state.subscriptions;
+      return route.fulfill({ json: rows });
+    }
+    if (path === "/api/parent-profiles/child") {
+      expect(new URL(req.url()).searchParams.get("parentId")).toBe(parentId);
+      return route.fulfill({ json: [child] });
+    }
     if (path === `/api/child-profiles/${childId}`) {
       if (req.method() === "PUT") {
         state.writes.push(req.postDataJSON());
@@ -154,7 +168,137 @@ test("forged payment return never calls cancel or grants entitlement", async ({ 
   const state = await setup(page);
   await page.goto("/payment/success?status=PAID&code=00&orderCode=9223372036854775807");
   await expect(page.getByRole("heading", { name: "Đang chờ xác nhận giao dịch" })).toBeVisible();
+  const profileReads = () => state.paths.filter(path => path === "GET /api/auth/profile").length;
+  await expect(page.getByRole("button", { name: "Kiểm tra lại quyền lợi" })).toBeVisible();
+  const readsBeforeRetry = profileReads();
+  await page.getByRole("button", { name: "Kiểm tra lại quyền lợi" }).click();
+  await expect(page.getByText(/Hồ sơ đã được tải lại từ Backend/)).toBeVisible();
+  expect(profileReads()).toBeGreaterThan(readsBeforeRetry);
   expect(state.paths.some(path => /payments|subscriptions|credit-transaction/.test(path))).toBe(false);
+});
+
+test("plan status reads the authenticated parent's subscription and maps BE enum values", async ({ page }) => {
+  const state = await setup(page);
+  state.subscriptions = [{
+    id: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    parentProfileId,
+    subscriptionPlanId: "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+    status: 1,
+    startDate: "2026-11-01T00:00:00Z",
+    endDate: "2026-12-01T00:00:00Z",
+    plan: { name: "Plus" },
+  }];
+
+  await page.goto("/parent/plan");
+
+  await expect(page.getByText("Đang hoạt động", { exact: true })).toBeVisible();
+  await expect(page.locator(".plan-current-main")).toContainText("đang dùng gói Plus");
+  expect(state.paths).toContain(`GET /api/subscriptions/parent-profile/${parentProfileId}`);
+  expect(state.paths).toContain("GET /api/auth/profile");
+});
+
+test("plan status uses the verified account ID when BE maps ParentProfileId as Guid.Empty", async ({ page }) => {
+  const state = await setup(page);
+  state.emptyParentProfileId = true;
+  state.subscriptions = [{
+    id: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    parentProfileId: parentId,
+    status: 1,
+    startDate: "2026-11-01T00:00:00Z",
+    endDate: "2026-12-01T00:00:00Z",
+    plan: { name: "Plus" },
+  }];
+
+  await page.goto("/parent/plan");
+
+  await expect(page.getByText("Đang hoạt động", { exact: true })).toBeVisible();
+  expect(state.paths).toContain(`GET /api/subscriptions/parent-profile/${parentId}`);
+});
+
+test("plan status rejects subscription rows belonging to a different ParentProfile", async ({ page }) => {
+  const state = await setup(page);
+  state.subscriptions = [{
+    id: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    parentProfileId,
+    status: "Active",
+    startDate: "2026-11-01T00:00:00Z",
+    endDate: "2026-12-01T00:00:00Z",
+    plan: { name: "Plus" },
+  }];
+  state.wrongSubscriptionOwner = true;
+
+  await page.goto("/parent/plan");
+
+  await expect(page.getByText("Backend trả về đăng ký không thuộc hồ sơ phụ huynh hiện tại.")).toBeVisible();
+  await expect(page.locator(".plan-current-meta dd").first()).toHaveText("Chưa tải được");
+});
+
+test("non-Parent role cannot request subscription data from the FE adapter", async ({ page }) => {
+  const state = await setup(page);
+  await page.goto("/payment/success");
+
+  const result = await page.evaluate(async (currentUserId) => {
+    const { parentSubscriptionService } = await import("/src/features/parent/services/parentSubscriptionService.js");
+    try {
+      await parentSubscriptionService.listForCurrentParent({ user: { id: currentUserId, role: "child" } });
+      return "unexpected-success";
+    } catch (error) {
+      return error.code;
+    }
+  }, parentId);
+
+  expect(result).toBe("PARENT_SUBSCRIPTION_PARENT_REQUIRED");
+  expect(state.paths.some(path => path.startsWith("GET /api/subscriptions/parent-profile/"))).toBe(false);
+});
+
+test("plan status reports read failures without falling back to mock data", async ({ page }) => {
+  const state = await setup(page);
+  state.failSubscriptions = true;
+
+  await page.goto("/parent/plan");
+
+  await expect(page.getByText("Subscription history unavailable")).toBeVisible();
+  await expect(page.locator(".plan-current-meta dd").first()).toHaveText("Chưa tải được");
+  expect(state.paths.filter(path => path.startsWith("GET /api/subscriptions/parent-profile/")).length).toBe(1);
+});
+
+test("late subscription response is discarded after switching Parent accounts", async ({ page }) => {
+  await setup(page);
+  await page.goto("/payment/success");
+  let release;
+  const held = new Promise(resolve => { release = resolve; });
+  let markStarted;
+  const started = new Promise(resolve => { markStarted = resolve; });
+  await page.route(`**/api/subscriptions/parent-profile/${parentProfileId}`, async route => {
+    markStarted();
+    await held;
+    await route.fulfill({ json: [{
+      id: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      parentProfileId,
+      status: 1,
+      startDate: "2026-11-01T00:00:00Z",
+      endDate: "2026-12-01T00:00:00Z",
+      plan: { name: "Plus" },
+    }] });
+  });
+
+  const result = page.evaluate(async (currentParentId) => {
+    const { parentSubscriptionService } = await import("/src/features/parent/services/parentSubscriptionService.js");
+    try {
+      await parentSubscriptionService.listForCurrentParent({ user: { id: currentParentId, role: "parent" } });
+      return "unexpected-success";
+    } catch (error) {
+      return error.code;
+    }
+  }, parentId);
+  await started;
+  await page.evaluate(async () => {
+    const { setTokenPair } = await import("/src/lib/api/authTokenStorage.js");
+    setTokenPair({ accessToken: "parent-b", refreshToken: "refresh-b" });
+  });
+  release();
+
+  expect(await result).toBe("SESSION_CHANGED");
 });
 
 async function readerSetup(page, { invalid = false } = {}) {

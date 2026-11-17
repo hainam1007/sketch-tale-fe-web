@@ -17,8 +17,9 @@ import StatusBadge from "../../../components/ui/StatusBadge";
 import { adminModerationCatalogService } from "../services/adminModerationCatalogService";
 import "../admin.css";
 
-const enumFields = ["status", "matchType", "severityLevel", "action"];
+const enumFields = ["category", "status", "matchType", "severityLevel", "action"];
 const numericValues = {
+  category: [0, 1, 2, 3, 4],
   status: [0, 1, 2, 3, 4],
   matchType: [0, 1, 2],
   severityLevel: [0, 1, 2, 3],
@@ -26,7 +27,7 @@ const numericValues = {
 };
 const titles = { charTypes: "Loại nhân vật", prohibitedThemes: "Chủ đề cấm" };
 const fields = {
-  charTypes: ["name", "description", "status"],
+  charTypes: ["nameVi", "nameEn", "category", "canFly", "canSwim", "imageUrl", "status"],
   prohibitedThemes: [
     "name",
     "description",
@@ -37,6 +38,7 @@ const fields = {
   ],
 };
 const labels = {
+  nameVi: "Tên tiếng Việt", nameEn: "Tên tiếng Anh", category: "Nhóm nhân vật", canFly: "Có thể bay", canSwim: "Có thể bơi", imageUrl: "URL hình ảnh",
   name: "Tên",
   description: "Mô tả",
   status: "Trạng thái",
@@ -45,6 +47,7 @@ const labels = {
   action: "Hành động xử lý",
 };
 const enumLabels = {
+  category: { 0: "Động vật", 1: "Phương tiện", 2: "Con người", 3: "Kỳ ảo", 4: "Thiên nhiên và đồ vật" },
   status: {
     0: "Bản nháp",
     1: "Chờ duyệt",
@@ -71,7 +74,7 @@ const enumLabels = {
 };
 
 function emptyValues(kind) {
-  return Object.fromEntries(fields[kind].map((field) => [field, ""]));
+  return Object.fromEntries(fields[kind].map((field) => [field, ["canFly", "canSwim"].includes(field) ? "false" : ""]));
 }
 
 function valuesFrom(kind, item) {
@@ -133,6 +136,7 @@ export default function AdminModerationCatalogPage({ kind }) {
       }),
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey });
+      await client.invalidateQueries({ queryKey: ["admin-audit", user.id] });
     },
   });
 
@@ -151,6 +155,7 @@ export default function AdminModerationCatalogPage({ kind }) {
     onSuccess: async () => {
       setEditor(null);
       await client.invalidateQueries({ queryKey });
+      await client.invalidateQueries({ queryKey: ["admin-audit", user.id] });
     },
   });
   const remove = useMutation({
@@ -159,6 +164,7 @@ export default function AdminModerationCatalogPage({ kind }) {
     onSuccess: async () => {
       setDeleteTarget(null);
       await client.invalidateQueries({ queryKey });
+      await client.invalidateQueries({ queryKey: ["admin-audit", user.id] });
     },
   });
 
@@ -172,7 +178,8 @@ export default function AdminModerationCatalogPage({ kind }) {
 
   function submit(event) {
     event.preventDefault();
-    if (!draft.name?.trim()) {
+    if (save.isPending) return;
+    if ((kind === "charTypes" ? ["nameVi", "nameEn"] : ["name"]).some((field) => !draft[field]?.trim())) {
       setFormError("Nhập tên trước khi lưu.");
       return;
     }
@@ -214,7 +221,7 @@ export default function AdminModerationCatalogPage({ kind }) {
       />
     );
   const items = (query.data || []).filter((item) =>
-    `${item.name || ""} ${item.description || ""}`
+    `${item.nameVi || item.name || ""} ${item.nameEn || item.description || ""}`
       .toLocaleLowerCase("vi")
       .includes(search.trim().toLocaleLowerCase("vi")),
   );
@@ -268,11 +275,11 @@ export default function AdminModerationCatalogPage({ kind }) {
               {items.map((item) => (
                 <tr key={item.id}>
                   <td>
-                    <strong className="admin-catalog-primary">{item.name || "Chưa đặt tên"}</strong>
+                    <strong className="admin-catalog-primary">{item.nameVi || item.name || "Chưa đặt tên"}</strong>
                   </td>
                   <td>
                     <span className="admin-table-desc" title={item.description}>
-                      {item.description || "Chưa có mô tả chi tiết."}
+                      {item.nameEn || item.description || "Chưa có mô tả chi tiết."}
                     </span>
                   </td>
                   <td>
@@ -283,7 +290,7 @@ export default function AdminModerationCatalogPage({ kind }) {
                           ? "Đang áp dụng"
                           : item.status === 3
                             ? "Ngưng áp dụng"
-                            : (enumLabels.status[item.status] || "Đang áp dụng")
+                            : (enumLabels.status[item.status] || "Chưa xác định")
                       }
                       tone={item.status === 2 ? "success" : "neutral"}
                     />
@@ -479,7 +486,11 @@ function ModerationCatalogEditor({
                   {labels[field]}
                   {(field === "name" || enumFields.includes(field)) && " *"}
                 </span>
-                {field === "description" ? (
+                {["canFly", "canSwim"].includes(field) ? (
+                  <select value={draft[field]} onChange={(event) => setDraft((current) => ({ ...current, [field]: event.target.value }))}>
+                    <option value="false">Không</option><option value="true">Có</option>
+                  </select>
+                ) : field === "description" ? (
                   <textarea
                     value={draft[field]}
                     onChange={(event) =>
@@ -553,7 +564,7 @@ function toPayload(values) {
   return Object.fromEntries(
     Object.entries(values).map(([key, value]) => [
       key,
-      enumFields.includes(key) && value !== "" ? Number(value) : value,
+      ["canFly", "canSwim"].includes(key) ? value === true || value === "true" : enumFields.includes(key) && value !== "" ? Number(value) : value,
     ]),
   );
 }

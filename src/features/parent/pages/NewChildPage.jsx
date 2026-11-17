@@ -21,8 +21,8 @@ export default function NewChildPage() {
     const results = await Promise.allSettled([
       refreshUser(),
       ...(moduleApiModes.parentProfile === "real"
-        ? [queryClient.invalidateQueries({ queryKey: ["parent-live-profiles", user.id], refetchType: "none" }).then(() => queryClient.fetchQuery({
-          queryKey: ["parent-live-profiles", user.id],
+        ? [queryClient.invalidateQueries({ queryKey: ["parent-live-profiles-v2", user.id], refetchType: "none" }).then(() => queryClient.fetchQuery({
+          queryKey: ["parent-live-profiles-v2", user.id],
           queryFn: ({ signal }) => parentProfileService.list({ user, signal }),
           retry: false,
           staleTime: 0,

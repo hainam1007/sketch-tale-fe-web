@@ -19,7 +19,7 @@ import { adminService } from "../services/adminService";
 const statusTone = { open: "neutral", under_review: "gold", resolved: "success", rejected: "danger" };
 
 function formatVND(amount) {
-  if (typeof amount !== "number" || !Number.isFinite(amount)) return "Chưa có dữ liệu";
+  if (typeof amount !== "number" || !Number.isFinite(amount)) return "";
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(amount);
 }
 
@@ -68,8 +68,8 @@ export default function AdminOverviewPage() {
       {data.errors?.map((error) => <p className="admin-refresh-note" role="status" key={error.section}>{error.message}</p>)}
 
       <section className="workspace-stat-grid admin-overview-stat-grid" aria-label="Chỉ số vận hành">
-        <OverviewStat icon={Flag} label="Báo cáo chờ xử lý" value={counts.reportsOpen} to="/admin/reports" tone="gold" />
-        <OverviewStat icon={ShieldCheck} label="Báo cáo đang xem xét" value={counts.reportsUnderReview} to="/admin/reports" tone="gold" />
+        <OverviewStat icon={Flag} label="Báo cáo chờ xử lý" value={counts.reportsOpen} to="/admin/reports?status=0" tone="gold" />
+        <OverviewStat icon={ShieldCheck} label="Báo cáo đang xem xét" value={counts.reportsUnderReview} to="/admin/reports?status=1" tone="gold" />
         <OverviewStat icon={UsersThree} label="Người dùng" value={counts.totalUsers} to="/admin/users" tone="success" />
         <OverviewStat icon={Package} label="Gói sử dụng đang chạy" value={counts.activePlans} to="/admin/subscription-plans" tone="neutral" />
       </section>
@@ -80,12 +80,6 @@ export default function AdminOverviewPage() {
             <div>
               <p className="workspace-eyebrow">HIỆU QUẢ KINH DOANH</p>
               <h2>Tổng quan doanh thu</h2>
-              <p>Backend chưa cung cấp aggregate doanh thu hoặc credit đã dùng.</p>
-            </div>
-            <div className="admin-revenue-header-actions">
-              <span className="admin-revenue-api-pill" title="Swagger chưa có API tổng hợp doanh thu">
-                <span className="admin-source-indicator" /> Chưa có API doanh thu
-              </span>
             </div>
           </div>
 
@@ -97,7 +91,6 @@ export default function AdminOverviewPage() {
               <div className="admin-revenue-kpi-body">
                 <span className="admin-revenue-kpi-label">Tổng doanh thu</span>
                 <strong className="admin-revenue-kpi-value">{formatVND(revenue.total)}</strong>
-                <span className="admin-revenue-badge-pill">Chưa có số liệu theo kỳ</span>
               </div>
             </div>
             <div className="admin-revenue-kpi-card">
@@ -107,7 +100,6 @@ export default function AdminOverviewPage() {
               <div className="admin-revenue-kpi-body">
                 <span className="admin-revenue-kpi-label">Gói thuê bao</span>
                 <strong className="admin-revenue-kpi-value">{formatVND(revenue.subscriptionTotal)}</strong>
-                <span className="admin-revenue-kpi-note">Chưa có số liệu thuê bao</span>
               </div>
             </div>
             <div className="admin-revenue-kpi-card">
@@ -116,16 +108,12 @@ export default function AdminOverviewPage() {
               </div>
               <div className="admin-revenue-kpi-body">
                 <span className="admin-revenue-kpi-label">Số credit đã sử dụng</span>
-                <strong className="admin-revenue-kpi-value">
-                  Chưa có dữ liệu{" "}
-                  <small style={{ fontSize: "13px", fontWeight: 600, color: "#64748b" }}>Credit</small>
-                </strong>
-                <span className="admin-revenue-kpi-note">Mức tiêu thụ AI trên toàn hệ thống</span>
+                <strong className="admin-revenue-kpi-value">{formatVND(revenue.creditUsed)}</strong>
               </div>
             </div>
           </div>
 
-          <div className="admin-revenue-chart-wrap">
+          {revenue.monthlyTrend?.length > 0 && <div className="admin-revenue-chart-wrap">
             <div className="admin-revenue-chart-title">
               <div>
                 <strong>Biểu đồ doanh thu 6 tháng gần nhất</strong>
@@ -139,7 +127,6 @@ export default function AdminOverviewPage() {
             </div>
 
             <div className="admin-revenue-bars" aria-label="Biểu đồ cột doanh thu theo tháng">
-              {!revenue.monthlyTrend?.length && <p>Chưa có chuỗi doanh thu từ Backend.</p>}
               {(revenue.monthlyTrend || []).map((m) => {
                 const amount = m.sub || m.total || 0;
                 const isZero = amount === 0;
@@ -163,15 +150,14 @@ export default function AdminOverviewPage() {
                 );
               })}
             </div>
-          </div>
+          </div>}
 
-          <div className="admin-revenue-packages-section">
+          {revenue.packages?.length > 0 && <div className="admin-revenue-packages-section">
             <div className="admin-revenue-packages-header">
               <strong>Cơ cấu doanh thu theo gói</strong>
               <small className="admin-filter-result-count">Tỷ trọng các gói dịch vụ</small>
             </div>
             <div className="admin-revenue-packages-grid">
-              {!revenue.packages?.length && <p>Chưa có dữ liệu doanh thu theo gói.</p>}
               {(revenue.packages || []).map((pkg) => (
                 <div className={`admin-revenue-package-card ${pkg.rawCount > 0 ? "is-active" : ""}`} key={pkg.name}>
                   <div className="admin-revenue-package-card-top">
@@ -204,7 +190,7 @@ export default function AdminOverviewPage() {
                 </div>
               ))}
             </div>
-        </div>
+        </div>}
 
         {revenue.recentSubscriptions?.length > 0 && (
             <div className="admin-revenue-recent-subs">
@@ -358,7 +344,7 @@ export default function AdminOverviewPage() {
 }
 
 function OverviewStat({ icon: Icon, label, value, to, tone }) {
-  const displayValue = value === null || value === undefined || value === "" ? "Chưa có" : typeof value === "number" && Number.isFinite(value) ? new Intl.NumberFormat("vi-VN").format(value) : String(value);
+  const displayValue = value === null || value === undefined || value === "" ? "" : typeof value === "number" && Number.isFinite(value) ? new Intl.NumberFormat("vi-VN").format(value) : String(value);
   return (
     <Link className={`admin-overview-stat admin-overview-stat-${tone}`} to={to}>
       <span className="workspace-stat-icon"><Icon size={20} aria-hidden="true" /></span>

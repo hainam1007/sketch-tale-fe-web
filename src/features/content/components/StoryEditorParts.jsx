@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import DismissButton from "../../../components/feedback/DismissButton";
 
-export function EditorPanel({ eyebrow, title, description, action, children, isSaving = false }) {
+export function EditorPanel({ eyebrow, title, description, action, children, isSaving = false, className = "" }) {
   return (
-    <section className="story-editor-panel">
+    <section className={`story-editor-panel ${className}`}>
       <div className="story-editor-panel-heading">
         <div>
           <p className="workspace-eyebrow">{eyebrow}</p>

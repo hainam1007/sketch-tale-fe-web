@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.use({ channel: "chromium" });
+const parentId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
 async function session(page, { empty = false, fail = false } = {}) {
   let child = {
@@ -19,14 +20,16 @@ async function session(page, { empty = false, fail = false } = {}) {
     if (path === "/api/auth/profile")
       return route.fulfill({
         json: {
-          id: "parent-test",
+          id: parentId,
           name: "Mai",
           role: "Parent",
           email: "mai@example.com",
         },
       });
-    if (path === "/api/child-profiles")
+    if (path === "/api/parent-profiles/child") {
+      expect(new URL(route.request().url()).searchParams.get("parentId")).toBe(parentId);
       return route.fulfill({ json: empty ? [] : [child] });
+    }
     if (path === `/api/child-profiles/${child.id}`) {
       if (route.request().method() === "PUT") {
         writes.push(route.request().postDataJSON());
@@ -114,7 +117,7 @@ test("failed save preserves input and never reports success", async ({
 
 test("malformed profile response shows retry instead of an empty family", async ({ page }) => {
   await session(page);
-  await page.route(url => url.pathname === "/api/child-profiles", route => route.fulfill({ json: { unexpected: true } }));
+  await page.route(url => url.pathname === "/api/parent-profiles/child", route => route.fulfill({ json: { unexpected: true } }));
   await page.goto("/parent/children");
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByRole("button", { name: "Thử lại" })).toBeVisible();

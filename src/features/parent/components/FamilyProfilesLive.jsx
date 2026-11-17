@@ -12,7 +12,7 @@ import "../parent-experience.css";
 export default function FamilyProfilesLive() {
   const { user } = useAuth();
   const query = useQuery({
-    queryKey: ["parent-live-profiles", user.id],
+    queryKey: ["parent-live-profiles-v2", user.id],
     queryFn: ({ signal }) => parentProfileService.list({ user, signal }),
   });
 

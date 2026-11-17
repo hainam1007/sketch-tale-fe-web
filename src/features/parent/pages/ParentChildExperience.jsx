@@ -32,7 +32,6 @@ import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import "../parent-experience.css";
 const tabs = [
   ["", "Tổng quan"],
-  ["profile", "Hồ sơ"],
   ["settings", "Cài đặt"],
   ["approvals", "Phê duyệt"],
   ["library", "Tủ truyện"],
@@ -54,7 +53,7 @@ function EditableChildName({ child, userId }) {
       setEditing(false);
       await Promise.all([
         client.invalidateQueries({
-          queryKey: ["parent-live-profiles", userId],
+          queryKey: ["parent-live-profiles-v2", userId],
         }),
         client.invalidateQueries({
           queryKey: ["parent-live-profile", userId, child.id],
@@ -152,7 +151,7 @@ export default function ParentChildExperience({ childId, section = "", previewCh
     enabled: !previewChild,
   });
   const family = useQuery({
-    queryKey: ["parent-live-profiles", user.id],
+    queryKey: ["parent-live-profiles-v2", user.id],
     queryFn: ({ signal }) => parentProfileService.list({ user, signal }),
     enabled: !previewChild,
   });

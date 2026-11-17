@@ -24,6 +24,12 @@ function formatDate(value) {
 }
 
 export default function AdminUserDetailPage() {
+  const { userId } = useParams();
+  const { user } = useAuth();
+  return <AdminUserDetail key={`${user.id}:${userId}`} />;
+}
+
+function AdminUserDetail() {
   const { user } = useAuth();
   const { userId } = useParams();
   const [searchParams] = useSearchParams();
@@ -33,6 +39,7 @@ export default function AdminUserDetailPage() {
 
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [editDraft, setEditDraft] = useState(null);
+  const [editOriginal, setEditOriginal] = useState(null);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -79,14 +86,15 @@ export default function AdminUserDetailPage() {
   });
 
   if (userQuery.isLoading) return <LoadingState label="Đang tải thông tin hồ sơ phụ huynh" />;
-  if (userQuery.isError) return <ErrorState title="Không thể mở hồ sơ" message={userQuery.error.message} onRetry={() => userQuery.refetch()} />;
+  if (userQuery.isError && !userQuery.data) return <ErrorState title="Không thể mở hồ sơ" message={userQuery.error.message} onRetry={() => userQuery.refetch()} />;
 
   const target = userQuery.data;
   const plans = plansQuery.data || [];
   const currentPlanId = selectedPlanId || target.subscriptionPlanId || "";
-  const canUpdateUser = userUpdateFields.every((field) => Object.hasOwn(target, field));
+  const canUpdateUser = ["firstName", "lastName", "email", "dob", "gender"].every((field) => Object.hasOwn(target, field));
 
   function beginUserEdit() {
+    setEditOriginal(target);
     setEditDraft(Object.fromEntries(userUpdateFields.map((field) => [field, target[field] ?? ""])));
     updateUserMutation.reset();
     setErrorMsg("");
@@ -95,20 +103,26 @@ export default function AdminUserDetailPage() {
 
   function submitUserEdit(event) {
     event.preventDefault();
-    if (!editDraft || !canUpdateUser) return;
-    const payload = { ...editDraft };
-    for (const field of ["firstName", "lastName", "email", "phoneNumber"]) {
-      payload[field] = payload[field] === "" ? null : payload[field];
+    if (!editDraft || !canUpdateUser || userQuery.isError || updateUserMutation.isPending) return;
+    const payload = {};
+    for (const field of ["firstName", "lastName", "email", "phoneNumber", "dob", "gender"]) {
+      if (!Object.hasOwn(editOriginal, field)) continue;
+      let value = editDraft[field];
+      if (field === "gender") value = value === "" ? null : value === true || value === "true";
+      if ((editOriginal[field] ?? "") === (value ?? "")) continue;
+      if (["email", "dob", "gender"].includes(field) && (value === "" || value === null)) {
+        setErrorMsg("API chưa hỗ trợ xóa email, ngày sinh hoặc giới tính. Giữ giá trị hiện tại hoặc nhập giá trị mới.");
+        return;
+      }
+      payload[field] = value;
     }
-    payload.dob = payload.dob || null;
-    payload.gender = payload.gender === "" ? null : payload.gender === true || payload.gender === "true";
-    payload.role = String(payload.role || "");
+    if (!Object.keys(payload).length) { setEditDraft(null); return; }
     updateUserMutation.mutate(payload);
   }
 
   function handleAssignPlan(event) {
     event.preventDefault();
-    if (!currentPlanId) return;
+    if (!currentPlanId || !target.allowedActions?.includes("change_plan")) return;
     updatePlanMutation.mutate({ planId: currentPlanId });
   }
 
@@ -171,6 +185,7 @@ export default function AdminUserDetailPage() {
           </div>
         </dl>
 
+        {userQuery.isError && <p role="alert">Chưa đọc lại được tài khoản. <button type="button" onClick={() => userQuery.refetch()}>Đọc lại</button></p>}
         {successMsg && <SuccessState>{successMsg}</SuccessState>}
         {errorMsg && <p className="admin-mutation-error" role="alert">{errorMsg}</p>}
 
@@ -186,17 +201,18 @@ export default function AdminUserDetailPage() {
             <label className="admin-limit-field"><span>Tên</span><input value={editDraft.firstName} onChange={(event) => setEditDraft((current) => ({ ...current, firstName: event.target.value }))} /></label>
             <label className="admin-limit-field"><span>Họ</span><input value={editDraft.lastName} onChange={(event) => setEditDraft((current) => ({ ...current, lastName: event.target.value }))} /></label>
             <label className="admin-limit-field"><span>Email</span><input type="email" value={editDraft.email} onChange={(event) => setEditDraft((current) => ({ ...current, email: event.target.value }))} /></label>
-            <label className="admin-limit-field"><span>Số điện thoại</span><input value={editDraft.phoneNumber} onChange={(event) => setEditDraft((current) => ({ ...current, phoneNumber: event.target.value }))} /></label>
+            <label className="admin-limit-field"><span>Số điện thoại</span><input value={editDraft.phoneNumber} disabled={!Object.hasOwn(target, "phoneNumber")} onChange={(event) => setEditDraft((current) => ({ ...current, phoneNumber: event.target.value }))} /></label>
             <label className="admin-limit-field"><span>Ngày sinh</span><input type="date" value={String(editDraft.dob || "").slice(0, 10)} onChange={(event) => setEditDraft((current) => ({ ...current, dob: event.target.value }))} /></label>
-            <label className="admin-limit-field"><span>Giới tính</span><select value={editDraft.gender === true ? "true" : editDraft.gender === false ? "false" : ""} onChange={(event) => setEditDraft((current) => ({ ...current, gender: event.target.value }))}><option value="">Chưa thiết lập</option><option value="true">Nam</option><option value="false">Nữ</option></select></label>
+            <label className="admin-limit-field"><span>Giới tính</span><select value={(editDraft.gender === true || editDraft.gender === "true") ? "true" : (editDraft.gender === false || editDraft.gender === "false") ? "false" : ""} onChange={(event) => setEditDraft((current) => ({ ...current, gender: event.target.value }))}><option value="">Chưa thiết lập</option><option value="true">Nam</option><option value="false">Nữ</option></select></label>
             <label className="admin-limit-field"><span>Vai trò (chỉ đọc)</span><input value={adminRoleLabels[editDraft.role] || editDraft.role} readOnly /></label>
           </div>
-          <p className="admin-field-note">Chưa cho đổi role qua PUT cho đến khi backend xác nhận quy tắc quyền và cách xử lý field bị bỏ trống/null.</p>
+          <p className="admin-field-note">Chưa hỗ trợ đổi vai trò hoặc xóa email, ngày sinh, giới tính. Số điện thoại chỉ sửa được khi hồ sơ trả về giá trị hiện tại.</p>
           {updateUserMutation.isError && <p className="admin-mutation-error" role="alert"><WarningCircle size={16} aria-hidden="true" /> {updateUserMutation.error.message}</p>}
-          <div className="admin-limits-actions"><span>PUT gửi đủ 7 field để giữ nguyên các giá trị hiện tại.</span><div><button className="workspace-button workspace-button-quiet" type="button" disabled={updateUserMutation.isPending} onClick={() => setEditDraft(null)}>Hủy</button><button className="workspace-button" type="submit" disabled={updateUserMutation.isPending}>{updateUserMutation.isPending ? "Đang lưu…" : "Lưu tài khoản"}</button></div></div>
+          <div className="admin-limits-actions"><span>Chỉ lưu các thông tin đã thay đổi.</span><div><button className="workspace-button workspace-button-quiet" type="button" disabled={updateUserMutation.isPending} onClick={() => setEditDraft(null)}>Hủy</button><button className="workspace-button" type="submit" disabled={updateUserMutation.isPending}>{updateUserMutation.isPending ? "Đang lưu…" : "Lưu tài khoản"}</button></div></div>
         </form>}
 
         {target.profileId && <div className="admin-plan-assignment-box">
+          <p className="admin-field-note">Tạm khóa gán gói: chờ Backend xác nhận cập nhật quota và subscription.</p>
           <h3>
             <Package size={20} aria-hidden="true" /> Gán gói dịch vụ mới
           </h3>
@@ -219,7 +235,7 @@ export default function AdminUserDetailPage() {
               <button
                 className="workspace-button"
                 type="submit"
-                disabled={updatePlanMutation.isPending || !currentPlanId || !target.profileId}
+                disabled title="Chờ Backend xác nhận quota và subscription khi đổi gói"
               >
                 <Check size={18} aria-hidden="true" />
                 {updatePlanMutation.isPending ? "Đang cập nhật…" : "Cập nhật gói cước"}

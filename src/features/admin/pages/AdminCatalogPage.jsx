@@ -13,7 +13,6 @@ const config = {
     path: "/admin/subscription-plans", title: "Gói sử dụng", eyebrow: "DANH MỤC · GÓI", description: "Quản lý giới hạn và quyền lợi được cấu hình cho từng gói.", icon: Package,
     fields: [
       { key: "name", label: "Tên gói", type: "text", required: true },
-      { key: "code", label: "Mã gói", type: "text", required: true, help: "Mã định danh dùng trong hệ thống." },
       { key: "price", label: "Giá", type: "number", min: 0, step: "any", required: true },
       { key: "childProfileLimit", label: "Số hồ sơ trẻ tối đa", type: "number", min: 0, step: 1, required: true },
       { key: "monthlyCreditLimit", label: "Credit mỗi tháng", type: "number", min: 0, step: 1, required: true },
@@ -40,22 +39,23 @@ const config = {
   themes: {
     path: "/admin/education-themes", title: "Chủ đề giáo dục", eyebrow: "DANH MỤC · NỘI DUNG", description: "Danh mục chủ đề được Content Manager dùng khi biên soạn truyện.", icon: GraduationCap,
     fields: [
-      { key: "name", label: "Tên chủ đề", type: "text", required: true },
+      { key: "nameVi", label: "Tên chủ đề (Tiếng Việt)", type: "text", required: true },
+      { key: "nameEn", label: "Tên chủ đề (Tiếng Anh)", type: "text", required: true },
       { key: "description", label: "Mô tả", type: "textarea", nullable: true },
       { key: "status", label: "Trạng thái", type: "status", help: "CommonStatus: 0 nháp, 1 chờ xử lý, 2 đang hoạt động, 3 ngừng hoạt động, 4 lưu trữ." },
     ],
-    columns: ["name", "description", "status"],
+    columns: ["nameVi", "nameEn", "description", "status"],
   },
 };
 
 const defaults = {
   plans: { name: "", code: "", price: "", childProfileLimit: "", monthlyCreditLimit: "", durationDays: "", freeTrialDays: "", accessFullStories: false, canExportStory: false, haveParentProfileSub: false, isActive: true },
   credits: { featureKey: "", featureNameVi: "", featureNameEn: "", cost: "", isActive: true },
-  themes: { name: "", description: "", status: "2" },
+  themes: { nameVi: "", nameEn: "", description: "", status: "2" },
 };
 
 const labels = {
-  name: "Tên", code: "Mã gói", price: "Giá trị", childProfileLimit: "Hồ sơ trẻ", monthlyCreditLimit: "Credit/tháng", durationDays: "Thời hạn", freeTrialDays: "Dùng thử", accessFullStories: "Truyện đầy đủ", canExportStory: "Xuất truyện", haveParentProfileSub: "Subscription Parent", isActive: "Trạng thái", featureKey: "Mã tính năng", featureNameVi: "Tên tiếng Việt", featureNameEn: "Tên tiếng Anh", cost: "Credit/lượt", description: "Mô tả", status: "Trạng thái",
+  name: "Tên", nameVi: "Tên chủ đề (Tiếng Việt)", nameEn: "Tên chủ đề (Tiếng Anh)", code: "Mã gói", price: "Giá trị", childProfileLimit: "Hồ sơ trẻ", monthlyCreditLimit: "Credit/tháng", durationDays: "Thời hạn", freeTrialDays: "Dùng thử", accessFullStories: "Truyện đầy đủ", canExportStory: "Xuất truyện", haveParentProfileSub: "Subscription Parent", isActive: "Trạng thái", featureKey: "Mã tính năng", featureNameVi: "Tên tiếng Việt", featureNameEn: "Tên tiếng Anh", cost: "Credit/lượt", description: "Mô tả", status: "Trạng thái",
 };
 
 export default function AdminCatalogPage({ kind }) {
@@ -72,7 +72,7 @@ export default function AdminCatalogPage({ kind }) {
   const [notice, setNotice] = useState("");
   const [formErrors, setFormErrors] = useState({});
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const [togglingId, setTogglingId] = useState(null);
+  const [, setTogglingId] = useState(null);
 
   const saveMutation = useMutation({
     mutationFn: ({ id, payload }) => id ? adminCatalogService.update({ kind, id, payload }) : adminCatalogService.create({ kind, payload }),
@@ -80,6 +80,8 @@ export default function AdminCatalogPage({ kind }) {
       setEditor(null);
       setPendingSave(null);
       await client.invalidateQueries({ queryKey });
+      await client.invalidateQueries({ queryKey: ["admin-audit", user.id] });
+      await client.invalidateQueries({ queryKey: ["admin-overview", user.id] });
       const refreshed = client.getQueryState(queryKey);
       setNotice(refreshed?.status === "error" ? "Server đã phản hồi thao tác, nhưng chưa tải lại được danh sách. Dữ liệu cũ vẫn được giữ để đối chiếu." : variables.id ? "Server đã cập nhật mục và danh sách đã được đồng bộ." : "Server đã tạo mục và danh sách đã được đồng bộ.");
       if (kind === "themes") await client.invalidateQueries({ queryKey: ["content-categories"] });
@@ -90,6 +92,9 @@ export default function AdminCatalogPage({ kind }) {
   const toggleMutation = useMutation({
     mutationFn: async (item) => {
       setTogglingId(item.id);
+      const latest = await adminCatalogService.get({ kind, id: item.id });
+      if (!latest || latest.id !== item.id) throw new Error("Không tải được bản ghi để cập nhật.");
+      item = { ...latest, ...(kind === "themes" ? { status: item.status } : { isActive: item.isActive }) };
       let payload;
       if (kind === "themes") {
         const currentlyActive = String(item.status) === "2" || String(item.status).toLowerCase() === "active";
@@ -102,6 +107,8 @@ export default function AdminCatalogPage({ kind }) {
     onSuccess: async (_result, variables) => {
       setTogglingId(null);
       await client.invalidateQueries({ queryKey });
+      await client.invalidateQueries({ queryKey: ["admin-audit", user.id] });
+      await client.invalidateQueries({ queryKey: ["admin-overview", user.id] });
       const wasActive = kind === "themes"
         ? (String(variables.status) === "2" || String(variables.status).toLowerCase() === "active")
         : variables.isActive;
@@ -203,7 +210,7 @@ export default function AdminCatalogPage({ kind }) {
         const number = Number(value);
         if (!Number.isFinite(number) || number < Number(field.min ?? 0) || (field.step === 1 && !Number.isInteger(number))) { errors[field.key] = field.step === 1 ? "Nhập số nguyên hợp lệ." : "Nhập số không âm hợp lệ."; continue; }
         payload[field.key] = number;
-      } else if (field.key === "name" || field.key === "featureNameVi" || field.key === "featureNameEn" || field.key === "featureKey" || field.key === "code") {
+      } else if (["name", "nameVi", "nameEn", "featureNameVi", "featureNameEn", "featureKey", "code"].includes(field.key)) {
         payload[field.key] = String(value).trim();
         if (!payload[field.key]) errors[field.key] = "Nhập giá trị hợp lệ.";
       } else if (field.type === "status" && /^-?\d+$/.test(String(value))) payload[field.key] = Number(value);
@@ -216,7 +223,7 @@ export default function AdminCatalogPage({ kind }) {
   }
 
   function confirmSave() {
-    if (pendingSave) saveMutation.mutate({ id: pendingSave.id, payload: pendingSave.payload });
+    if (pendingSave && !saveMutation.isPending) saveMutation.mutate({ id: pendingSave.id, payload: pendingSave.payload });
   }
 
   async function reconcileUnknownSave() {
@@ -351,7 +358,7 @@ export default function AdminCatalogPage({ kind }) {
                           type="button"
                           className="admin-icon-btn"
                           title="Chỉnh sửa"
-                          aria-label={`Chỉnh sửa ${item.name || item.featureNameVi || item.code || item.featureKey || "mục"}`}
+                          aria-label={`Chỉnh sửa ${item.nameVi || item.name || item.featureNameVi || item.code || item.featureKey || "mục"}`}
                           disabled={Boolean(loadingItem)}
                           onClick={() => beginEdit(item)}
                         >
@@ -363,8 +370,8 @@ export default function AdminCatalogPage({ kind }) {
                           aria-checked={active}
                           className={`admin-switch-btn ${active ? "is-active" : ""}`}
                           title={active ? "Nhấn để ngừng hoạt động" : "Nhấn để kích hoạt"}
-                          aria-label={active ? `Ngừng hoạt động ${item.name || item.featureNameVi || item.code || "mục"}` : `Kích hoạt ${item.name || item.featureNameVi || item.code || "mục"}`}
-                          disabled={toggleMutation.isPending && togglingId === item.id}
+                          aria-label={active ? `Ngừng hoạt động ${item.nameVi || item.name || item.featureNameVi || item.code || "mục"}` : `Kích hoạt ${item.nameVi || item.name || item.featureNameVi || item.code || "mục"}`}
+                          disabled={toggleMutation.isPending || saveMutation.isPending}
                           onClick={() => handleToggleActive(item)}
                         >
                           <span className="admin-switch-slider" />
@@ -424,7 +431,7 @@ export default function AdminCatalogPage({ kind }) {
           <section className="admin-editor-panel admin-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="admin-save-confirm-title">
             <p className="workspace-eyebrow">XÁC NHẬN THAY ĐỔI</p>
             <h2 id="admin-save-confirm-title">{pendingSave.id ? "Lưu cập nhật?" : "Tạo mục mới?"}</h2>
-            <p>{page.title}: <strong>{pendingSave.values.name || pendingSave.values.featureNameVi || pendingSave.values.code || pendingSave.values.featureKey || "Mục mới"}</strong></p>
+            <p>{page.title}: <strong>{pendingSave.values.nameVi || pendingSave.values.name || pendingSave.values.featureNameVi || pendingSave.values.code || pendingSave.values.featureKey || "Mục mới"}</strong></p>
             <div className="admin-catalog-diff">
               <strong>{pendingSave.id ? "Giá trị sẽ thay đổi" : "Giá trị sẽ được tạo"}</strong>
               {page.fields.filter(({ key }) => Object.hasOwn(pendingSave.payload, key) && (!pendingSave.id || JSON.stringify(pendingSave.values[key]) !== JSON.stringify(pendingSave.initial[key]))).map(({ key }) => (

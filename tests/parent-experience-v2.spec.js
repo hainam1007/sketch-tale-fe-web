@@ -30,7 +30,7 @@ async function setup(page) {
       const data =
         path === "/api/auth/profile"
           ? { id: "p-demo", name: "Mai", role: "Parent" }
-          : path === "/api/child-profiles"
+          : path === "/api/parent-profiles/child"
             ? [
                 child,
                 {

@@ -21,13 +21,13 @@ const ranges = [
 
 function parseAuditTime(value) {
   if (!value) return 0;
-  const normalized = typeof value === "string" ? value.replace(/Z$/i, "+07:00") : value;
+  const normalized = typeof value === "string" ? value : value;
   return Date.parse(normalized) || 0;
 }
 
 function formatDateTime(value) {
   if (!value) return "Thời gian chưa xác định";
-  const normalized = typeof value === "string" ? value.replace(/Z$/i, "+07:00") : value;
+  const normalized = typeof value === "string" ? value : value;
   const date = new Date(normalized);
   return Number.isNaN(date.getTime())
     ? "Thời gian chưa xác định"
@@ -39,17 +39,18 @@ function formatDateTime(value) {
 }
 
 function roleLabel(role) {
-  switch (role) {
+  switch (String(role || "").toLowerCase().replace(/[\s_-]/g, "")) {
     case "admin":
       return "Quản trị viên";
     case "editor":
+    case "contentmanager":
       return "Biên tập viên";
     case "parent":
       return "Phụ huynh";
-    case "system":
-      return "Hệ thống";
+    case "child":
+      return "Trẻ em";
     default:
-      return "Người dùng";
+      return "";
   }
 }
 
@@ -57,6 +58,10 @@ export default function AdminAuditPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = useState(null);
+  const [scopeDraft, setScopeDraft] = useState("all");
+  const [valueDraft, setValueDraft] = useState("");
+  const scope = searchParams.get("scope") || "all";
+  const scopeValue = searchParams.get("value") || "";
   const rawPage = Number(searchParams.get("page"));
   const rawPageSize = Number(searchParams.get("pageSize"));
   const requestedRange = searchParams.get("range");
@@ -72,8 +77,8 @@ export default function AdminAuditPage() {
   };
 
   const auditQuery = useQuery({
-    queryKey: queryKeys.adminAudit(user.id),
-    queryFn: ({ signal }) => adminService.listAudit({ signal }),
+    queryKey: [...queryKeys.adminAudit(user.id), scope, scopeValue],
+    queryFn: ({ signal }) => adminService.listAudit({ signal, scope, value: scopeValue }),
   });
 
   const detailQuery = useQuery({
@@ -120,13 +125,7 @@ export default function AdminAuditPage() {
     const searchTarget = `${item.actorName || ""} ${item.actorEmail || ""} ${item.createBy || ""} ${item.action || ""} ${item.entityName || ""} ${item.primaryKey || ""}`.toLowerCase();
     const q = filters.search.trim().toLowerCase();
 
-    const matchesRole =
-      filters.role === "all" ||
-      item.actorRole === filters.role ||
-      (filters.role === "admin" && (item.actorRole === "admin" || item.createBy === "51d68f92-299b-4c57-b07a-ef6f57146b8b" || item.createBy === "5c7c010b-d573-4798-b194-e21149ba9755")) ||
-      (filters.role === "parent" && item.actorRole === "parent") ||
-      (filters.role === "editor" && item.actorRole === "editor") ||
-      (filters.role === "system" && (item.actorRole === "system" || item.createBy === "00000000-0000-0000-0000-000000000000"));
+    const matchesRole = filters.role === "all" || item.actorRole === filters.role;
 
     const matchesAction = filters.action === "all" || item.action === filters.action;
     const matchesRange = filters.range === "all" || (Number.isFinite(createdAt) && createdAt >= cutoff);
@@ -166,6 +165,16 @@ export default function AdminAuditPage() {
         />
       </div>
 
+      <form className="audit-filter-panel" onSubmit={(event) => {
+        event.preventDefault();
+        const next = new URLSearchParams(searchParams);
+        next.set("scope", scopeDraft); next.set("value", valueDraft.trim()); next.delete("page");
+        setSearchParams(next);
+      }}>
+        <label>Phạm vi tra cứu<select value={scopeDraft} onChange={(event) => setScopeDraft(event.target.value)}><option value="all">Tất cả</option><option value="user">Actor ID</option><option value="entity">Tên entity</option><option value="target">Target ID</option></select></label>
+        <label>Giá trị tra cứu<input value={valueDraft} onChange={(event) => setValueDraft(event.target.value)} required={scopeDraft !== "all"} /></label>
+        <button className="workspace-button" type="submit">Tra cứu</button>
+      </form>
       <div className="audit-filter-panel">
         <label>
           <span>Vai trò người thực hiện</span>
@@ -178,7 +187,6 @@ export default function AdminAuditPage() {
             <option value="admin">Quản trị viên (Admin)</option>
             <option value="parent">Phụ huynh (Parent)</option>
             <option value="editor">Biên tập viên (Editor)</option>
-            <option value="system">Hệ thống (System)</option>
           </select>
         </label>
         <label>
@@ -215,7 +223,7 @@ export default function AdminAuditPage() {
           <div>
             <MagnifyingGlass size={15} aria-hidden="true" />
             <input
-              aria-label="Tìm theo tên, email, đối tượng"
+              aria-label="Tìm audit"
               value={filters.search}
               onChange={(event) => updateFilter("search", event.target.value)}
               placeholder="Tìm theo tên, email hoặc đối tượng..."
@@ -261,14 +269,14 @@ export default function AdminAuditPage() {
                     <th>Email</th>
                     <th>Vai trò</th>
                     <th>Hành động</th>
-                    <th>Đối tượng</th>
+                    <th>Đối tượng</th><th>Chi tiết</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item) => (
                     <tr
                       key={item.id}
-                      onClick={() => setSelected(item)}
+
                       style={{ cursor: "pointer" }}
                       title="Nhấn để xem chi tiết thao tác"
                     >
@@ -276,15 +284,17 @@ export default function AdminAuditPage() {
                         <span className="admin-date-cell">{formatDateTime(item.createdAt)}</span>
                       </td>
                       <td>
-                        <strong className="admin-catalog-primary">{item.actorName || "Hệ thống"}</strong>
+                        <strong className="admin-catalog-primary">{item.actorName}</strong>
                       </td>
                       <td>
-                        <span className="admin-user-email">{item.actorEmail || "—"}</span>
+                        <span className="admin-user-email">{item.actorEmail}</span>
                       </td>
                       <td>
-                        <span className={`admin-badge-rule role-${item.actorRole || "system"}`}>
-                          {roleLabel(item.actorRole)}
-                        </span>
+                        {item.actorRole && roleLabel(item.actorRole) && (
+                          <span className={`admin-badge-rule role-${String(item.actorRole).toLowerCase()}`}>
+                            {roleLabel(item.actorRole)}
+                          </span>
+                        )}
                       </td>
                       <td>
                         <span className={`admin-badge-action action-${(item.action || "").toLowerCase()}`}>
@@ -296,6 +306,7 @@ export default function AdminAuditPage() {
                           {item.entityName || "Dữ liệu hệ thống"}
                         </strong>
                       </td>
+                    <td><button type="button" className="workspace-button workspace-button-quiet" onClick={() => setSelected(item)}>Xem</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -371,8 +382,8 @@ export default function AdminAuditPage() {
             <div>
               <dt>Người thực hiện</dt>
               <dd>
-                <strong>{detail?.actorName || "Hệ thống"}</strong>
-                {detail?.actorEmail && detail.actorEmail !== "—" && (
+                <strong>{detail?.actorName}</strong>
+                {detail?.actorEmail && (
                   <span style={{ marginLeft: 8, color: "var(--color-text-muted)" }}>
                     ({detail.actorEmail})
                   </span>
@@ -382,9 +393,11 @@ export default function AdminAuditPage() {
             <div>
               <dt>Vai trò</dt>
               <dd>
-                <span className={`admin-badge-rule role-${detail?.actorRole || "system"}`}>
-                  {roleLabel(detail?.actorRole)}
-                </span>
+                {detail?.actorRole && roleLabel(detail.actorRole) && (
+                  <span className={`admin-badge-rule role-${String(detail.actorRole).toLowerCase()}`}>
+                    {roleLabel(detail.actorRole)}
+                  </span>
+                )}
               </dd>
             </div>
             <div>

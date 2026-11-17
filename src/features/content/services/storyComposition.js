@@ -13,6 +13,18 @@ const isFiniteNumber = (value) => typeof value === "number" && Number.isFinite(v
 const isTime = (value) => Number.isSafeInteger(value) && value >= 0;
 const validAnchor = (value) => ["center", "top-left", "top-right", "bottom-left", "bottom-right"].includes(value);
 
+// Playback and pointer timing can contain fractional milliseconds. Quantize only
+// valid numeric times at the storage boundary; never repair missing/invalid data.
+const storedTime = (value) => isFiniteNumber(value) && value >= 0 ? Math.round(value) : value;
+function storedAnimation(clip) {
+  return {
+    ...clip,
+    startMs: storedTime(clip.startMs),
+    durationMs: isFiniteNumber(clip.durationMs) && clip.durationMs > 0 ? Math.max(1, Math.round(clip.durationMs)) : clip.durationMs,
+    ...(Array.isArray(clip.keyframes) ? { keyframes: clip.keyframes.map((frame) => ({ ...frame, timeMs: storedTime(frame.timeMs) })) } : {}),
+  };
+}
+
 function isDurableAssetUrl(value) {
   if (typeof value !== "string" || !value.trim()) return false;
   try {
@@ -177,7 +189,7 @@ export function serializeStoryComposition(page, assets = [], previous = null) {
     background: { ...(isRecord(previous?.background) ? previous.background : {}), ...background },
     subtitles: page.subtitles == null ? null : preserveRows(page.subtitles, previous?.subtitles),
     imageObjects: preserveRows(imageObjects, previous?.imageObjects),
-    animationClips: preserveRows(Array.isArray(page.animationClips) ? page.animationClips : [], previous?.animationClips),
+    animationClips: preserveRows(Array.isArray(page.animationClips) ? page.animationClips : [], previous?.animationClips).map(storedAnimation),
     audioTracks: preserveRows(audioTracks, previous?.audioTracks),
     slotExtensions,
     quizExtensions: Object.hasOwn(page, "quizExtensions")

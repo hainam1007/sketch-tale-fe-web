@@ -1,4 +1,5 @@
 export const apiSpecs = [
+  "auth-logout.spec.js",
   "content-integration.spec.js",
   "confirm-email.spec.js",
   "admin-api-ux.spec.js",

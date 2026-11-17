@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, FloppyDisk, PencilSimple, Plus, Trash, UserCircle, X } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { useConfirmToast } from "../../../components/feedback/useConfirmToast";
@@ -85,6 +85,10 @@ export default function StoryRolesPage() {
     return story.pages.filter((page) => !(role?.slots || []).some((slot) => slot.pageId === page.id));
   }
 
+  useEffect(() => {
+    if (editingRoleId) document.getElementById("story-editor-role-name")?.focus();
+  }, [editingRoleId]);
+
   const dirty = JSON.stringify(roleDraft) !== JSON.stringify(roleInitial) || Object.entries(slotDrafts).some(([roleId, draft]) => JSON.stringify(draft) !== JSON.stringify(slotBaseline(roleId)));
   useEditorSaveState({ dirty, isSaving: mutation.isPending, error: mutation.error, onDirtyChange: setEditorDirty });
 
@@ -160,7 +164,7 @@ export default function StoryRolesPage() {
   }
 
   return (
-    <EditorPanel isSaving={mutation.isPending} eyebrow="NHÂN VẬT / VỊ TRÍ" title="Nhân vật trong truyện" description="Tạo nhân vật dùng xuyên suốt truyện, rồi đặt từng tư thế lên trang và chỉnh vị trí, kích thước, hướng nhìn cùng lớp hiển thị." action={<span className="story-editor-count"><UserCircle size={17} aria-hidden="true" /> {story.roles.length} nhân vật</span>}>
+    <EditorPanel className="story-collection-editor" isSaving={mutation.isPending} eyebrow="NHÂN VẬT / VỊ TRÍ" title="Nhân vật trong truyện" description="Tạo nhân vật dùng xuyên suốt truyện, rồi đặt từng tư thế lên trang và chỉnh vị trí, kích thước, hướng nhìn cùng lớp hiển thị." action={<span className="story-editor-count"><UserCircle size={17} aria-hidden="true" /> {story.roles.length} nhân vật</span>}>
       <div className="editor-form-card">
         <h3>{editingRoleId ? "Sửa nhân vật" : "Thêm nhân vật"}</h3>
         <div className="editor-form-grid">
@@ -171,8 +175,8 @@ export default function StoryRolesPage() {
         </div>
         <div className="editor-checkboxes"><label className="editor-checkbox"><input type="checkbox" checked={roleDraft.custom} onChange={(event) => updateRole("custom", event.target.checked)} /> Nhân vật riêng của truyện</label><label className="editor-checkbox"><input type="checkbox" checked={roleDraft.sensitive} onChange={(event) => updateRole("sensitive", event.target.checked)} /> Nội dung nhạy cảm</label></div>
         {roleEnumBlocked && <p className="editor-help" role="status">{editingRoleId && roleDraft.status == null ? "Không thể lưu thay đổi nhân vật lúc này." : "Chọn loại nhân vật trước khi lưu."}</p>}
-        <button className="workspace-button" type="button" onClick={saveRole} disabled={mutation.isPending || mutationOutcomeBlocked || roleEnumBlocked}><FloppyDisk size={16} aria-hidden="true" /> {editingRoleId ? "Lưu nhân vật" : "Thêm nhân vật"}</button>
-        {editingRoleId && <button className="workspace-button workspace-button-quiet" type="button" onClick={async () => { if (JSON.stringify(roleDraft) !== JSON.stringify(roleInitial) && !await confirmToast({ title: "Hủy sửa nhân vật?", message: "Các thay đổi chưa lưu của nhân vật sẽ bị bỏ.", confirmLabel: "Hủy sửa", tone: "danger" })) return; setEditingRoleId(null); setRoleDraft(emptyRole); setRoleInitial(emptyRole); setRoleFile(null); }}><X size={16} aria-hidden="true" /> Hủy sửa</button>}
+        <div className="editor-form-actions"><button className="workspace-button" type="button" onClick={saveRole} disabled={mutation.isPending || mutationOutcomeBlocked || roleEnumBlocked}><FloppyDisk size={16} aria-hidden="true" /> {editingRoleId ? "Lưu nhân vật" : "Thêm nhân vật"}</button>
+        {editingRoleId && <button className="workspace-button workspace-button-quiet" type="button" onClick={async () => { if (JSON.stringify(roleDraft) !== JSON.stringify(roleInitial) && !await confirmToast({ title: "Hủy sửa nhân vật?", message: "Các thay đổi chưa lưu của nhân vật sẽ bị bỏ.", confirmLabel: "Hủy sửa", tone: "danger" })) return; setEditingRoleId(null); setRoleDraft(emptyRole); setRoleInitial(emptyRole); setRoleFile(null); }}><X size={16} aria-hidden="true" /> Hủy sửa</button>}</div>
       </div>
       <EditorMutationMessage mutation={mutation} showSuccess={false} />
       {localError && <div className="editor-mutation-message editor-mutation-error" role="alert"><span>{localError}</span></div>}

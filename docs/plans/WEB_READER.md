@@ -2,7 +2,7 @@
 
 Cập nhật 13/11/2026. Kế hoạch đang mở, chưa nghiệm thu. Baseline hiện tại ở [Content Manager](../roles/CONTENT_MANAGER.md) và [contract API](../api/CONTRACTS.md); không làm lại codec/adapter đã có.
 
-**Tiến độ 15/11:** đã bổ sung service queue theo story, media pending guard, recovery v2/baseline/backup, bảo toàn slot assets/unknown rows và slot extension write-through. 14 intercept cases qua vòng chính, thêm 2 ca reader activities qua riêng. Parent browser thật mở truyện Tôn giáo nhưng không có trang Active: live trả 3 Draft. Chưa mutation nội dung runtime; người dùng sẽ cung cấp lifecycle BE. Reader đã nối vocab/quiz practice; migration media/mock-slot có checkpoint và lưu learning log còn mở. Chi tiết duy nhất ở ma trận [Content Manager](../roles/CONTENT_MANAGER.md); các đoạn baseline 13/11 bên dưới mang tính lịch sử, không dùng để kết luận reader còn bỏ CompositionJson.
+**Recheck 17/11:** suite CM 17/17 và hai reader checks qua; lint/build thành công. Đây là kiểm chứng FE/intercept, không có runtime mới. Parent browser trước đó mở truyện Tôn giáo nhưng không có trang Active: live trả 3 Draft. Chưa mutation nội dung runtime; publish lifecycle còn chờ Backend/người dùng. Reader đã nối vocab/quiz practice; migration media/mock-slot có checkpoint và lưu learning log còn mở. Chi tiết duy nhất ở ma trận [Content Manager](../roles/CONTENT_MANAGER.md); các đoạn baseline 13/11 bên dưới mang tính lịch sử, không dùng để kết luận reader còn bỏ CompositionJson.
 
 ## 1. Phạm vi và quyết định
 
@@ -72,7 +72,7 @@ Qua job: không mất edits trong lúc lưu; không báo đã lưu server với 
 
 ### WEB05 — media durable và migration truyện cũ (P0; sau WEB03–04)
 
-Files: `assetService.js`, `localAssetStore.js`, `contentMockOverlay.js`, `localStoryDemo.js`, AssetPicker và recovery UI.
+Files: `assetService.js`, `localAssetStore.js`, `contentMockOverlay.js`, AssetPicker và recovery UI.
 
 - Kiểm tra upload background qua page file, role qua role file, ảnh phụ qua upload được BE xác nhận dành cho CM. Không fallback endpoint khác khi 403.
 - Lập inventory cho từng truyện: remote resolved, local bytes, missing bytes, mock slot, URL hết hạn/hỏng. UI cho xem kế hoạch phục hồi trước khi áp dụng bản local thiếu baseline.

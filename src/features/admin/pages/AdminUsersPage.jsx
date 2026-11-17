@@ -35,7 +35,8 @@ export default function AdminUsersPage() {
 
   const toggleStatusMutation = useMutation({
     mutationFn: ({ userId, isLocked, reason }) => adminService.toggleUserStatus({ userId, isLocked, reason }),
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.adminUser(user.id, variables.userId) });
       setPendingStatus(null);
       setStatusReason("");
       await queryClient.invalidateQueries({ queryKey: ["admin-users", user.id] });
@@ -74,7 +75,7 @@ export default function AdminUsersPage() {
   }
 
   function confirmStatusChange() {
-    if (!pendingStatus) return;
+    if (!pendingStatus || toggleStatusMutation.isPending) return;
     toggleStatusMutation.mutate({ ...pendingStatus, reason: statusReason.trim() });
   }
 
@@ -82,7 +83,7 @@ export default function AdminUsersPage() {
     event.preventDefault();
     const username = createDraft.username.trim();
     const password = createDraft.password;
-    if (!username || password.length < 6 || !createDraft.role) return;
+    if (createUserMutation.isPending || !username || password.length < 6 || !createDraft.role || createDraft.role === "child") return;
     const payload = { username, password, role: createDraft.role };
     if (createDraft.email.trim()) payload.email = createDraft.email.trim();
     createUserMutation.mutate(payload);
@@ -111,7 +112,7 @@ export default function AdminUsersPage() {
           <label><span>Tên đăng nhập *</span><input autoComplete="off" required minLength={1} value={createDraft.username} onChange={(event) => setCreateDraft((current) => ({ ...current, username: event.target.value }))} /></label>
           <label><span>Mật khẩu *</span><input type="password" autoComplete="new-password" required minLength={6} value={createDraft.password} onChange={(event) => setCreateDraft((current) => ({ ...current, password: event.target.value }))} /></label>
           <label><span>Email</span><input type="email" autoComplete="off" value={createDraft.email} onChange={(event) => setCreateDraft((current) => ({ ...current, email: event.target.value }))} /></label>
-          <label><span>Vai trò *</span><select value={createDraft.role} onChange={(event) => setCreateDraft((current) => ({ ...current, role: event.target.value }))}><option value="parent">Phụ huynh</option><option value="child">Trẻ em</option><option value="content_manager">Content Manager</option><option value="admin">Quản trị viên</option></select></label>
+          <label><span>Vai trò *</span><select value={createDraft.role} onChange={(event) => setCreateDraft((current) => ({ ...current, role: event.target.value }))}><option value="parent">Phụ huynh</option><option value="child" disabled>Trẻ em — chờ liên kết Parent</option><option value="content_manager">Content Manager</option><option value="admin">Quản trị viên</option></select></label>
           <button className="workspace-button" type="submit" disabled={createUserMutation.isPending || !createDraft.username.trim() || createDraft.password.length < 6}>{createUserMutation.isPending ? "Đang tạo…" : <><Check size={16} aria-hidden="true" /> Tạo tài khoản</>}</button>
         </form>
         {createUserMutation.isError && <p className="admin-mutation-error" role="alert"><WarningCircle size={16} aria-hidden="true" /> {createUserMutation.error.message}</p>}
@@ -162,19 +163,20 @@ export default function AdminUsersPage() {
             returnTo={`/admin/users?${searchParams.toString()}`}
             onPageChange={(page) => updateFilter("page", String(page))}
             onToggleStatus={handleToggleStatus}
-            isToggling={toggleStatusMutation.isPending}
+            actorId={user.id}
+            isToggling={toggleStatusMutation.isPending || usersQuery.isFetching || usersQuery.isError}
           />
           {data.warnings?.map((warning) => <p className="admin-refresh-note" role="status" key={warning}>{warning}</p>)}
           {usersQuery.isError && <p className="admin-refresh-note" role="status">Lần làm mới chưa thành công; đang hiển thị dữ liệu gần nhất.</p>}
         </>
       )}
     </div>
-    {pendingStatus && <div className="admin-overlay" role="presentation"><section className="admin-editor-panel admin-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="admin-user-status-confirm-title"><p className="workspace-eyebrow">CẬP NHẬT TRẠNG THÁI</p><h2 id="admin-user-status-confirm-title">{pendingStatus.isLocked ? "Khóa tài khoản?" : "Mở khóa tài khoản?"}</h2><p><strong>{pendingStatus.name}</strong></p><label className="admin-catalog-field"><span>Lý do (không bắt buộc)</span><textarea rows={3} value={statusReason} onChange={(event) => setStatusReason(event.target.value)} /></label>{toggleStatusMutation.isError && <p className="admin-mutation-error" role="alert">{toggleStatusMutation.error.message}</p>}<div className="admin-dialog-actions"><button className="workspace-button workspace-button-quiet" type="button" disabled={toggleStatusMutation.isPending} onClick={() => setPendingStatus(null)}>Hủy</button><button className="workspace-button workspace-button-danger" type="button" disabled={toggleStatusMutation.isPending} onClick={confirmStatusChange}>{toggleStatusMutation.isPending ? "Đang lưu…" : pendingStatus.isLocked ? "Xác nhận khóa" : "Xác nhận mở khóa"}</button></div></section></div>}
+    {pendingStatus && <div className="admin-overlay" role="presentation"><section className="admin-editor-panel admin-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="admin-user-status-confirm-title"><p className="workspace-eyebrow">CẬP NHẬT TRẠNG THÁI</p><h2 id="admin-user-status-confirm-title">{pendingStatus.isLocked ? "Khóa tài khoản?" : "Mở khóa tài khoản?"}</h2><p><strong>{pendingStatus.name}</strong></p><label className="admin-catalog-field"><span>Lý do (BE hiện chưa lưu lý do này)</span><textarea rows={3} value={statusReason} onChange={(event) => setStatusReason(event.target.value)} /></label>{toggleStatusMutation.isError && <p className="admin-mutation-error" role="alert">{toggleStatusMutation.error.message}</p>}<div className="admin-dialog-actions"><button className="workspace-button workspace-button-quiet" type="button" disabled={toggleStatusMutation.isPending} onClick={() => setPendingStatus(null)}>Hủy</button><button className="workspace-button workspace-button-danger" type="button" disabled={toggleStatusMutation.isPending} onClick={confirmStatusChange}>{toggleStatusMutation.isPending ? "Đang lưu…" : pendingStatus.isLocked ? "Xác nhận khóa" : "Xác nhận mở khóa"}</button></div></section></div>}
     </>
   );
 }
 
-function UserTable({ data, returnTo, onPageChange, onToggleStatus, isToggling }) {
+function UserTable({ data, actorId, returnTo, onPageChange, onToggleStatus, isToggling }) {
   if (!data.items.length) {
     return (
       <div className="workspace-state workspace-state-empty">
@@ -259,7 +261,7 @@ function UserTable({ data, returnTo, onPageChange, onToggleStatus, isToggling })
                       title={isLocked ? "Mở khóa tài khoản" : "Khóa tài khoản"}
                       aria-label={isLocked ? `Mở khóa tài khoản ${item.name}` : `Khóa tài khoản ${item.name}`}
                       onClick={() => onToggleStatus(item)}
-                      disabled={isToggling || item.status === "unknown"}
+                      disabled={isToggling || item.status === "unknown" || (item.id === actorId && !isLocked)}
                     >
                       {isLocked ? (
                         <LockKey size={18} aria-hidden="true" />

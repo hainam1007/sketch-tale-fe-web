@@ -27,6 +27,12 @@ const reportStatusTones = {
   3: "danger",
 };
 
+const emptyActorId = "00000000-0000-0000-0000-000000000000";
+
+function displayActorId(value) {
+  return value && value !== emptyActorId ? `ID: ${value.slice(0, 8)}…` : "";
+}
+
 const targetTypeLabels = {
   0: "Nhân vật",
   1: "Truyện",
@@ -188,17 +194,19 @@ export default function AdminContentReportsPage() {
                 <tr key={item.id}>
                   <td>
                     <div className="admin-user-cell">
-                      <span className="admin-user-initial">
-                        {item.reporterName?.slice(0, 1)?.toUpperCase() || "U"}
-                      </span>
+                      {item.reporterName && (
+                        <span className="admin-user-initial" aria-hidden="true">
+                          {item.reporterName.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
                       <span>
-                        <strong>{item.reporterName || "Người dùng"}</strong>
-                        <small>ID: {item.createBy?.slice(0, 8) || "—"}</small>
+                        <strong>{item.reporterName}</strong>
+                        <small>{displayActorId(item.createBy)}</small>
                       </span>
                     </div>
                   </td>
                   <td>
-                    <span className="admin-user-email">{item.reporterEmail || "—"}</span>
+                    <span className="admin-user-email">{item.reporterEmail}</span>
                   </td>
                   <td>
                     <span className="admin-report-type-badge">
@@ -314,11 +322,12 @@ export function AdminContentReportDetailPage() {
         targetId: query.data?.targetId,
         reason: query.data?.reason,
       }),
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       setFeedback(`Đã chuyển trạng thái báo cáo sang: "${reportStatusLabels[variables.nextStatus]}".`);
       setErrorFeedback("");
-      queryClient.invalidateQueries({ queryKey: ["backend-content-report", user.id, reportId] });
+      await queryClient.invalidateQueries({ queryKey: ["backend-content-report", user.id, reportId] });
       queryClient.invalidateQueries({ queryKey: ["backend-content-reports", user.id] });
+      queryClient.invalidateQueries({ queryKey: ["admin-overview", user.id] });
       queryClient.invalidateQueries({ queryKey: ["admin-audit", user.id] });
     },
     onError: (err) => {
@@ -329,7 +338,7 @@ export function AdminContentReportDetailPage() {
 
   if (query.isLoading)
     return <LoadingState label="Đang tải chi tiết báo cáo" />;
-  if (query.isError)
+  if (query.isError && !query.data)
     return (
       <ErrorState
         title="Không thể mở báo cáo"
@@ -339,6 +348,7 @@ export function AdminContentReportDetailPage() {
     );
 
   const item = query.data;
+  const unknownOutcome = updateMutation.isError && (!updateMutation.error.status || updateMutation.error.status >= 500);
   if (!item || typeof item !== "object" || Array.isArray(item) || typeof item.id !== "string")
     return (
       <ErrorState
@@ -380,8 +390,8 @@ export function AdminContentReportDetailPage() {
           <div>
             <dt>Người gửi báo cáo</dt>
             <dd>
-              <strong>{item.reporterName || "Người dùng"}</strong>
-              {item.reporterEmail && item.reporterEmail !== "—" && (
+              <strong>{item.reporterName}</strong>
+              {item.reporterEmail && (
                 <span style={{ display: "block", color: "#6b7280", fontSize: "12px", marginTop: "2px" }}>
                   {item.reporterEmail}
                 </span>
@@ -398,19 +408,21 @@ export function AdminContentReportDetailPage() {
           </div>
         </dl>
 
+        {query.isError && <p role="alert">Chưa đọc lại được báo cáo; dữ liệu hiển thị có thể cũ. <button type="button" onClick={() => query.refetch()}>Đọc lại trạng thái</button></p>}
         {feedback && <SuccessState>{feedback}</SuccessState>}
         {errorFeedback && <p className="admin-mutation-error" role="alert">{errorFeedback}</p>}
+        {unknownOutcome && <p role="alert">Chưa xác định kết quả thao tác. Đọc lại trạng thái trước khi quyết định xử lý tiếp; không tự gửi lại. <button type="button" disabled={query.isFetching} onClick={async () => { const result = await query.refetch(); if (!result.isError) { updateMutation.reset(); setErrorFeedback(""); } }}>Đối chiếu trạng thái</button></p>}
 
         <div className="admin-report-actions-box">
           <div className="admin-report-actions-info">
             <h3>Xử lý khiếu nại nội dung</h3>
-            <p>Chọn hành động giải quyết hoặc bác bỏ báo cáo vi phạm:</p>
+            <p>Thao tác chỉ đổi trạng thái báo cáo; không tự ẩn hoặc xóa nội dung bị báo cáo. API chưa có ghi chú xử lý riêng.</p>
           </div>
           <div className="admin-report-actions-buttons">
             <button
               className="workspace-button"
               type="button"
-              disabled={updateMutation.isPending || item.status === 2}
+              disabled={unknownOutcome || query.isError || query.isFetching || updateMutation.isPending || item.status === 2}
               onClick={() => updateMutation.mutate({ nextStatus: 2 })}
             >
               <Check size={16} aria-hidden="true" />
@@ -420,7 +432,7 @@ export function AdminContentReportDetailPage() {
             <button
               className="workspace-button workspace-button-quiet"
               type="button"
-              disabled={updateMutation.isPending || item.status === 3}
+              disabled={unknownOutcome || query.isError || query.isFetching || updateMutation.isPending || item.status === 3}
               onClick={() => updateMutation.mutate({ nextStatus: 3 })}
             >
               <X size={16} aria-hidden="true" />

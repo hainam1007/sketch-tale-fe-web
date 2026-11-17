@@ -1,5 +1,13 @@
 import { adminCatalogApiMode, adminCatalogApiRequest } from "../../../lib/api/featureApi";
 
+const writable = {
+  plans: ["name", "price", "childProfileLimit", "monthlyCreditLimit", "durationDays", "freeTrialDays", "accessFullStories", "canExportStory", "haveParentProfileSub", "isActive"],
+  credits: ["featureKey", "featureNameVi", "featureNameEn", "cost", "isActive"],
+  themes: ["nameVi", "nameEn", "description", "status"],
+};
+function payloadFor(kind, payload) {
+  return Object.fromEntries(Object.entries(payload).filter(([key, value]) => writable[kind]?.includes(key) && value !== undefined));
+}
 const definitions = {
   plans: { path: "/subscription-plans", singular: "gói sử dụng" },
   credits: { path: "/credit-costs", singular: "chi phí credit" },
@@ -26,7 +34,7 @@ export const adminCatalogService = {
   mode: adminCatalogApiMode,
   list: async ({ kind, signal }) => rows(await request(kind, { signal }), definitions[kind]?.singular || "danh mục"),
   get: ({ kind, id, signal }) => request(kind, { id, signal }),
-  create: ({ kind, payload, signal }) => request(kind, { method: "POST", body: payload, signal }),
-  update: ({ kind, id, payload, signal }) => request(kind, { id, method: "PATCH", body: payload, signal }),
+  create: ({ kind, payload, signal }) => request(kind, { method: "POST", body: payloadFor(kind, payload), signal }),
+  update: ({ kind, id, payload, signal }) => request(kind, { id, method: "PATCH", body: payloadFor(kind, payload), signal }),
   remove: ({ kind, id, signal }) => request(kind, { id, method: "DELETE", signal }),
 };

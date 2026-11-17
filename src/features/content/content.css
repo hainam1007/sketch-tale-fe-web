@@ -807,21 +807,11 @@
   margin-bottom: 12px;
 }
 
-.workspace-app-content .story-editor-back a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  color: var(--cm-text-secondary);
-  font-size: 14px;
-  text-decoration: none;
-}
-
-.workspace-app-content .story-editor-back a:hover {
-  color: var(--cm-text);
-  background: var(--cm-surface-subtle);
+.workspace-app-content .story-editor-back-button {
+  min-height: 36px;
+  gap: 7px;
+  padding: 6px 12px;
+  font-size: 13px;
 }
 
 .workspace-app-content .story-editor-header {
@@ -2052,6 +2042,7 @@
 .workspace-app-studio .story-studio-page > .editor-mutation-message,
 .workspace-app-studio .story-studio-page > .publish-issues-list { flex: 0 0 auto; margin: 0; border-radius: 0; }
 .workspace-app-content .story-studio-page > .editor-mutation-message { padding: 6px 12px; }
+.workspace-app-content .story-studio-page > .editor-mutation-message .story-retry-button { min-height: 30px; align-self: center; flex: 0 0 auto; padding: 4px 10px; border-radius: 7px; font-size: 12px; line-height: 1.2; }
 .workspace-app-content .story-studio-workspace {
   display: grid;
   min-width: 0;
@@ -3052,6 +3043,7 @@
 .workspace-app-content .story-inspector-close svg { width: 15px; height: 15px; }
 .workspace-app-content .story-inspector-section-heading { margin-bottom: 10px; padding: 0; border: 0; }
 .workspace-app-content .story-inspector-image-objects { display: grid; gap: 6px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--cm-border); }
+.workspace-app-content .story-inspector-asset-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-app-content .story-background-section { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--cm-border); }
 .workspace-app-content .story-background-section-heading { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 10px; }
 .workspace-app-content .story-background-section-title { display: grid; min-width: 0; gap: 3px; }
@@ -3145,11 +3137,8 @@
 .workspace-app-content .story-cue-timing label { display: grid; gap: 4px; }
 .workspace-app-content .story-cue-timing input { width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid var(--cm-control-border); border-radius: 6px; color: var(--cm-text); background: var(--cm-surface); font: inherit; font-variant-numeric: tabular-nums; }
 .workspace-app-content .story-add-image { margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--cm-border); }
-.workspace-app-content .story-add-image .asset-picker-upload-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; align-items: stretch; }
-.workspace-app-content .story-add-image .asset-picker-upload-row .workspace-button,
 .workspace-app-content .story-add-image .asset-picker-entry .asset-picker-open { width: 100%; min-height: 42px; justify-content: center; }
 .workspace-app-content .story-add-image .asset-picker-entry { display: grid; grid-template-columns: minmax(0, 1fr); }
-.workspace-app-content .story-add-image .asset-picker-empty { display: none; }
 .workspace-app-content .story-background-section .asset-picker-gallery-actions > button { width: 100%; min-height: 40px; flex: 1 1 100%; justify-content: center; }
 .workspace-app-content .story-image-object-fields { padding-top: 2px; }
 .workspace-app-content .story-timeline-track, .workspace-app-content .story-timeline-lane { min-height: 46px; }

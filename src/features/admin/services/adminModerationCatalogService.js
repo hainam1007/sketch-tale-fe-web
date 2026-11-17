@@ -1,7 +1,7 @@
 import { moduleApiRequest } from "../../../lib/api/featureApi";
 
 const definitions = {
-  charTypes: { path: "/char-types", fields: ["name", "description", "status"] },
+  charTypes: { path: "/char-types", fields: ["nameEn", "nameVi", "category", "canFly", "canSwim", "imageUrl", "status"] },
   prohibitedThemes: { path: "/prohibited-themes", fields: ["name", "description", "matchType", "severityLevel", "action", "status"] },
 };
 

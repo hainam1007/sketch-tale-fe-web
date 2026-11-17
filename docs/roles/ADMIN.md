@@ -1,27 +1,79 @@
-# Admin — quản trị
+# Admin — audit và tích hợp API
 
-Ngày 13/11/2026. Source: `src/features/admin/services/{adminService,adminCatalogService,adminModerationCatalogService}.js`, routes ở `src/app/App.jsx`. Đặc tả UI tham chiếu: [Admin UI/UX](../specs/ADMIN_UI_UX.md).
+Cập nhật **16/11/2026**. FE `59d1efb` + working tree; BE đọc tại `7849600` + 24 staged modifications có sẵn. Chỉ sửa FE/tests/docs; không sửa BE/DB, không commit/deploy. [UI spec](../specs/ADMIN_UI_UX.md) là tham chiếu, router/source hiện tại quyết định phạm vi.
 
-## Hiện trạng source
+## Nguồn và kết quả xác minh
 
-| Năng lực | API hiện hữu/caller | Phần chưa nghiệm thu |
-| --- | --- | --- |
-| Users | GET list/detail, POST, PUT `/users/{id}`, PATCH status | Response/nullable fields, role policy, self/last active admin, session invalidation, audit reason |
-| Catalog | subscription-plans, credit-costs, education-themes, restricted-keywords, char-types, prohibited-themes | Đơn vị giá, tác động quota/giá với gói đang dùng, xóa resource có tham chiếu |
-| Reports | GET list/detail, PATCH, caller delete | Transition/side effect lên target, note/reviewer/time; không suy PATCH status là đã ẩn nội dung |
-| Audit | List/detail và filter routes | Pagination/timezone/outcome/requestId, actor lookup; không chèn actor giả |
-| Parent plan/subscription | Caller quản trị hiện có | BE thiếu auth/owner ở nhóm này; UI Admin không làm API an toàn |
-| Overview | Tổng hợp từ các list trong service | Không gọi tổng price là doanh thu thực thu; cần metric ledger có định nghĩa |
-| Permissions/limits/monitoring/statistics | Mock/chưa contract đủ; một số route redirect | Kiểm tra App.jsx trước mở màn hình mới |
+- [Swagger 16/11](../../artifacts/swagger-admin-2026-11-16.json): 111 paths. Không đồng nhất source local với release deploy.
+- [Runtime Admin](../../artifacts/admin-runtime-2026-11-16.json): login/profile/users và 6 catalog, reports/audit HTTP 200; logout HTTP 200. Chỉ lưu status/count/field names; không lưu token, mật khẩu, dữ liệu audit hoặc PII. `fields:[null]` ở collection là giới hạn script thu metadata, không phải schema API.
+- [Anonymous GET](../../artifacts/admin-anonymous-read-2026-11-16.json): **audit-logs, content-reports, parent-profiles trả 200 không token**. Catalog GET cũng 200 (cần phân biệt public catalog với quản trị). `/users` lần dò anonymous gặp lỗi vận chuyển (`status=0`), chưa kết luận runtime quyền của route này.
+- Chưa mutation runtime vì chưa có ID/dataset test được phép thay đổi; chưa có tài khoản non-Admin để kiểm tra ma trận quyền. Login/logout chỉ xác minh HTTP, chưa nghiệm thu browser thật, refresh hết hạn/reuse hay thu hồi token khi khóa.
+- Người dùng quyết định **tạm khóa tạo Child và gán gói Parent** chờ BE chốt nghiệp vụ. FE đã áp dụng; đổi role vẫn chỉ đọc. Không mở lại permissions/limits/monitoring/statistics.
 
-Admin core mode mock không khóa users/audit: chúng gọi forceReal. Reports mặc định real; catalog mode riêng. Không tiếp tục đòi `/admin/users` như endpoint chưa có: BE đã có `/users`. Role change có field trên PUT user nhưng policy cần xác minh trước mở quyền trên UI.
+## Thay đổi FE trong đợt này
 
-## Contract còn mở
+Users đọc đúng `isLockedOut`, nullable profile, clamp page; tạo Content Manager gửi `ContentManager`. Sửa tài khoản chỉ gửi field thay đổi, không gửi lại role; first/last name cho phép chuỗi rỗng; email/DOB/gender không giả vờ xóa bằng null. Phone không có trong GET nên giữ disabled. Draft detail được reset theo account/target. Status invalidate detail và chặn thao tác trên dữ liệu đang tải/lỗi hoặc tự khóa.
 
-- **ADM-01:** response User không chứa credential/hash/security stamp; shape array/envelope và pagination rõ; role catalog/policy theo actor, self/last-admin, PUT omitted/null, lock expiry và hiệu lực phiên.
-- **ADM-02:** report transition, evidence/target preview có quyền, note/reviewer/time/audit; moderation action tách với trạng thái report khi cần.
-- **ADM-03:** revenue/credit aggregate từ ledger, range/timezone/currency/generatedAt/null; active account khác DAU/MAU. Không suy real metrics từ mock hay số lượng list bị phân trang.
-- **ADM-04:** system limits có unit/min/max/enforcement; monitoring retry/cancel có idempotency; statistics có nguồn dữ liệu. Triển khai khi scope màn hình được mở.
-- **CROSS-01:** error shape, reason/revision/ETag và conflict; không coi revision phía mock là hỗ trợ BE.
+Education themes dùng đúng DTO `nameVi`/`nameEn`/description/status; trước đây FE đọc `name` nên 20 bản ghi có tên thật vẫn hiện “Chưa thiết lập”. Char types dùng đúng nameEn/nameVi/category/canFly/canSwim/imageUrl/status thay name/description. Catalog bỏ nhập code do server sinh, whitelist payload không gửi ID/audit metadata; toggle đọc detail trước ghi, khóa thao tác khi pending và invalidate audit/overview. Không coi GET trước PATCH là kiểm soát concurrency nguyên tử.
 
-Tiêu chí chung: Admin được phép, non-Admin bị từ chối ở BE; mutation đọc lại đúng; audit thật; request/response lỗi được mô tả. Bảng API và evidence ở [contracts](../api/CONTRACTS.md), thứ tự ở [backlog](../BACKLOG.md).
+Reports giữ nguyên reason của người báo cáo, mô tả rõ PATCH không ẩn/xóa target; giữ lỗi 401/403/404 gốc, dùng cùng module mode cho đọc/ghi, bỏ tải audit toàn bộ chỉ để đoán reporter. Tên/email chỉ ghép từ `GET /users` khi `CreateBy` khớp tài khoản; GUID rỗng hoặc ID không có trong directory để trống, không dựng “Người dùng {ID}”. Runtime đã đọc 5 báo cáo, trong đó 4 bản ghi có `CreateBy=Guid.Empty` nên không thể truy ra người gửi từ dữ liệu hiện tại. Read-back fail giữ trạng thái đã nhận mutation + nút GET-only; timeout/5xx chặn gửi lại cho đến khi đối chiếu. Không có note/evidence API đủ quyền để tự mở thêm.
+
+Audit ghép tên/email/vai trò từ `GET /users` bằng `CreateBy`; ID rỗng/không khớp để trống, không gán nhãn “Hệ thống”. Runtime có 291/978 log với `CreateBy=Guid.Empty`; theo source BE, `Infrastructure/Audit/AuditConfiguration.cs` còn gán `CreateBy = Guid.Empty` khi tạo log, nên FE không thể nhận diện những thao tác này. Log có actor ID thật mới có thể ghép directory. Có tra cứu actor/entity/target bằng endpoint sẵn có, nút detail dùng bàn phím. Không sửa Z thành +07 trong timestamp. Dashboard link lọc đúng report status, không đếm partial envelope thành tổng; `fetchedAt` là thời điểm FE tải, `generatedAt=null` vì BE chưa cấp snapshot. Giá trị thiếu để trống; không render thông báo thay thế trong KPI/biểu đồ/cơ cấu gói, không tự tạo tiêu đề/ngày cho report thiếu field.
+
+## Ma trận action
+
+Prefix API `/api`. `A=adminService`, `C=adminCatalogService`, `M=adminModerationCatalogService`. `W` = source-wired, `I` = có kiểm thử intercept liên quan, `R-read` = chỉ đọc runtime. Mọi mutation vẫn cần runtime/read-back trên test data. Users/audit/restrictions/overview và Parent plan callers forceReal; reports module riêng mặc định real; C/M catalog mode riêng mặc định real. `VITE_ADMIN_API_MODE=mock` không làm các caller này thành mock. Search/page catalog/report/audit là client-side; users cũng tải toàn list rồi lọc/page.
+
+| UI / action → caller | Method/path | Payload → response | Quyền/policy BE local | Mode / trạng thái | Gap, ưu tiên → nghiệm thu |
+| --- | --- | --- | --- | --- | --- |
+| Login/restore → authService | POST /auth/login; GET /auth/profile | identifier/password → token pair; UserProfile | Public login; JWT profile | Auth real; R-read | AUTH-01: expired/revoked/reuse/multi-tab cần runtime |
+| Refresh/logout → transport/authService | POST /auth/refresh-token; POST /auth/logout | refreshToken; logout bearer → kết quả | JWT lifetime exception refresh; blacklist logout | real; logout 200 | P0: rotation nguyên tử, lock/revoke across instances |
+| Guard Admin → RequireRole | Không endpoint mới | profile role → route | FE guard; server từng endpoint | W | Non-Admin bị 403 ở BE, không coi guard là bảo vệ API |
+| Users list/search/filter/page → A.listUsers | GET /users + /parent-profiles | data:[UserProfile]; profile list | users Admin/admin; profiles thiếu auth | forceReal; W/I/R-read users | P0 quyền profiles; P1 server pagination; không suy total từ một page |
+| User detail → A.getUser | GET /users/{id}; /parent-profiles | data:UserProfile | Admin/admin | forceReal; W/I | Phone chưa có; runtime detail từng target còn chờ |
+| Create Parent/CM/Admin → A.createUser | POST /users | username/password/role/email? → data:UserProfile | Admin/admin; resolve role từ DB | forceReal; W/I | P0 role allowlist/profile lifecycle; runtime duplicate/validation |
+| Create Child | POST /users (không gọi từ UI) | DTO tạo user | Không tạo/link ChildProfile trong AdminCreateUserAsync | **disabled theo người dùng** | BE cần atomic Child + Parent ownership/quota trước mở |
+| Edit user → A.updateUser | PUT /users/{id} | changed firstName/lastName/email/phoneNumber?/dob/gender → data:UserProfile | Admin/admin; null giữ nguyên | forceReal; W/I | P0 role không gửi; P1 reason/revision/read-back runtime |
+| Lock/unlock → A.toggleUserStatus | PATCH /users/{id}/status | isLocked,reason → isLocked,message | Chặn tự khóa; reason không được lưu trong method | forceReal; W | P0 last-admin + token revocation; reason phải audit |
+| Change role / permissions | PUT users có field role; /admin/permissions redirect | FE không mở quyền đổi role | Không thấy self-demotion/last-admin/profile conversion gate | disabled/redirect | ADM-01; không thêm /admin/users trùng chức năng |
+| Plans list/detail → C.list/get | GET /subscription-plans[/{id}] | array/detail: name/code/price/quota/flags/days | Không Authorize trong controller | catalog real; W/I/R-read list | Giá không có currency field; cần chốt đơn vị và snapshot gói |
+| Plans create/edit/activate → C.create/update | POST /subscription-plans; PATCH /{id} | name/price/limits/flags/days; code BE sinh → DTO/204 | Không role gate | W/I; runtime write chờ | P0 auth; P1 price/quota hiện hữu, ref và revision |
+| Credit costs list/detail → C.list/get | GET /credit-costs[/{id}] | featureKey/featureNameVi/En/cost/isActive | Không role gate | W/R-read list | Cost là credit/lượt; không phải ledger usage |
+| Credit costs create/edit/activate → C | POST /credit-costs; PATCH /{id} | DTO fields → DTO/204 | Không role gate/validation đủ | W | Nonnegative/int/server enforcement; đang dùng giá mới ở đâu |
+| Education list/detail → C | GET /education-themes[/{id}] | name/description/status | Không role gate | W/R-read list | CommonStatus 0..4 |
+| Education create/edit/activate → C | POST /education-themes; PATCH /{id} | name/description/status → DTO/204 | Không role gate | W | P0 auth; P1 giữ reference story khi inactive |
+| Catalog delete caller → C.remove | DELETE /subscription-plans,credit-costs,education-themes/{id} | Không body → 204 | Soft inactive | Caller có, UI hiện dùng toggle | Không thêm nút xóa; test tham chiếu trước mở |
+| Keywords list/detail → A | GET /restricted-keywords[/{id}] | keyword/description/matchType/severityLevel/action/status | Không auth; service chỉ hạn chế CM riêng | forceReal; W/R-read list | P0 allowlist server; search/filter client |
+| Keywords create/update/delete → A | POST /restricted-keywords; PATCH,DELETE /{id} | DTO hoặc no body → DTO/204 | CM chỉ Draft/Pending; role khác chưa bị chặn đầy đủ | forceReal; W | Soft inactive; enum validation + reason/revision runtime |
+| Prohibited themes list/detail → M | GET /prohibited-themes[/{id}] | name/description + moderation enums/status | Như keywords | module real; W/R-read list | P0 auth, scope policy |
+| Prohibited create/update/delete → M | POST /prohibited-themes; PATCH,DELETE /{id} | DTO → DTO/204 | Như keywords | W | P1 reference/regex/revision; delete soft inactive |
+| Char types list/detail → M | GET /char-types[/{id}] | nameEn/nameVi/category/canFly/canSwim/imageUrl/status | Không auth | module real; W/I/R-read list | Đã sửa schema; nullable imageUrl |
+| Char types create/update/delete → M | POST /char-types; PATCH,DELETE /{id} | đúng DTO; category 0..4, boolean → DTO/204 | Không auth; delete inactive | W/I | P0 auth; P1 reference/validation/read-back runtime |
+| Reports list/filter/page/detail → A | GET /content-reports[/{id}] | targetType/targetId/reason/status/BaseFields | Không Authorize/owner | module real; W/I/R-read list | P0 anonymous list 200; evidence/preview thiếu contract |
+| Report resolve/dismiss → A | PATCH /content-reports/{id} | giữ targetType/targetId/reason; status 2/3 → 204 | Parent check bị map DTO ghi đè status; không transition matrix | module real; W/I | P0 auth/transition; note/reviewer/time thiếu; target không bị đổi |
+| Report delete caller | DELETE /content-reports/{id} | no body → 204 | Chỉ set Dismissed | Caller, không mở nút mới | Không gọi là xóa target; runtime chờ |
+| Audit list/detail → A | GET /audit-logs[/{id}] | auditAction/entityName/primaryKey/oldValues/newValues/BaseFields | Không Authorize | forceReal; W/I/R-read list | P0 anonymous 200, credential redaction, actor thật |
+| Audit scoped/filter/page → A.listAudit | GET /audit-logs/user-id/{id},entity-name/{name},entity-id/{id} | array; time/action/search/page client | Không Authorize | W/I | P1 server paging/timezone/outcome; không khẳng định có failed/denied events |
+| Parent plan assignment | PUT /parent-profiles/{id} | subscriptionPlanId → result | Chỉ đổi FK; không quota/subscription | **disabled theo người dùng** | P0 quyền + atomic entitlement; read-back quota/kỳ hiệu lực |
+| Subscription/trial callers | GET /subscriptions,/{id},/parent-profile/{id},/subscription-plan/{id}; PATCH /parent-profiles/{id}/mark-trial-plan-used | resource DTO; mark trial flag | Thiếu auth/owner | forceReal callers, không mở màn mới | SEC-01; không dùng làm doanh thu |
+| Dashboard → A.getOverview | GET users/reports/plans/audit | counts từ full lists; partial errors/null | Quyền các nguồn như trên | forceReal; W/I | Revenue/credit used null; không DAU/MAU; cần aggregate ledger |
+| Limits/monitoring/statistics | /admin/system-limits,monitoring,statistics → redirect /admin | Không gọi API mới | Chưa contract đủ | Ngoài route đang mở | ADM-04: chốt scope/unit/enforcement/job idempotency trước triển khai |
+
+## Yêu cầu chuyển Backend (chưa đóng)
+
+1. **P0 SEC-ADM:** thêm authentication/authorization cho audit/reports/ParentProfile và mutation catalogs/subscriptions. Bằng chứng `sketch_tale.API/Controllers/{AuditLog,ContentReport,ParentProfile,Subscription,SubscriptionPlan,CreditCost,EducationTheme,CharType,RestrictedKeyword,ProhibitedTheme}Controller.cs`; Program.cs không có fallback authorization policy tìm thấy. RestrictedKeyword/ProhibitedThemeService chỉ giới hạn riêng ContentManager; role không khớp không mặc nhiên được phép. Nghiệm thu anonymous 401, wrong-role 403, owner scope detail/list/mutation; public GET catalog phải là quyết định rõ ràng.
+2. **P0 AUDIT-DATA:** `Infrastructure/Data/AppDbContext.cs` dùng OptOut + IncludeEntityObjects=true; `Infrastructure/Audit/AuditConfiguration.cs:26–73` gán CreateBy=Guid.Empty, serialize entity/change dictionary, chỉ ignore UpdatedAt/UpdatedBy. Chưa thấy redaction password/hash/token/security stamp. UserProfileDto không có các secret này, nhưng audit là đường rò riêng. BE cần exclude Identity secrets trước persistence/response, xử lý log cũ theo quy trình của BE, lấy actor từ current user, không giả System. Chưa kiểm tra giá trị secret live; không sao chép response để chứng minh rò.
+3. **P0 ADM-01:** `Application/Services/AuthService.cs:1089–1202`: PUT cho thay role không self/last-active-admin guard, không tạo/chuyển profile, không xử lý kết quả remove/add role đầy đủ; status chỉ chặn self-lock. Create resolve mọi role có trong DB, cần allowlist rõ (đặc biệt System/Child). Nghiệm thu transaction/concurrency hai Admin, không mất admin cuối, không orphan profile. FE tạm khóa Child/role theo phạm vi; không phải sửa bảo mật server.
+4. **P0 AUTH-01:** Program OnTokenValidated chỉ blacklist jti/raw token; AdminUpdateUser/UpdateUserStatus không revoke refresh/access; RefreshTokenAsync không thấy check lockout trước phát token mới. Nghiệm thu access/refresh trước khóa/đổi role bị vô hiệu theo SLA; rotation/reuse nguyên tử, blacklist qua restart/instance.
+5. **P1 USER-CONTRACT:** GET UserProfileDto thiếu phoneNumber; PUT null/omitted giữ nguyên first/last/phone/DOB/gender; empty string xóa first/last/phone nhưng email blank bị bỏ qua; chưa clear DOB/gender. Reason status chưa dùng; cần reason audit + revision/ETag và field error contract. FE chỉ gửi thay đổi đã đọc được. Pagination hiện full arrays/data envelope, nếu đổi thành server page phải có adapter contract mới.
+6. **P0/P1 ADM-02:** ContentReportService.Update map toàn DTO, Parent pending gate không bảo vệ status sau map; Delete chỉ Dismissed; không target effect. BE cần enum/transition/actor/owner matrix, note riêng/reviewer/time, evidence/preview endpoint có quyền, revision; kiểm tra reason gốc bất biến và target side effect tách rõ. FE không tự tạo note field/endpoint.
+7. **P1 CATALOG:** chốt currency (UI cũ hiển thị đồng nhưng DTO chỉ Price), quota/giá có snapshot theo subscription hay dùng giá hiện hành; inactive resource tham chiếu có còn đọc được; validation negative/int/enum/regex/URL; DTO update đủ field không giả partial PATCH. Plan code sinh từ Name khi create; update không nhận Code. ParentProfileService.UpdateAsync chỉ đổi FK, chưa entitlement. Nghiệm thu giá/quota hiện hữu và gói inactive không cấp mới.
+8. **P1 ADM-03/04:** aggregate revenue từ payment ledger, credit-used từ spend ledger; range/timezone/currency/generatedAt, missing khác 0, active account khác DAU/MAU. Limits có server enforcement; monitoring transition/idempotency; chỉ mở route sau scope được chốt.
+
+## Kiểm thử và giới hạn
+
+**Kiểm thử intercept:** `npm run test:api -- admin-api-ux.spec.js`. Suite `tests/admin-api-ux.spec.js` phủ envelope/nullable/lockout; role create và Child disabled; edit changed-only, false/zero; char type DTO; catalog whitelist; report giữ reason + accepted write/read-back failure GET-only; 400/401/403/404/409; incomplete totals; ánh xạ actor từ directory và để trống actor thiếu; response cũ sau đổi session; audit scoped API/detail/focus; report pagination; responsive 1366/768/390 và redirects. Intercept không chứng minh server lưu hoặc enforce policy.
+
+Build/lint được chạy lại trong đợt này; build còn cảnh báo bundle >500 KB, lint có warnings hiện hữu (Admin audit Date.now và helper restrictions chưa dùng, cùng Content/Parent). Runtime chỉ login/đọc/logout như trên; không tuyên bố toàn bộ Admin đã nghiệm thu end-to-end.
+
+Còn chờ người dùng/BE: dataset/ID được phép mutation; non-Admin account và ma trận policy; các mục BE 1–8. FE còn nghiệm thu mở rộng timeout/recovery cho mọi mutation catalog/keyword/user, dirty navigation mọi form và test cache logout/multi-tab đầy đủ; không coi một test stale-response đã phủ toàn bộ các trường hợp này.

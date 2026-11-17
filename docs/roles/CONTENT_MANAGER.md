@@ -1,6 +1,6 @@
 # Content Manager — soạn và phát hành truyện
 
-Audit tiếp tục 15/11/2026. Chỉ sửa FE/tests/docs; giữ working tree có sẵn, BE chỉ đọc. Đã có caller cho story/theme/page/role/slot/vocabulary/quiz, reorder, upload media và publish. Codec CompositionJson v1, hydrate editor, save replace/preserve và read-after-write có trong working tree. Không còn chờ BE thiết kế JSON và không yêu cầu API animation riêng. **Chưa nghiệm thu end-to-end runtime.**
+Rà soát source và intercept lại 17/11/2026. Chỉ sửa FE/tests/docs; giữ working tree có sẵn, BE chỉ đọc. Đã có caller cho story/theme/page/role/slot/vocabulary/quiz, reorder, upload media và publish. Codec CompositionJson v1, hydrate editor, save replace/preserve và read-after-write có trong working tree. Không còn chờ BE thiết kế JSON và không yêu cầu API animation riêng. **Chưa nghiệm thu end-to-end runtime.**
 
 ## Nguồn chuẩn
 
@@ -27,7 +27,7 @@ Giữ raw JSON lỗi/version cao, chặn overwrite; không báo cloud-saved vớ
 
 ## Điểm chạm code
 
-`src/features/content/services/{storyComposition,contentService,assetService,localAssetStore,contentMockOverlay,localStoryDemo}.js`; `pages/StoryPagesPage.jsx`, `StoryPreviewPage.jsx`; `components/StoryPageRenderer.jsx`, `StoryAnimationEditor.jsx`; `utils/storyAnimation.js`, `storyAudio.js`; Parent `parentCatalogService.js` và `ParentStoryReaderPage.jsx`.
+`src/features/content/services/{storyComposition,contentService,assetService,localAssetStore,contentMockOverlay}.js`; `pages/StoryPagesPage.jsx`, `StoryPreviewPage.jsx`; `components/StoryPageRenderer.jsx`, `StoryAnimationEditor.jsx`; `utils/storyAnimation.js`, `storyAudio.js`; Parent `parentCatalogService.js` và `ParentStoryReaderPage.jsx`.
 
 BE: StoryManagementDtos, StoryPageTemplateController/Service/Repository, StoryTemplateService.PublishStoryAsync, MappingProfile, UploadController, StoryRoleTemplateController, CharacterSlotTemplateController, StoryQuizTemplateController. Ưu tiên WEB01–06 và DOC-API-01/02 trong [backlog](../BACKLOG.md).
 
@@ -69,10 +69,13 @@ Prefix `/api` do HTTP client thêm. CM = role ContentManager/content manager; R 
 - Build qua; lint exit 0 còn warnings. Cả 3 test hồi quy editor đã qua; test cover cũ tìm nút “Hủy” trong khi UI đã đổi “Sang dựng truyện”, đã sửa locator.
 - Thêm 2 test reader activities đã qua riêng: vocab/quiz đúng trang và cuối truyện, chưa hiện feedback trước chọn, không ghi log; từ chối quiz sai story. Tổng 16 ca trong suite CM, đã chạy theo hai vòng 14 + 2.
 - Hồi quy Parent: 2 test `reader hydrates` / `reader rejects` trong `parent-audit.spec.js` qua; build/lint đã chạy lại sau khi thêm activities. Lint exit 0 có warnings; build có cảnh báo chunk lớn. Chưa chạy toàn bộ mọi suite của repository.
+- **Recheck 17/11:** `npx playwright test --config playwright.content-integration.config.js` qua 17/17; `npx playwright test --config playwright.parent-integration.config.js tests/parent-audit.spec.js --grep "reader hydrates|reader rejects"` qua 2 ca ở project `parent-live`, 2 ca `parent-catalog-only` được skip theo cấu hình. `npm run lint` exit 0 còn warnings; `npm run build` thành công, bundle JS 1.35 MB có cảnh báo chunk lớn. Đây là kiểm chứng FE/intercept, không xác minh DB, role enforcement hoặc deploy runtime.
 
 ## Runtime và yêu cầu Backend
 
-Người dùng chỉ định tài khoản trong PROJECT_SUMMARY và truyện **Tôn giáo**, không có Child test. Đã login/read/logout CM và Parent; chưa mutation nội dung/publish/hide/delete/upload. [Bằng chứng API](../../artifacts/content-runtime-2026-11-14.json) không chứa token/credential. Đây là dữ liệu đọc 14/11; báo cáo tiếp tục 15/11.
+**Đối chiếu source 17/11:** Backend checkout vẫn có staged modifications và chỉ được đọc. `StoryTemplateService.PublishStoryAsync` chỉ đặt story `Active`; `StoryPageTemplateRepository.GetPublishedPagesByStoryIdAsync` chỉ trả page `Active`. `StoryPageTemplateController` có route Parent/Child `GET /storypage-template/published/{storyId}`, trong khi route reader live đã ghi nhận là `/storypage-template/pages/{storyId}`. `UploadController.UploadItemImage` chỉ cho role `content manager`; runtime upload chưa thử. Các khác biệt này giữ nguyên blocker trong bảng dưới, không được giải quyết bằng việc nới filter hoặc đổi route FE theo phỏng đoán.
+
+Người dùng chỉ định tài khoản trong PROJECT_SUMMARY và truyện **Tôn giáo**, không có Child test. Đã login/read/logout CM và Parent; chưa mutation nội dung/publish/hide/delete/upload. [Bằng chứng API](../../artifacts/content-runtime-2026-11-14.json) không chứa token/credential. Đây là dữ liệu đọc 14/11; recheck 17/11 không thêm bằng chứng runtime.
 
 1. **PUB-01 / DOC-API-01 — blocker đọc thật:** story `ad1371f3-8ef3-42ff-8b3a-46b462807937` Active; CM all-pages trả 3 Draft + 1 Inactive. Parent GET `/storypage-template/pages/{id}` 200 trả 3 Draft, tất cả chưa có CompositionJson. FE reader lọc Active nên không có trang đọc. Local `StoryPageTemplateService.GetPublishedPagesByStoryAsync` và repository lọc Active; `StoryTemplateService.PublishStoryAsync` chỉ Active story. Cần BE cung cấp quy trình publish/status/hide/edit-after-publish và đồng bộ release routes; nghiệm thu 2+ trang/roles/slots/composition đọc đủ bằng Parent/Child, Draft/Hidden không rò rỉ. **Người dùng chọn sẽ cung cấp quy trình BE, chưa cho chốt quy tắc FE mới.**
 2. **DOC-API-02:** `UploadController.cs:20` chỉ alias `content manager`; POST `/upload/background-image` cần hỗ trợ các CM claims chính thức và từ chối role ngoài quyền. Runtime upload chưa thử, không suy 403 hiện tại chỉ từ source. FE đã bỏ avatar workaround; không yêu cầu endpoint animation mới.
