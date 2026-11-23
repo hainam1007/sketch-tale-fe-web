@@ -1,4 +1,4 @@
-import { CheckCircle, Plus, UserCircle } from "@phosphor-icons/react";
+import { Backpack, BookOpenText, CheckCircle, Plus, Sparkle, UserCircle } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -70,7 +70,6 @@ export default function NewChildPage() {
         <div>
           <p className="workspace-eyebrow">PHỤ HUYNH / HỒ SƠ BÉ</p>
           <h1>Tạo tài khoản cho bé</h1>
-          <p>Mỗi bé có tài khoản riêng để bắt đầu hành trình đọc của mình.</p>
         </div>
       </div>
 
@@ -94,12 +93,20 @@ export default function NewChildPage() {
           {!createdAccount.childProfileId && <p>Tài khoản đã được tạo. Mở danh sách hồ sơ để tìm bé vừa thêm.</p>}
         </section>
       ) : (
-        <section className="parent-account-create-card" aria-labelledby="child-account-title">
+        <div className="parent-account-create-stage">
+          <div className="parent-account-create-decor parent-account-create-decor--left" aria-hidden="true">
+            <BookOpenText size={54} weight="duotone" />
+            <Sparkle className="parent-account-sparkle" size={20} weight="fill" />
+          </div>
+          <div className="parent-account-create-decor parent-account-create-decor--right" aria-hidden="true">
+            <Backpack size={58} weight="duotone" />
+            <Sparkle className="parent-account-sparkle" size={18} weight="fill" />
+          </div>
+          <section className="parent-account-create-card" aria-labelledby="child-account-title">
           <div className="parent-form-section-heading">
             <span className="parent-form-icon"><UserCircle size={20} aria-hidden="true" /></span>
             <div>
               <h2 id="child-account-title">Thông tin đăng nhập</h2>
-              <p>Chọn tên tài khoản và tên hiển thị mà bé sẽ dùng.</p>
             </div>
           </div>
           <form className="parent-form" onSubmit={submit}>
@@ -131,7 +138,8 @@ export default function NewChildPage() {
               <button className="workspace-button" type="submit" disabled={accountMutation.isPending}>{accountMutation.isPending ? "Đang tạo tài khoản…" : "Tạo tài khoản bé"}</button>
             </div>
           </form>
-        </section>
+          </section>
+        </div>
       )}
     </div>
   );

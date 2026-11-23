@@ -24,7 +24,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("audit clamps pages, calls scoped API and restores keyboard focus", async ({ page }) => {
-  await page.goto("/admin/audit?page=999&range=all");
+  await page.goto("/admin/audit?scope=entity&value=StoryTemplate&page=999&range=all");
   await expect(page.getByText("Trang 2 / 2", { exact: true })).toBeVisible();
   const view = page.getByRole("button", { name: "Xem", exact: true }).first();
   await view.click();
@@ -39,10 +39,32 @@ test("audit clamps pages, calls scoped API and restores keyboard focus", async (
   await page.getByRole("button", { name: "Tra cứu", exact: true }).click();
   await requested;
   await expect(page.getByText("Trang 1 / 2", { exact: true })).toBeVisible();
+  const todayInVietnam = await page.evaluate(() => new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date()));
+  await page.getByLabel("Ngày cụ thể audit").fill(todayInVietnam);
+  await expect(page.locator("tbody tr")).toHaveCount(10);
   await page.getByLabel("Tìm audit").fill("no-match");
   await expect(page.getByText("Không có thao tác phù hợp")).toBeVisible();
   await page.getByRole("button", { name: "Xóa bộ lọc" }).click();
-  await expect(page.locator("tbody tr")).toHaveCount(10);
+  await expect(page.locator("tbody tr")).toHaveCount(0);
+  await expect(page.getByText("Chưa tải nhật ký nào.", { exact: false })).toBeVisible();
+});
+
+test("audit does not fetch all logs before a scoped search", async ({ page }) => {
+  const allRequests = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/audit-logs") allRequests.push(request.url());
+  });
+  await page.goto("/admin/audit");
+  await expect(page.getByText("Tra cứu nhật ký theo phạm vi")).toBeVisible();
+  expect(allRequests).toEqual([]);
+
+  const scopedRequest = page.waitForRequest(`**/api/audit-logs/user-id/${actor}`);
+  await page.getByLabel("Giá trị tra cứu").fill(actor);
+  await page.getByRole("button", { name: "Tra cứu", exact: true }).click();
+  await scopedRequest;
+  expect(allRequests).toEqual([]);
 });
 
 test("reports use real adapter, filter and paginate", async ({ page }) => {
@@ -64,7 +86,7 @@ test("reports and audit resolve actors from the user directory", async ({ page }
   await expect(page.getByText("Lan Nguyen").first()).toBeVisible();
   await expect(page.getByText("lan@example.test").first()).toBeVisible();
 
-  await page.goto("/admin/audit");
+  await page.goto(`/admin/audit?scope=user&value=${actor}`);
   await expect(page.getByText("Lan Nguyen").first()).toBeVisible();
   await expect(page.getByText("lan@example.test").first()).toBeVisible();
   await expect(page.locator("tbody tr").first().locator("td").nth(3)).toContainText("Phụ huynh");
@@ -75,7 +97,7 @@ test("missing report and audit actors stay blank", async ({ page }) => {
   await page.route("**/api/content-reports", (route) => route.fulfill({ json: [
     { id: "report-empty-actor", targetId: actor, reason: "No actor in source data", status: 0, targetType: 0, createBy: "00000000-0000-0000-0000-000000000000" },
   ] }));
-  await page.route("**/api/audit-logs", (route) => route.fulfill({ json: [
+  await page.route(`**/api/audit-logs/user-id/${actor}`, (route) => route.fulfill({ json: [
     { id: "audit-empty-actor", createBy: "00000000-0000-0000-0000-000000000000", auditAction: "Update", entityName: "StoryTemplate", createdAt: new Date().toISOString() },
   ] }));
 
@@ -84,7 +106,7 @@ test("missing report and audit actors stay blank", async ({ page }) => {
   await expect(reporterCell).not.toContainText("00000000");
   await expect(reporterCell).not.toContainText("Người dùng");
 
-  await page.goto("/admin/audit");
+  await page.goto(`/admin/audit?scope=user&value=${actor}`);
   const actorCell = page.locator("tbody tr").first().locator("td").nth(1);
   await expect(actorCell).toHaveText("");
 });

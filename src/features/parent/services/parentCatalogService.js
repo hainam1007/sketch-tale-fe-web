@@ -1,6 +1,7 @@
 import { moduleApiRequest } from "../../../lib/api/featureApi";
 import { ApiError } from "../../../lib/api/errors";
 import { buildParentReader } from "./parentReaderModel";
+import { normalizeApiPageBackground, normalizeApiPageComposition, normalizeApiPageText } from "../../content/services/storyComposition";
 
 function asRows(response, label) {
   const rows = Array.isArray(response) ? response : response?.items;
@@ -41,10 +42,10 @@ function mapPage(page) {
     storyId: page.storyTemplateId ?? page.StoryTemplateId,
     pageNumber,
     title: `Trang ${pageNumber}`,
-    text: page.rawText ?? page.RawText ?? "",
-    imageUrl: page.backgroundUrl ?? page.BackgroundUrl ?? "",
+    text: normalizeApiPageText(page.rawText ?? page.RawText),
+    imageUrl: normalizeApiPageBackground(page.backgroundUrl ?? page.BackgroundUrl),
     audioUrl: page.audioNarrationUrl ?? page.AudioNarrationUrl ?? "",
-    compositionJson: page.compositionJson ?? page.CompositionJson ?? null,
+    compositionJson: normalizeApiPageComposition(page.compositionJson ?? page.CompositionJson),
     status: page.status ?? page.Status,
   };
 }

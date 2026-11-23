@@ -74,22 +74,19 @@ export default function StoryRolesPage() {
   const assets = assetsQuery.data?.items || [];
   const mutationOutcomeBlocked = Boolean(mutation.error?.mutationAccepted || mutation.error?.mutationOutcomeUnknown);
   const roleEnumBlocked = featureApiModes.content === "real" && (roleDraft.storyRoleType == null || (editingRoleId && roleDraft.status == null));
-  function slotBaseline(roleId) {
-    const role = story.roles.find((item) => item.id === roleId);
-    const firstAvailable = story.pages.find((page) => !(role?.slots || []).some((slot) => slot.pageId === page.id));
-    return { ...emptySlot, pageId: firstAvailable?.id || "" };
+  function slotBaseline() {
+    return { ...emptySlot, pageId: story.pages[0]?.id || "" };
   }
 
-  function availablePages(roleId) {
-    const role = story.roles.find((item) => item.id === roleId);
-    return story.pages.filter((page) => !(role?.slots || []).some((slot) => slot.pageId === page.id));
+  function availablePages() {
+    return story.pages;
   }
 
   useEffect(() => {
     if (editingRoleId) document.getElementById("story-editor-role-name")?.focus();
   }, [editingRoleId]);
 
-  const dirty = JSON.stringify(roleDraft) !== JSON.stringify(roleInitial) || Object.entries(slotDrafts).some(([roleId, draft]) => JSON.stringify(draft) !== JSON.stringify(slotBaseline(roleId)));
+  const dirty = JSON.stringify(roleDraft) !== JSON.stringify(roleInitial) || Object.entries(slotDrafts).some(([, draft]) => JSON.stringify(draft) !== JSON.stringify(slotBaseline()));
   useEditorSaveState({ dirty, isSaving: mutation.isPending, error: mutation.error, onDirtyChange: setEditorDirty });
 
   function updateRole(name, value) {
@@ -103,7 +100,7 @@ export default function StoryRolesPage() {
   }
 
   function slotFor(roleId) {
-    return slotDrafts[roleId] || slotBaseline(roleId);
+    return slotDrafts[roleId] || slotBaseline();
   }
 
   function updateSlot(roleId, name, value) {
@@ -184,7 +181,7 @@ export default function StoryRolesPage() {
         <article className="role-card" key={role.id}>
           <div className="role-card-heading"><div><span className="editor-item-index">NHÂN VẬT</span><h3>{role.name}</h3><p>{role.custom ? "Nhân vật riêng của truyện" : "Nhân vật có sẵn"}{role.sensitive ? " · nhạy cảm" : ""}</p></div><div className="editor-item-actions"><button className="icon-button" type="button" aria-label={`Sửa nhân vật ${role.name}`} onClick={() => beginRoleEdit(role)} disabled={mutation.isPending || mutationOutcomeBlocked}><PencilSimple size={17} aria-hidden="true" /></button><button className="icon-button icon-button-danger" type="button" aria-label={`Xóa nhân vật ${role.name}`} title={role.slots?.length ? "Gỡ các vị trí khỏi trang trước khi xóa" : "Xóa nhân vật"} onClick={() => deleteRole(role)} disabled={mutation.isPending || mutationOutcomeBlocked || Boolean(role.slots?.length)}><Trash size={17} aria-hidden="true" /></button></div></div>
           <div className="slot-list">{role.slots?.length ? role.slots.map((slot) => <div className="slot-row" key={slot.id}><span><strong>{pageLabel(story.pages, slot.pageId)}</strong><small>Ngang {slot.x}% · dọc {slot.y}% · kích thước {slot.scale} · lớp {slot.layer}{slot.flip ? " · lật ngang" : ""}</small></span><div className="slot-row-actions"><Link className="workspace-text-link" to={`/content/stories/${storyId}/pages?pageId=${encodeURIComponent(slot.pageId)}&slotId=${encodeURIComponent(slot.id)}`}><ArrowRight size={14} aria-hidden="true" /> Mở vị trí trên trang</Link><button className="icon-button icon-button-danger" type="button" aria-label={`Xóa vị trí ${role.name} khỏi ${pageLabel(story.pages, slot.pageId)}`} disabled={mutation.isPending || mutationOutcomeBlocked} onClick={() => deleteSlot(role, slot)}><Trash size={16} aria-hidden="true" /></button></div></div>) : <p className="editor-help">Nhân vật này chưa được đặt lên trang nào.</p>}</div>
-          {availablePages(role.id).length ? <SlotForm roleId={role.id} values={slotFor(role.id)} pages={availablePages(role.id)} onChange={(name, value) => updateSlot(role.id, name, value)} onSubmit={() => addSlot(role.id)} isSaving={mutation.isPending || mutationOutcomeBlocked} /> : story.pages.length ? <p className="editor-help">Nhân vật đã được đặt trên tất cả các trang.</p> : <p className="editor-help">Hãy tạo ít nhất một trang trước khi đặt nhân vật.</p>}
+          {availablePages().length ? <SlotForm roleId={role.id} values={slotFor(role.id)} pages={availablePages()} onChange={(name, value) => updateSlot(role.id, name, value)} onSubmit={() => addSlot(role.id)} isSaving={mutation.isPending || mutationOutcomeBlocked} /> : <p className="editor-help">Hãy tạo ít nhất một trang trước khi đặt nhân vật.</p>}
         </article>
       ))}</div> : <div className="editor-empty"><p>Truyện chưa có nhân vật.</p><p className="editor-help">Nhân vật không bắt buộc để xuất bản, nhưng cần có nếu truyện sử dụng hình minh họa nhân vật.</p></div>}
     </EditorPanel>

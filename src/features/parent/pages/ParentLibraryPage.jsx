@@ -6,17 +6,15 @@ import {
   MagnifyingGlass,
   ArrowLeft,
   ArrowRight,
-  PaperPlaneTilt,
   SquaresFour,
   ListBullets,
   X,
   Sparkle,
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { childrenService } from "../services/childrenService";
-import { parentProfileService } from "../services/parentProfileService";
 import { useParentDemo } from "../services/parentDemoState";
 import { moduleApiModes } from "../../../lib/api/featureApi";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
@@ -67,6 +65,7 @@ function Cover({ story }) {
 }
 export default function ParentLibraryPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [demo, updateDemo] = useParentDemo(user.id, "catalog");
   const [sort, setSort] = useState("default");
@@ -115,13 +114,21 @@ export default function ParentLibraryPage() {
         : [...saved, id],
     });
   }
+  function openStory(story) {
+    const query = params.toString();
+    navigate(`/parent/library/${encodeURIComponent(story.id)}/read`, {
+      state: {
+        story,
+        returnTo: query ? `/parent/library?${query}` : "/parent/library",
+      },
+    });
+  }
   return (
     <div className="parent-page parent-catalog family-catalog library-redesign">
       <header className="family-library-heading">
         <div>
           <p className="workspace-eyebrow">PHỤ HUYNH / THƯ VIỆN TRUYỆN</p>
           <h1>Thư viện truyện</h1>
-              <p>Mỗi trang sách, một thế giới mới.</p>
         </div>
         <div className="library-heading-note">
           <BookOpen size={24} weight="duotone" aria-hidden="true" />
@@ -137,7 +144,6 @@ export default function ParentLibraryPage() {
           key={selected.id}
           story={selected}
           userId={user.id}
-          user={user}
           returnTo={`/parent/library?${params.toString()}`}
           onBack={() => update("story", "")}
         />
@@ -164,7 +170,7 @@ export default function ParentLibraryPage() {
                   </span>
                   <button
                     className="workspace-button"
-                    onClick={() => update("story", featured.id)}
+                    onClick={() => openStory(featured)}
                   >
                     Khám phá câu chuyện{" "}
                     <ArrowRight size={18} aria-hidden="true" />
@@ -172,7 +178,7 @@ export default function ParentLibraryPage() {
                 </div>
                 <button
                   className="library-spotlight-cover"
-                  onClick={() => update("story", featured.id)}
+                  onClick={() => openStory(featured)}
                   aria-label={`Khám phá ${featured.title}`}
                 >
                   <Cover key={featured.id} story={featured} />
@@ -190,7 +196,7 @@ export default function ParentLibraryPage() {
                       className="library-mini-book"
                       key={story.id}
                       aria-label={`Xem truyện ${story.title}`}
-                      onClick={() => update("story", story.id)}
+                      onClick={() => openStory(story)}
                     >
                       <div className="library-mini-cover">
                         <Cover story={story} />
@@ -215,7 +221,6 @@ export default function ParentLibraryPage() {
                 <span className="sr-only">Tìm truyện</span>
                 <input
                   value={search}
-                  placeholder="Bé muốn khám phá điều gì?"
                   onChange={(event) => update("q", event.target.value)}
                 />
                 {search && (
@@ -276,7 +281,7 @@ export default function ParentLibraryPage() {
                 <p role="status">
                   {catalog.isPending
                     ? "Đang mở kệ truyện…"
-                    : `${filtered.length} truyện${search ? ` cho “${search}”` : " · Cùng bé mở một trang sách mới"}`}
+                    : `${filtered.length} truyện${search ? ` cho “${search}”` : ""}`}
                 </p>
               </div>
               <div className="library-results-actions">
@@ -330,7 +335,7 @@ export default function ParentLibraryPage() {
                     <div className="family-cover-wrap">
                       <button
                         className="catalog-cover"
-                        onClick={() => update("story", story.id)}
+                        onClick={() => openStory(story)}
                         aria-label={`Xem trước ${story.title}`}
                       >
                         <Cover story={story} />
@@ -354,20 +359,20 @@ export default function ParentLibraryPage() {
                       </button>
                     </div>
                     <div className="catalog-book-copy">
+                      <p className="catalog-category">
+                        {topicLabel(story.category)}
+                      </p>
                       <h3>
-                        <button onClick={() => update("story", story.id)}>
+                        <button onClick={() => openStory(story)}>
                           {story.title}
                         </button>
                       </h3>
                       <p>{story.description}</p>
-                      <p className="catalog-category">
-                        {topicLabel(story.category)}
-                      </p>
                       <button
-                        className="parent-text-link"
-                        onClick={() => update("story", story.id)}
+                        className="parent-text-link library-read-button"
+                        onClick={() => openStory(story)}
                       >
-                        Khám phá câu chuyện <ArrowRight size={18} />
+                        Đọc truyện <ArrowRight size={18} />
                       </button>
                     </div>
                   </article>
@@ -396,35 +401,24 @@ export default function ParentLibraryPage() {
               </div>
             )}
           </section>
-          <p className="family-demo-note">
-            Danh sách đã lưu được giữ trong phiên demo trên thiết bị này.
-          </p>
         </>
       )}
     </div>
   );
 }
-function StoryDetail({ story, userId, user, returnTo, onBack }) {
+function StoryDetail({ story, userId, returnTo, onBack }) {
   const [pageIndex, setPageIndex] = useState(0);
-  const [recipient, setRecipient] = useState("");
-  const [sent, setSent] = useState(false);
-  const [demo, update] = useParentDemo(userId, "recommendations");
   const detail = useQuery({
     queryKey: ["parent-catalog-story", userId, story.id, moduleApiModes.parentCatalog],
     queryFn: ({ signal }) =>
       childrenService.catalogStory({ storyId: story.id, signal }),
     enabled: moduleApiModes.parentCatalog === "real",
   });
-  const family = useQuery({
-    queryKey: ["parent-live-profiles-v2", userId],
-    queryFn: ({ signal }) => parentProfileService.list({ user, signal }),
-    enabled: moduleApiModes.parentProfile === "real",
-  });
   const current = detail.data || story;
   const page = current.pages?.[pageIndex];
   return (
     <section className="catalog-detail">
-      <button className="parent-text-link" onClick={onBack}>
+      <button className="parent-text-link parent-reader-back library-back-button" onClick={onBack}>
         <ArrowLeft size={18} /> Về thư viện truyện
       </button>
       {detail.isError ? (
@@ -481,77 +475,6 @@ function StoryDetail({ story, userId, user, returnTo, onBack }) {
               </div>
             )}
           </article>
-          <aside className="catalog-recommend">
-            <PaperPlaneTilt size={30} />
-            <h2>Để dành cho bé</h2>
-            <p>Lưu lựa chọn đọc cùng bé trên thiết bị này.</p>
-            {moduleApiModes.parentProfile !== "real" ? (
-              <p>Chưa thể tải danh sách hồ sơ bé để chọn người nhận.</p>
-            ) : family.isPending ? (
-              <LoadingState />
-            ) : family.isError ? (
-              <ErrorState
-                message={family.error.message}
-                onRetry={() => family.refetch()}
-              />
-            ) : family.data.length ? (
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  update({
-                    items: [
-                      ...(demo.items || []).filter(
-                        (item) =>
-                          !(
-                            item.childId === recipient &&
-                            item.storyId === current.id
-                          ),
-                      ),
-                      {
-                        childId: recipient,
-                        storyId: current.id,
-                        title: current.title,
-                      },
-                    ],
-                  });
-                  setSent(true);
-                }}
-              >
-                <label>
-                  Chọn bé
-                  <select
-                    required
-                    value={recipient}
-                    onChange={(event) => {
-                      setRecipient(event.target.value);
-                      setSent(false);
-                    }}
-                  >
-                    <option value="">Chọn một hồ sơ</option>
-                    {family.data.map((child) => (
-                      <option key={child.id} value={child.id}>
-                        {child.nickName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  className="workspace-button"
-                  disabled={!recipient || sent}
-                >
-                  {sent ? "Đã lưu trên thiết bị" : "Lưu lựa chọn trên thiết bị"}
-                </button>
-                {sent && <p role="status">Đã lưu gợi ý trong phiên demo.</p>}
-              </form>
-            ) : (
-              <Link className="workspace-button" to="/parent/children/new">
-                Thêm hồ sơ bé
-              </Link>
-            )}
-            <p className="family-demo-note">
-              Gợi ý cho bé là thao tác demo, không gửi thông báo thật.
-            </p>
-          </aside>
         </div>
       )}
     </section>

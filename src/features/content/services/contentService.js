@@ -4,7 +4,8 @@ import { SESSION_KEY } from "../../../mocks/mockServer";
 import { deleteAsset, listAssets, uploadAsset } from "./assetService";
 import { mergeContentMockOverlay, mergeMockStoryDraft, readContentMockOverlay, reconcileContentMockOverlay, removeMockSlot, removeMockQuizDraft, removeMockStoryDraftFields, saveMockPageOrder, saveMockSlotDraft, saveMockStoryDraft, summarizeLocalOnlyChanges } from "./contentMockOverlay";
 import { normalizeStory } from "../models";
-import { hydratePageFromComposition, parseStoryComposition, serializeCompositionString } from "./storyComposition";
+import { API_STRING_PLACEHOLDER, DEFAULT_STORY_PAGE_BACKGROUND_URL, EMPTY_STORY_COMPOSITION_JSON, hydratePageFromComposition, isApiStringPlaceholder, normalizeApiPageBackground, normalizeApiPageComposition, normalizeApiPageText, parseStoryComposition, serializeCompositionString } from "./storyComposition";
+import { mapVocabularyDto } from "./vocabularyContract";
 
 const contentRequest = (options) => featureApiRequest("content", options);
 
@@ -19,6 +20,61 @@ function activeUserId() {
 
 function isBackendUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || ""));
+}
+
+const commonStatusCodes = Object.freeze({ draft: 0, pending: 1, active: 2, published: 2, inactive: 3, archived: 4, hidden: 3 });
+
+function backendStatusCode(value) {
+  if (Number.isInteger(value) && value >= 0 && value <= 4) return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (Object.hasOwn(commonStatusCodes, normalized)) return commonStatusCodes[normalized];
+    if (/^[0-4]$/.test(normalized)) return Number(normalized);
+  }
+  return null;
+}
+
+function publicationLifecycleIssues(story) {
+  const storyStatus = backendStatusCode(story?.backendStatus);
+  const issues = [];
+  if (![0, 1, 2, 4].includes(storyStatus)) {
+    const label = storyStatus === 1 ? "Pending" : storyStatus === 4 ? "Archived" : storyStatus === 3 ? "Inactive" : "chưa xác định";
+    issues.push(`Truyện đang ở trạng thái ${label}; chỉ Draft, Pending, Active hoặc Archived được phép xuất bản.`);
+  }
+
+  const groups = [
+    ["trang", story?.publicationState?.pages || []],
+    ["nhân vật", story?.publicationState?.roles || []],
+    ["vị trí nhân vật", story?.publicationState?.slots || []],
+    ["câu hỏi", story?.publicationState?.quizzes || []],
+  ];
+  for (const [label, rows] of groups) {
+    for (const row of rows) {
+      const status = backendStatusCode(row.status);
+      if ([0, 2, 3].includes(status)) continue;
+      const stateLabel = status === 1 ? "Pending" : status === 4 ? "Archived" : "chưa xác định";
+      issues.push(`${label} ${row.id || "không rõ ID"} đang ở trạng thái ${stateLabel}; Backend chỉ chuyển Draft sang Active khi xuất bản.`);
+    }
+  }
+  return issues;
+}
+
+function publicationReadbackIssues(story) {
+  const issues = [];
+  if (story?.status !== "published") issues.push("Trạng thái truyện chưa phải Active.");
+  const groups = [
+    ["trang", story?.publicationState?.pages || []],
+    ["nhân vật", story?.publicationState?.roles || []],
+    ["vị trí nhân vật", story?.publicationState?.slots || []],
+    ["câu hỏi", story?.publicationState?.quizzes || []],
+  ];
+  for (const [label, rows] of groups) {
+    for (const row of rows) {
+      if (backendStatusCode(row.status) === 3) continue;
+      if (backendStatusCode(row.status) !== 2) issues.push(`${label} ${row.id || "không rõ ID"} chưa được đọc lại ở trạng thái Active.`);
+    }
+  }
+  return issues;
 }
 
 function normalizeBackendStory(story, { includeLocalChanges = true } = {}) {
@@ -105,8 +161,10 @@ function backendStoryFormData(payload, { creating = false } = {}) {
 }
 
 function backendPageFormData(payload, { creating = false } = {}) {
-  const rawText = String(payload.text ?? payload.rawText ?? "");
-  if (!rawText.trim()) {
+  const sourceRawText = String(payload.text ?? payload.rawText ?? "");
+  const rawText = String(normalizeApiPageText(sourceRawText));
+  const isPlaceholder = isApiStringPlaceholder(sourceRawText);
+  if (!creating && !rawText.trim() && !isPlaceholder) {
     throw new ApiError({
       status: 422,
       code: "CONTENT_PAGE_RAW_TEXT_REQUIRED",
@@ -121,11 +179,19 @@ function backendPageFormData(payload, { creating = false } = {}) {
     });
   }
   const fields = {
-    RawText: rawText,
+    RawText: (creating || isPlaceholder) && !rawText.trim() ? API_STRING_PLACEHOLDER : rawText,
   };
+  // New pages start empty; the API still receives string fields in multipart form.
+  if (creating) {
+    fields.BackgroundUrl = String(normalizeApiPageBackground(payload.backgroundUrl ?? DEFAULT_STORY_PAGE_BACKGROUND_URL));
+    const compositionJson = normalizeApiPageComposition(payload.compositionJson);
+    fields.CompositionJson = typeof compositionJson === "string" && compositionJson.trim()
+      ? compositionJson
+      : EMPTY_STORY_COMPOSITION_JSON;
+  }
   if (!creating) fields.Status = payload.status;
   const form = backendFormData(fields);
-  if (Object.hasOwn(payload, "compositionJson")) {
+  if (!creating && Object.hasOwn(payload, "compositionJson")) {
     form.append("CompositionJson", String(payload.compositionJson ?? ""));
   }
   if (payload.backgroundFile instanceof Blob) form.append("file", payload.backgroundFile, payload.backgroundFile.name || "background-image");
@@ -205,11 +271,17 @@ async function mutateBackendStoryAndRefresh(storyId, performMutation, { decorate
 }
 
 function normalizeBackendPage(page) {
+  const rawText = normalizeApiPageText(page.rawText ?? page.RawText);
+  const backgroundUrl = normalizeApiPageBackground(page.backgroundUrl ?? page.BackgroundUrl);
+  const compositionJson = normalizeApiPageComposition(page.compositionJson ?? page.CompositionJson);
   const normalized = {
     ...page,
+    rawText,
+    backgroundUrl,
+    compositionJson,
     order: Number(page.pageNumber) || 1,
-    text: page.rawText || "",
-    backgroundAssetId: page.backgroundUrl ? `page-background:${page.id}` : null,
+    text: rawText,
+    backgroundAssetId: backgroundUrl ? `page-background:${page.id}` : null,
     narration: page.audioNarrationUrl || "",
     ...(page.audioNarrationUrl ? {
       audioTracks: [{
@@ -221,7 +293,7 @@ function normalizeBackendPage(page) {
       }],
     } : {}),
   };
-  const parsed = parseStoryComposition(page.compositionJson);
+  const parsed = parseStoryComposition(compositionJson);
   return hydratePageFromComposition(normalized, parsed);
 }
 
@@ -303,14 +375,7 @@ function backendSlotUpdateBody(payload) {
 }
 
 function normalizeBackendVocabulary(entry, pageId) {
-  return {
-    ...entry,
-    id: entry.id,
-    pageId: entry.storyPageTemplateId || pageId,
-    word: entry.word || "",
-    meaning: entry.meaning || "",
-    audioUrl: entry.audioUrl || "",
-  };
+  return mapVocabularyDto(entry, pageId);
 }
 
 function normalizeBackendQuiz(quiz) {
@@ -353,10 +418,33 @@ async function listBackendQuizzes(storyId, signal) {
 
 function backendVocabularyBody(payload) {
   return {
-    word: payload.word,
+    wordVi: payload.word,
     meaning: payload.meaning,
     audioUrl: payload.audioUrl ?? "",
   };
+}
+
+function vocabularyReadbackError() {
+  const error = new ApiError({
+    status: 503,
+    code: "CONTENT_VOCABULARY_READBACK_MISMATCH",
+    message: "Từ vựng đã được gửi nhưng dữ liệu đọc lại chưa khớp. Biểu mẫu được giữ nguyên; hãy tải lại nội dung để kiểm tra trước khi thử lại.",
+  });
+  error.mutationAccepted = true;
+  return error;
+}
+
+function verifyVocabularyReadback(story, apiResult, expected, vocabularyId) {
+  const id = vocabularyId || apiResult?.id || apiResult?.Id;
+  const saved = typeof id === "string" ? story.vocabulary.find((item) => item.id === id) : null;
+  if (!saved
+    || saved.pageId !== expected.pageId
+    || saved.word !== expected.word
+    || saved.meaning !== expected.meaning
+    || saved.audioUrl !== expected.audioUrl) {
+    throw vocabularyReadbackError();
+  }
+  return story;
 }
 
 function backendQuizFormData(payload, { creating = false } = {}) {
@@ -384,8 +472,8 @@ async function getBackendPage({ pageId, signal }) {
       message: "Không thể xác nhận dữ liệu trang trước khi lưu. Tải lại truyện rồi thử lại.",
     });
   }
-  // Nullable CompositionJson may be omitted by serializers configured to skip nulls.
-  return { ...response, compositionJson: response.compositionJson ?? null };
+  // Keep the editor's composition field parseable even when older APIs omit it.
+  return { ...response, compositionJson: normalizeApiPageComposition(response.compositionJson) };
 }
 
 function stableJsonValue(value) {
@@ -437,6 +525,9 @@ async function writeBackendPageAndVerify({ pageId, payload, currentPage }) {
   }
 
   const updatePayload = { text: baseline.rawText, status: baseline.status, ...payload };
+  if (isApiStringPlaceholder(baseline.rawText) && !String(updatePayload.text ?? "").trim()) {
+    updatePayload.text = API_STRING_PLACEHOLDER;
+  }
   const expectedComposition = mode === "replace" ? payload.compositionJson ?? "" : baseline.compositionJson;
   if (mode === "replace") updatePayload.compositionJson = expectedComposition;
   else if (baseline.compositionJson == null || baseline.compositionJson === "") delete updatePayload.compositionJson;
@@ -487,9 +578,11 @@ async function getBackendEditor({ storyId, signal, includeLocalChanges = true })
   const reorderablePageIds = allBackendPages.filter((page) => Number(page.status) !== 3).map((page) => page.id);
   const backendPages = allBackendPages.filter((page) => ![3, 4].includes(Number(page.status)));
   const pages = backendPages.map(normalizeBackendPage);
-  const roles = responseRows(roleResponse).filter((role) => ![3, 4].includes(Number(role.status))).map(normalizeBackendRole);
+  const allRoleRows = responseRows(roleResponse);
+  const roles = allRoleRows.filter((role) => ![3, 4].includes(Number(role.status))).map(normalizeBackendRole);
   if (roles.some((role) => role.storyTemplateId !== storyId)) throw new ApiError({ status: 502, code: "CONTENT_ROLE_STORY_MISMATCH", message: "Vai nhân vật không thuộc truyện đang mở." });
-  const quizRows = responseRows(quizResponse).filter((quiz) => ![3, 4].includes(Number(quiz.status)));
+  const allQuizRows = responseRows(quizResponse);
+  const quizRows = allQuizRows.filter((quiz) => ![3, 4].includes(Number(quiz.status)));
   const slotLoadErrors = new Set();
   const slotGroups = await mapWithConcurrency(pages, 4, async (page) => {
     try {
@@ -583,14 +676,23 @@ async function getBackendEditor({ storyId, signal, includeLocalChanges = true })
   // The current Backend DTO does not expose a draft revision or version history.
   const localOnly = includeLocalChanges ? summarizeLocalOnlyChanges(activeUserId(), storyId) : { hasChanges: false, sections: [], changeCount: 0 };
   const editorStory = { ...normalized, revision: story.revision ?? null, versionHistoryAvailable: false };
+  const withLocalChanges = includeLocalChanges
+    ? mergeContentMockOverlay(editorStory, activeUserId(), storyId)
+    : editorStory;
   return {
-    ...(includeLocalChanges ? mergeContentMockOverlay(editorStory, activeUserId(), storyId) : editorStory),
+    ...withLocalChanges,
+    publicationState: {
+      pages: allBackendPages.filter((row) => backendStatusCode(row.status) !== 3).map((row) => ({ id: row.id, status: row.status, pageNumber: row.pageNumber })),
+      roles: allRoleRows.filter((row) => backendStatusCode(row.status) !== 3).map((row) => ({ id: row.id, status: row.status })),
+      slots: slotGroups.flat().filter((row) => backendStatusCode(row.status) !== 3).map((row) => ({ id: row.id, status: row.status, pageId: row.pageId })),
+      quizzes: allQuizRows.filter((row) => backendStatusCode(row.status) !== 3).map((row) => ({ id: row.id, status: row.status })),
+    },
     localOnlyChanges: featureApiModes.content === "real" ? localOnly : { hasChanges: false, sections: [], changeCount: 0 },
     hasUnverifiedComposition: featureApiModes.content === "real" && pagesWithSlotState.some((page) => ["invalid", "unsupported"].includes(page.compositionState) || (page.compositionIssues || []).length > 0),
   };
 }
 
-async function persistBackendQuizExtension({ storyId, quizId, fromPageId = "", toPageId = "", feedback = "" }) {
+async function persistBackendQuizExtension({ storyId: _storyId, quizId, fromPageId = "", toPageId = "", feedback = "" }) {
   // Add the destination first. If cleanup of the old page fails, the quiz stays
   // attached to at least one page and the duplicate-owner check blocks publish.
   const targets = [...new Set([toPageId, fromPageId].filter(Boolean))];
@@ -647,13 +749,13 @@ function acceptedQuizCompositionError(error, storyId) {
   return accepted;
 }
 
-async function validateBackendStory({ storyId, signal }) {
-  const story = await getBackendEditor({ storyId, signal });
-  const issues = [];
+async function validateBackendStory({ storyId, signal, story: currentStory }) {
+  const story = currentStory || await getBackendEditor({ storyId, signal });
+  const issues = publicationLifecycleIssues(story);
   if (!story.title.trim()) issues.push("Tên truyện");
+  if (!story.coverImageUrl?.trim() || isApiStringPlaceholder(story.coverImageUrl)) issues.push("Ảnh bìa");
   if (!story.categoryId) issues.push("Danh mục");
   if (!story.pages.length) issues.push("Ít nhất một trang");
-  if (story.pages.some((page) => !page.text?.trim())) issues.push("Nội dung mỗi trang");
   if (story.hasUnverifiedComposition) issues.push(...story.pages.flatMap((page) => (page.compositionIssues || []).map((issue) => issue.message)));
   if (story.pages.some((page) => page.slotsUnavailable)) issues.push("Không thể tải đầy đủ vị trí nhân vật");
   if (story.quizzes.some((quiz) => !Number.isInteger(quiz.correctIndex) || quiz.correctIndex < 0 || quiz.correctIndex >= (quiz.options || []).length)) issues.push("Mỗi câu hỏi cần có một đáp án đúng hợp lệ");
@@ -792,14 +894,45 @@ export const contentService = {
   getEditor: (params) => featureApiModes.content === "real"
     ? getBackendEditor(params)
     : contentRequest({ path: `/content/stories/${params.storyId}`, signal: params.signal }),
+  getSavedPageRawText: async ({ storyId, pageId, signal }) => {
+    if (featureApiModes.content === "real") {
+      const page = await getBackendPage({ pageId, signal });
+      const pageStoryId = page.storyTemplateId ?? page.StoryTemplateId;
+      const rawText = Object.hasOwn(page, "rawText") ? page.rawText : page.RawText;
+      if (pageStoryId !== storyId || typeof rawText !== "string") {
+        throw new ApiError({ status: 502, code: "CONTENT_PAGE_RAW_TEXT_UNAVAILABLE", message: "Không thể xác nhận RawText đã lưu của trang. Tải lại trang trước khi thêm hoặc đổi từ vựng." });
+      }
+      return rawText;
+    }
+    const story = await contentRequest({ path: `/content/stories/${storyId}`, signal });
+    const page = story?.pages?.find((item) => item.id === pageId);
+    const rawText = page?.rawText ?? page?.RawText ?? page?.text;
+    if (!page || (rawText != null && typeof rawText !== "string")) {
+      throw new ApiError({ status: 502, code: "CONTENT_PAGE_RAW_TEXT_UNAVAILABLE", message: "Không thể xác nhận nội dung đã lưu của trang. Tải lại truyện trước khi thêm hoặc đổi từ vựng." });
+    }
+    return rawText ?? "";
+  },
   listPages: async ({ storyId, signal }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/pages`, signal });
     const response = await contentRequest({ path: `/storypage-template/all-pages/${storyId}`, signal });
     return { items: responseRows(response).filter((page) => ![3, 4].includes(Number(page.status))).map(normalizeBackendPage) };
   },
-  addPage: async ({ storyId, revision, ...payload }) => {
+  addPage: async ({ storyId, revision, currentStory, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/pages`, method: "POST", body: revisionBody(payload, revision) });
-    return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/storypage-template/${storyId}/page`, method: "POST", body: backendPageFormData(payload, { creating: true }) }));
+    const createdPage = await contentRequest({ path: `/storypage-template/${storyId}/page`, method: "POST", body: backendPageFormData(payload, { creating: true }) });
+    if (!currentStory || currentStory.id !== storyId || !createdPage?.id || (createdPage.storyTemplateId && createdPage.storyTemplateId !== storyId)) {
+      // The POST has already succeeded. Reconcile from its response without ever
+      // retrying the create request, in case this backend returns an unexpected DTO.
+      return mutateBackendStoryAndRefresh(storyId, async () => createdPage);
+    }
+
+    const page = normalizeBackendPage(createdPage);
+    return normalizeStory({
+      ...currentStory,
+      pages: [...(currentStory.pages || []).filter((item) => item.id !== page.id), page],
+      reorderablePageIds: [...new Set([...(currentStory.reorderablePageIds || currentStory.pages?.map((item) => item.id) || []), page.id])],
+      totalPageNumbers: Math.max(Number(currentStory.totalPageNumbers) || 0, Number(createdPage.pageNumber) || 0, (currentStory.pages || []).length + 1),
+    });
   },
   updatePage: async ({ storyId, pageId, revision, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/pages/${pageId}`, method: "PATCH", body: revisionBody(payload, revision) });
@@ -939,11 +1072,17 @@ export const contentService = {
   },
   addVocabulary: async ({ storyId, revision, pageId, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/vocabulary`, method: "POST", body: revisionBody({ pageId, ...payload }, revision) });
-    return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-pages/${pageId}/vocabularies`, method: "POST", body: backendVocabularyBody(payload) }));
+    const body = backendVocabularyBody(payload);
+    return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-pages/${pageId}/vocabularies`, method: "POST", body }), {
+      decorate: (story, result) => verifyVocabularyReadback(story, result, { pageId, word: body.wordVi, meaning: body.meaning, audioUrl: body.audioUrl }),
+    });
   },
   updateVocabulary: async ({ storyId, vocabularyId, revision, pageId, ...payload }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/vocabulary/${vocabularyId}`, method: "PATCH", body: revisionBody({ pageId, ...payload }, revision) });
-    return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-vocabulary/${vocabularyId}`, method: "PUT", body: backendVocabularyBody(payload) }));
+    const body = backendVocabularyBody(payload);
+    return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-vocabulary/${vocabularyId}`, method: "PUT", body }), {
+      decorate: (story) => verifyVocabularyReadback(story, null, { pageId, word: body.wordVi, meaning: body.meaning, audioUrl: body.audioUrl }, vocabularyId),
+    });
   },
   deleteVocabulary: async ({ storyId, vocabularyId, revision }) => {
     if (featureApiModes.content !== "real") return contentRequest({ path: `/content/stories/${storyId}/vocabulary/${vocabularyId}`, method: "DELETE", body: revisionBody({}, revision) });
@@ -979,7 +1118,7 @@ export const contentService = {
     }
     const before = await getBackendEditor({ storyId });
     const previous = before.quizzes.find((item) => item.id === quizId);
-    const story = await mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-quiz/${quizId}/with-image`, method: "PUT", body: backendQuizFormData(payload) }));
+    await mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-quiz/${quizId}/with-image`, method: "PUT", body: backendQuizFormData(payload) }));
     try {
       const fromPageId = previous?.pageId || "";
       const toPageId = payload.pageId || "";
@@ -1012,15 +1151,16 @@ export const contentService = {
     const current = await getBackendEditor({ storyId });
     if (current.localOnlyChanges?.hasChanges) throw new ApiError({ status: 422, code: "CONTENT_LOCAL_CHANGES_PENDING", message: "Còn thay đổi chỉ lưu trên thiết bị. Đồng bộ hoặc bỏ phần đó trước khi xuất bản." });
     if (current.hasUnverifiedComposition) throw new ApiError({ status: 422, code: "CONTENT_COMPOSITION_INVALID", message: "Có bố cục lỗi hoặc tham chiếu media/nhân vật chưa hợp lệ. Sửa các trang đó trước khi xuất bản." });
-    const validation = await validateBackendStory({ storyId });
+    const validation = await validateBackendStory({ storyId, story: current });
     if (!validation.valid) throw new ApiError({ status: 422, code: "CONTENT_PUBLISH_INVALID", message: validation.message });
     return mutateBackendStoryAndRefresh(storyId, () => contentRequest({ path: `/story-template/${storyId}/publish`, method: "POST" }), {
       decorate: (story, publishResult) => {
-        if (story.status !== "published") {
+        const readbackIssues = publicationReadbackIssues(story);
+        if (readbackIssues.length) {
           const unconfirmed = new ApiError({
             status: 503,
-            code: "CONTENT_PUBLISH_STATUS_UNCONFIRMED",
-            message: "Chưa thể xác nhận kết quả xuất bản. Hãy tải lại truyện để kiểm tra trước khi tiếp tục.",
+            code: "CONTENT_PUBLISH_READBACK_INCOMPLETE",
+            message: `Backend đã nhận lệnh xuất bản nhưng dữ liệu đọc lại chưa đầy đủ: ${readbackIssues.join(" ")} Hãy tải lại truyện để kiểm tra trước khi tiếp tục.`,
           });
           unconfirmed.mutationAccepted = true;
           unconfirmed.storyId = storyId;

@@ -197,9 +197,6 @@ export function removeMockQuizDraft(userId, storyId, quizId) {
 
 export function addMockSlot(userId, storyId, roleId, payload) {
   const overlay = updateOverlay(userId, storyId, (current) => {
-    if (current.slots.some((slot) => slot.roleId === roleId && slot.pageId === payload.pageId)) {
-      throw new Error("Nhân vật này đã được thêm vào trang đã chọn.");
-    }
     const id = `mock-slot:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 9)}`;
     return {
       ...current,

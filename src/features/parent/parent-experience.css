@@ -3,6 +3,7 @@
 .family-workspace h2,.family-picker h2 { font-size:22px; letter-spacing:-.4px; margin:0 0 8px; }
 .family-workspace p,.family-picker p { color:#637185; line-height:1.7; }
 .family-section-heading { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:22px; }
+.family-section-controls { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
 .family-section-heading p { margin:6px 0 0; }
 .family-section-heading a { display:inline-flex; align-items:center; gap:7px; color:#795614; }
 .family-picker { padding:28px; background:#fff; border:1px solid #e8e5dc; border-radius:24px; }
@@ -584,33 +585,75 @@
 @media (max-width:900px) { .family-palette-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:600px) { .family-palette-grid { grid-template-columns:1fr; max-width:360px; margin-inline:auto; } }
 
-/* Compact child cards: keep the pixel texture while prioritizing the profile data. */
-.family-profile-card.family-child-profile-card { height:auto; min-height:0; }
-.family-pixel-card { grid-template-rows:auto auto auto; gap:9px; height:auto; padding:9px; }
-.family-pixel-card__scene { min-height:128px; background-size:10px 10px; }
-.family-child-avatar { width:104px; height:104px; border-width:2px; box-shadow:3px 3px 0 var(--color-primary); }
-.family-pixel-card__details { gap:9px; }
-.family-pixel-card__eyebrow { display:block; line-height:1.2; }
-.family-profile-card .family-child-profile-name { margin:5px 0 0; font-size:20px; line-height:1.08; }
-.family-pixel-card__footer { display:flex; align-items:stretch; gap:9px; min-width:0; }
-.family-pixel-card__usage { flex:1 1 auto; min-width:0; min-height:96px; gap:5px; padding:9px; box-sizing:border-box; }
-.family-pixel-card__usage-heading { font-size:8px; }
-.family-pixel-card__time-values { grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto; align-items:center; gap:5px; }
-.family-pixel-card__time-value { align-self:center; }
-.family-pixel-card__time-value strong { font-size:20px; }
-.family-pixel-card__time-value span,.family-pixel-card__time-unit { font-size:8px; }
-.family-pixel-card__time-divider,.family-pixel-card__time-unit { padding-bottom:0; align-self:center; }
-.family-pixel-card__meter { height:7px; gap:2px; }
-.family-pixel-card__button {
-  display:grid;
-  place-items:center;
-  justify-content:center;
-  align-content:center;
-  width:96px;
-  height:96px;
-  min-height:96px;
-  flex:0 0 96px;
-  padding:0;
-  border-width:2px;
+/* Child profiles share the rounded cream-and-gold surfaces of the overview. */
+.family-profile-card.family-child-profile-card {
+  height:auto; min-height:0; padding:0; overflow:hidden;
+  border:2px solid #d5ad51; border-radius:22px; background:#fffaf0;
+  box-shadow:0 5px 0 #e4c476; transition:transform .18s ease,box-shadow .18s ease;
 }
-.family-child-add-card.family-add-card { min-height:270px; height:auto; }
+.family-profile-card.family-child-profile-card:hover {
+  background:#fffaf0; border-color:#b77900; transform:translateY(-2px);
+  box-shadow:0 7px 0 #e4c476;
+}
+.family-pixel-card {
+  height:100%; padding:18px; gap:16px; border:0; background:transparent;
+  grid-template-rows:auto auto 1fr; box-sizing:border-box;
+}
+.family-pixel-card__header { gap:8px; }
+.family-pixel-card__brand { font-family:inherit; font-size:10px; font-weight:800; letter-spacing:0; flex-wrap:wrap; }
+.family-pixel-card__brand-mark { border:0; border-radius:3px; box-shadow:none; }
+.family-pixel-card__serial {
+  flex-shrink:0; min-width:30px; height:30px; border:0; border-radius:10px;
+  background:#ffedb2; color:#795515; font-family:inherit; font-size:12px;
+}
+.family-pixel-card__scene {
+  min-height:140px; border:0; border-radius:16px; background:#fff0c3;
+  background-image:none;
+}
+.family-child-avatar {
+  width:112px; height:112px; border:3px solid #fff; border-radius:50%;
+  background:#fff; box-shadow:0 4px 0 #ead499;
+}
+.family-child-avatar .family-avatar { border-radius:50%; }
+.family-pixel-card__details { gap:18px; }
+.family-pixel-card__eyebrow {
+  display:block; color:#82652d; font-family:inherit; font-size:10px;
+  font-weight:800; letter-spacing:.04em; line-height:1.4;
+}
+.family-profile-card .family-child-profile-name { margin:4px 0 0; font-size:24px; line-height:1.2; letter-spacing:-.4px; }
+.family-pixel-card__footer { display:flex; align-items:flex-end; gap:14px; min-width:0; padding-top:14px; border-top:1px solid #eddfb9; }
+.family-pixel-card__usage { flex:1; min-width:0; gap:10px; padding:0; border:0; background:transparent; }
+.family-pixel-card__usage-heading { font-family:inherit; font-size:10px; letter-spacing:0; font-weight:800; }
+.family-pixel-card__source { border:0; border-radius:5px; font-size:9px; }
+.family-pixel-card__time-values { display:flex; align-items:baseline; gap:5px; }
+.family-pixel-card__time-value strong { font-size:24px; line-height:1; }
+.family-pixel-card__time-value.is-allowed strong { font-size:18px; color:#7e6d48; }
+.family-pixel-card__time-divider,.family-pixel-card__time-unit { padding:0; }
+.family-pixel-card__time-unit { font-size:11px; margin-left:3px; }
+.family-pixel-card__meter { height:7px; gap:3px; }
+.family-pixel-card__meter span { border:0; border-radius:3px; background:#e8dfc8; }
+.family-pixel-card__meter span.is-filled { background:#e7aa14; }
+.family-pixel-card__button {
+  display:flex; align-items:center; justify-content:center; flex:0 0 46px; width:46px; height:46px;
+  min-height:46px; padding:0; border:0; border-radius:13px;
+  background:var(--color-primary); box-shadow:0 3px 0 #c58a0a;
+}
+.family-pixel-card__button:hover { background:#ffce52; box-shadow:0 1px 0 #c58a0a; transform:translateY(2px); }
+.family-add-card.family-child-add-card {
+  min-height:300px; height:auto; gap:12px; padding:28px 22px;
+  border:2px dashed #d8bd7b; border-radius:22px; background:#fffcf4;
+  box-shadow:none; box-sizing:border-box;
+}
+.family-add-card.family-child-add-card:hover { background:#fff5da; border-color:#b77900; box-shadow:none; transform:translateY(-2px); }
+.family-child-add-card.family-add-card > .family-child-add-icon {
+  width:60px; height:60px; margin:0 0 6px; border:0; border-radius:20px;
+  background:#ffedb2; color:#8b600b; box-shadow:0 3px 0 #ebd496;
+}
+.family-child-add-card strong { font-size:18px; }
+.family-child-add-card p { line-height:1.6; }
+@media(max-width:650px) {
+  .family-add-card.family-child-add-card { min-height:210px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .family-profile-card.family-child-profile-card,.family-pixel-card__button,.family-add-card.family-child-add-card { transition:none; transform:none; }
+}
