@@ -25,6 +25,20 @@ function parseAuditTime(value) {
   return Date.parse(normalized) || 0;
 }
 
+function auditDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(({ type, value: part }) => [type, part]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 function formatDateTime(value) {
   if (!value) return "Thời gian chưa xác định";
   const normalized = typeof value === "string" ? value : value;
@@ -58,9 +72,12 @@ export default function AdminAuditPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = useState(null);
-  const [scopeDraft, setScopeDraft] = useState("all");
-  const [valueDraft, setValueDraft] = useState("");
-  const scope = searchParams.get("scope") || "all";
+  const requestedScope = searchParams.get("scope");
+  const validScopes = ["user", "entity", "target"];
+  const initialScope = validScopes.includes(requestedScope) ? requestedScope : "user";
+  const [scopeDraft, setScopeDraft] = useState(initialScope);
+  const [valueDraft, setValueDraft] = useState(() => searchParams.get("value") || "");
+  const scope = validScopes.includes(requestedScope) ? requestedScope : "";
   const scopeValue = searchParams.get("value") || "";
   const rawPage = Number(searchParams.get("page"));
   const rawPageSize = Number(searchParams.get("pageSize"));
@@ -68,6 +85,7 @@ export default function AdminAuditPage() {
   const filters = {
     role: searchParams.get("role") || "all",
     action: searchParams.get("action") || "all",
+    date: searchParams.get("date") || "",
     range: ranges.some(([value]) => value === requestedRange)
       ? requestedRange
       : "30d",
@@ -79,6 +97,7 @@ export default function AdminAuditPage() {
   const auditQuery = useQuery({
     queryKey: [...queryKeys.adminAudit(user.id), scope, scopeValue],
     queryFn: ({ signal }) => adminService.listAudit({ signal, scope, value: scopeValue }),
+    enabled: Boolean(scope && scopeValue.trim()),
   });
 
   const detailQuery = useQuery({
@@ -129,9 +148,10 @@ export default function AdminAuditPage() {
 
     const matchesAction = filters.action === "all" || item.action === filters.action;
     const matchesRange = filters.range === "all" || (Number.isFinite(createdAt) && createdAt >= cutoff);
+    const matchesDate = !filters.date || auditDate(item.createdAt) === filters.date;
     const matchesSearch = !q || searchTarget.includes(q);
 
-    return matchesRole && matchesAction && matchesRange && matchesSearch;
+    return matchesRole && matchesAction && matchesRange && matchesDate && matchesSearch;
   });
 
   const total = filtered.length;
@@ -167,14 +187,16 @@ export default function AdminAuditPage() {
 
       <form className="audit-filter-panel" onSubmit={(event) => {
         event.preventDefault();
+        if (!scopeDraft || !valueDraft.trim()) return;
         const next = new URLSearchParams(searchParams);
         next.set("scope", scopeDraft); next.set("value", valueDraft.trim()); next.delete("page");
         setSearchParams(next);
       }}>
-        <label>Phạm vi tra cứu<select value={scopeDraft} onChange={(event) => setScopeDraft(event.target.value)}><option value="all">Tất cả</option><option value="user">Actor ID</option><option value="entity">Tên entity</option><option value="target">Target ID</option></select></label>
-        <label>Giá trị tra cứu<input value={valueDraft} onChange={(event) => setValueDraft(event.target.value)} required={scopeDraft !== "all"} /></label>
+        <label>Phạm vi tra cứu<select aria-label="Phạm vi tra cứu" value={scopeDraft} onChange={(event) => { setScopeDraft(event.target.value); setValueDraft(""); }}><option value="user">Người dùng (Actor ID)</option><option value="entity">Tên entity</option><option value="target">Target ID</option></select></label>
+        <label>Giá trị tra cứu<input aria-label="Giá trị tra cứu" value={valueDraft} onChange={(event) => setValueDraft(event.target.value)} required placeholder={scopeDraft === "user" ? "Nhập ID người dùng" : scopeDraft === "entity" ? "Nhập tên entity" : "Nhập ID đối tượng"} /></label>
         <button className="workspace-button" type="submit">Tra cứu</button>
       </form>
+      <p className="admin-refresh-note">Nhật ký chỉ được tải sau khi tra cứu theo người dùng, entity hoặc đối tượng. Backend hiện chưa hỗ trợ lọc ngày; ngày cụ thể và khoảng thời gian lọc trên kết quả đã tải.</p>
       <div className="audit-filter-panel">
         <label>
           <span>Vai trò người thực hiện</span>
@@ -218,6 +240,15 @@ export default function AdminAuditPage() {
             ))}
           </select>
         </label>
+        <label>
+          <span>Ngày cụ thể</span>
+          <input
+            aria-label="Ngày cụ thể audit"
+            type="date"
+            value={filters.date}
+            onChange={(event) => updateFilter("date", event.target.value)}
+          />
+        </label>
         <label className="audit-search">
           <span>Tìm kiếm</span>
           <div>
@@ -251,7 +282,11 @@ export default function AdminAuditPage() {
             <p aria-live="polite">{total} thao tác phù hợp bộ lọc.</p>
             <button
               className="workspace-button workspace-button-quiet"
-              onClick={() => setSearchParams({ range: "all" })}
+              onClick={() => {
+                setScopeDraft("user");
+                setValueDraft("");
+                setSearchParams({});
+              }}
             >
               Xóa bộ lọc
             </button>
@@ -344,8 +379,8 @@ export default function AdminAuditPage() {
         ) : (
           <div className="workspace-state workspace-state-empty">
             <ShieldCheck size={29} aria-hidden="true" />
-            <strong>Không có thao tác phù hợp</strong>
-            <p>Thử đổi vai trò, hành động hoặc nội dung tìm kiếm.</p>
+            <strong>{scope && scopeValue ? "Không có thao tác phù hợp" : "Tra cứu nhật ký theo phạm vi"}</strong>
+            <p>{scope && scopeValue ? "Thử đổi vai trò, hành động hoặc nội dung tìm kiếm." : "Nhập mã người dùng, tên entity hoặc mã đối tượng rồi chọn Tra cứu. Chưa tải nhật ký nào."}</p>
           </div>
         )}
       </section>

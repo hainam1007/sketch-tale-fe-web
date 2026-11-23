@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, BookOpen, CheckCircle, DotsThree, EyeSlash, FloppyDisk, Rocket, WarningCircle } from "@phosphor-icons/react";
 import { Link, NavLink, Outlet, useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsMutating, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../auth/useAuth";
 import { contentService } from "../services/contentService";
 import { queryKeys } from "../../../lib/api/queryKeys";
@@ -26,10 +26,21 @@ export default function StoryEditorLayout() {
   const queryClient = useQueryClient();
   const [validation, setValidation] = useState(null);
   const [editorDirty, setEditorDirty] = useState(false);
+  const [publishConfirming, setPublishConfirming] = useState(false);
+  const publishAttemptRef = useRef(false);
   const blocker = useBlocker(editorDirty);
   const blockerRef = useRef(null);
   const confirmToast = useConfirmToast();
   const storyQuery = useQuery({ queryKey: queryKeys.story(user.id, storyId), queryFn: ({ signal }) => contentService.getEditor({ storyId, signal }) });
+  const storyMutationScope = `content-story-${storyId}`;
+  const hasPendingStoryWork = () => queryClient.isMutating({
+    predicate: (mutation) => mutation.options.scope?.id === storyMutationScope && mutation.options.meta?.contentOperation !== "publish",
+  }) > 0 || queryClient.isMutating({ mutationKey: ["content-upload", storyId] }) > 0;
+  const pendingStoryWork = useIsMutating({
+    predicate: (mutation) => mutation.options.scope?.id === storyMutationScope && mutation.options.meta?.contentOperation !== "publish",
+  });
+  const pendingAssetUploads = useIsMutating({ mutationKey: ["content-upload", storyId] });
+  const hasPendingContentWork = pendingStoryWork > 0 || pendingAssetUploads > 0;
 
   useEffect(() => { blockerRef.current = blocker; }, [blocker]);
 
@@ -72,15 +83,18 @@ export default function StoryEditorLayout() {
   }, [blocker.state, blocker.location?.key, confirmToast, isStudio]);
   const publishMutation = useMutation({
     mutationFn: () => {
-      if (isContentEditorDirty()) throw new Error("Còn thay đổi hoặc thao tác lưu chưa hoàn tất. Hãy lưu trước khi xuất bản.");
+      if (isContentEditorDirty() || hasPendingStoryWork()) throw new Error("Còn thay đổi, thao tác lưu hoặc tải tư liệu chưa hoàn tất. Hãy chờ xong rồi kiểm tra lại trước khi xuất bản.");
       return contentService.publishStory({ storyId, revision: storyQuery.data?.revision });
     },
-    scope: { id: `content-story-${storyId}` },
+    scope: { id: storyMutationScope },
+    meta: { contentOperation: "publish" },
     retry: false,
-    onSuccess: (story) => {
+    onSuccess: async (story) => {
       queryClient.setQueryData(queryKeys.story(user.id, storyId), story);
-      queryClient.invalidateQueries({ queryKey: ["stories", user.id] });
-      queryClient.invalidateQueries({ queryKey: queryKeys.storyPreview(user.id, storyId) });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["stories", user.id] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.storyPreview(user.id, storyId) }),
+      ]);
       setValidation({ type: "success", message: story.publishMessage || `Đã xuất bản truyện “${story.title}”.` });
     },
     onError: () => setValidation(null),
@@ -107,15 +121,33 @@ export default function StoryEditorLayout() {
   const visibleValidation = validation?.revision !== undefined && validation.revision !== story.revision ? null : validation;
   const actionError = publishMutation.error || hideMutation.error;
   const mutationOutcomeBlocked = [publishMutation, hideMutation].some(({ error }) => error?.mutationAccepted || error?.mutationOutcomeUnknown);
-  const busy = publishMutation.isPending || hideMutation.isPending;
+  const publishStatusBlocked = !["draft", "pending", "published", "archived"].includes(story.status);
+  const busy = publishMutation.isPending || hideMutation.isPending || publishConfirming;
 
   async function publish() {
-    if (mutationOutcomeBlocked) return;
+    if (publishAttemptRef.current || publishMutation.isPending || mutationOutcomeBlocked) return;
     if (hasLocalOnlyChanges) return setValidation({ type: "error", message: "Một số thay đổi mới chỉ được lưu trên thiết bị, chưa đồng bộ lên máy chủ. Cần đồng bộ đầy đủ trước khi xuất bản." });
     if (hasUnverifiedComposition) return setValidation({ type: "error", message: "Có trang chứa bố cục lỗi, tham chiếu không hợp lệ hoặc chưa tải đủ vị trí nhân vật. Hãy xử lý các trang đó trước khi xuất bản." });
-    if (editorDirty) return setValidation({ type: "error", message: "Hãy lưu thay đổi trước khi xuất bản." });
-    if (storyQuery.data?.status === "unknown") return setValidation({ type: "error", message: "Chưa thể xuất bản truyện này lúc này. Vui lòng thử lại sau." });
-    if (await confirmToast({ title: "Xuất bản truyện?", message: "Truyện sẽ hiển thị với người đọc sau khi xuất bản.", confirmLabel: "Xuất bản" })) publishMutation.mutate();
+    if (editorDirty || isContentEditorDirty() || hasPendingStoryWork()) return setValidation({ type: "error", message: "Hãy chờ thao tác lưu/tải lên hoàn tất và lưu mọi thay đổi trước khi xuất bản." });
+    if (publishStatusBlocked) return setValidation({ type: "error", message: "Trạng thái truyện hiện tại không được xuất bản. Chỉ Draft, Pending, Active hoặc Archived được chuyển qua luồng publish." });
+    publishAttemptRef.current = true;
+    setPublishConfirming(true);
+    let keepAttemptBlocked = false;
+    try {
+      const approved = await confirmToast({ title: "Xuất bản truyện?", message: "Truyện sẽ hiển thị với người đọc sau khi xuất bản.", confirmLabel: "Xuất bản" });
+      if (!approved) return;
+      if (isContentEditorDirty() || hasPendingStoryWork()) {
+        setValidation({ type: "error", message: "Có thay đổi, thao tác lưu hoặc tải tư liệu phát sinh trong lúc xác nhận. Chưa gửi lệnh xuất bản; hãy lưu xong rồi thử lại." });
+        return;
+      }
+      await publishMutation.mutateAsync();
+    } catch (error) {
+      keepAttemptBlocked = Boolean(error?.mutationAccepted || error?.mutationOutcomeUnknown);
+    } finally {
+      setPublishConfirming(false);
+      if (keepAttemptBlocked) publishAttemptRef.current = true;
+      else publishAttemptRef.current = false;
+    }
   }
 
   async function hide() {
@@ -171,19 +203,21 @@ export default function StoryEditorLayout() {
         </div>
       </div>
       <div className="story-editor-actions">
-        <button className="workspace-button" type="button" onClick={publish} disabled={busy || mutationOutcomeBlocked || editorDirty || hasLocalOnlyChanges || hasUnverifiedComposition || story.status === "unknown"} title={hasLocalOnlyChanges ? "Có thay đổi chỉ lưu trên thiết bị." : hasUnverifiedComposition ? "Có bố cục hoặc tham chiếu cần xử lý." : mutationOutcomeBlocked ? "Tải lại truyện để kiểm tra trạng thái thao tác trước khi tiếp tục." : story.status === "unknown" ? "Truyện chưa thể xuất bản lúc này." : undefined}><Rocket size={17} aria-hidden="true" /> {publishMutation.isPending ? "Đang xuất bản..." : "Xuất bản"}</button>
+        <button className="workspace-button" type="button" onClick={publish} disabled={busy || mutationOutcomeBlocked || editorDirty || hasPendingContentWork || hasLocalOnlyChanges || hasUnverifiedComposition || publishStatusBlocked} title={hasLocalOnlyChanges ? "Có thay đổi chỉ lưu trên thiết bị." : hasUnverifiedComposition ? "Có bố cục hoặc tham chiếu cần xử lý." : mutationOutcomeBlocked ? "Tải lại truyện để kiểm tra trạng thái thao tác trước khi tiếp tục." : publishStatusBlocked ? "Trạng thái hiện tại không được xuất bản." : hasPendingContentWork ? "Chờ lưu và tải tư liệu hoàn tất." : undefined}><Rocket size={17} aria-hidden="true" /> {publishMutation.isPending ? "Đang xuất bản..." : publishConfirming ? "Đang xác nhận..." : "Xuất bản"}</button>
         {(story.status === "published" || hasLocalOnlyChanges) && <details className="story-editor-more"><summary aria-label="Thao tác khác" title="Thao tác khác"><DotsThree size={23} aria-hidden="true" /></summary><div>{story.status === "published" && <><button className="workspace-button workspace-button-danger" type="button" onClick={hide} disabled={busy || editorDirty || hasLocalOnlyChanges || mutationOutcomeBlocked}><EyeSlash size={17} aria-hidden="true" /> Ẩn truyện</button><small>Gỡ truyện khỏi danh mục của người đọc.</small></>}{hasLocalOnlyChanges && <><button className="workspace-button workspace-button-quiet" type="button" onClick={downloadLocalBackup}>Tải bản sao JSON</button><button className="workspace-button workspace-button-danger" type="button" onClick={discardLocalChanges}>Bỏ thay đổi local</button><small>Bản sao JSON không đính kèm file ảnh hoặc âm thanh.</small></>}</div></details>}
       </div>
     </header>
     {story.status === "unknown" && <p className="editor-help" role="status">Truyện chưa thể xuất bản lúc này. Vui lòng thử lại sau.</p>}
-    {hasUnverifiedComposition && <p className="editor-help" role="status">Một số trang có bố cục lỗi, tham chiếu không hợp lệ hoặc chưa tải đủ vị trí nhân vật. Dữ liệu gốc được giữ lại để khôi phục; kiểm tra và xuất bản sẽ mở lại sau khi xử lý.</p>}
+    {publishStatusBlocked && story.status !== "unknown" && <p className="editor-help" role="status">Truyện Inactive không thể xuất bản. Truyện Pending/Archived có thể chuyển Active, nếu toàn bộ trang, vai, vị trí nhân vật và câu hỏi cần đọc đang Draft hoặc Active.</p>}
     <nav className="story-editor-tabs" aria-label="Các phần chỉnh sửa truyện">{tabs.map(([suffix, label]) => {
       const count = ({ "/pages": story.pages.length, "/roles": story.roles.length, "/vocabulary": story.vocabulary?.length, "/quizzes": story.quizzes?.length })[suffix];
       return <NavLink key={suffix} to={`/content/stories/${storyId}${suffix}`} end={!suffix}>{label}{count !== undefined && <span className="story-tab-count" aria-label={`${count} mục`}>{count}</span>}</NavLink>;
     })}</nav>
     {visibleValidation && !(hasLocalOnlyChanges && visibleValidation.message.includes("chỉ được lưu trên thiết bị")) && <div className={`story-action-message ${visibleValidation.type === "error" ? "story-action-error" : "story-action-success"}`} role="status">{visibleValidation.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />} {visibleValidation.message}{visibleValidation.type === "error" && <DismissButton onClick={() => setValidation(null)} />}</div>}
     <PublishIssues error={actionError} />
-    <Outlet context={{ story, assets: [], queryKey: queryKeys.story(user.id, storyId), setEditorDirty, refetchStory: storyQuery.refetch, onPublish: publish, isPublishing: publishMutation.isPending, publishError: actionError, validation: visibleValidation }} />
+    <div inert={publishMutation.isPending}>
+      <Outlet context={{ story, assets: [], queryKey: queryKeys.story(user.id, storyId), setEditorDirty, refetchStory: storyQuery.refetch, onPublish: publish, isPublishing: publishMutation.isPending, publishError: actionError, validation: visibleValidation }} />
+    </div>
   </section>;
 }
 

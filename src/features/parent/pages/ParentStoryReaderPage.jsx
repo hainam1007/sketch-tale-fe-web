@@ -1,13 +1,16 @@
 import ParentReaderStage from "../components/ParentReaderStage";
 import ParentReaderActivities from "../components/ParentReaderActivities";
 import { useCallback, useState } from "react";
-import { ArrowLeft, ArrowRight, BookOpen } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, BookOpen, CaretDown, PaperPlaneTilt } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import { moduleApiModes } from "../../../lib/api/featureApi";
 import { useAuth } from "../../auth/useAuth";
 import { childrenService } from "../services/childrenService";
+import { parentProfileService } from "../services/parentProfileService";
+import { previewProfiles, showFamilyProfilePreview } from "../services/familyProfilePreview";
+import { useParentDemo } from "../services/parentDemoState";
 import "../parent-library.css";
 import "../parent-experience.css";
 import "../parent-library-redesign.css";
@@ -23,21 +26,65 @@ function Reader() {
   const location = useLocation();
   const { user } = useAuth();
   const [pageIndex, setPageIndex] = useState(0);
-  const [autoAdvance, setAutoAdvance] = useState(false);
+  const [completedPageId, setCompletedPageId] = useState(null);
+  const [recommendationOpen, setRecommendationOpen] = useState(false);
   const isLive = moduleApiModes.parentCatalog === "real";
+  const isFamilyLive = moduleApiModes.parentProfile === "real";
+  const [recommendations, updateRecommendations] = useParentDemo(user?.id || "guest", "recommendations");
+  const savedChildIds = (recommendations.items || [])
+    .filter((item) => item.storyId === storyId)
+    .map((item) => item.childId);
+  const [selectedChildIds, setSelectedChildIds] = useState(savedChildIds);
+  const [recommendationSaved, setRecommendationSaved] = useState(false);
   const storyQuery = useQuery({
     queryKey: ["parent-story-reader", user?.id, storyId, moduleApiModes.parentCatalog],
     queryFn: ({ signal }) => childrenService.catalogStory({ storyId, signal }),
     enabled: isLive && Boolean(storyId),
     staleTime: 60_000,
   });
-  const story = storyQuery.data;
+  const familyQuery = useQuery({
+    queryKey: ["parent-live-profiles-v2", user?.id],
+    queryFn: ({ signal }) => parentProfileService.list({ user, signal }),
+    enabled: isFamilyLive && Boolean(user?.id),
+    staleTime: 60_000,
+  });
+  const children = isFamilyLive
+    ? familyQuery.data || []
+    : showFamilyProfilePreview
+      ? previewProfiles
+      : [];
+  const story = storyQuery.data || location.state?.story;
   const pages = story?.pages || [];
   const safePageIndex = Math.min(pageIndex, Math.max(pages.length - 1, 0));
   const page = pages[safePageIndex];
-  const finishPage = useCallback(() => {
-    if (autoAdvance) setPageIndex(index => Math.min(index + 1, Math.max(0, pages.length - 1)));
-  }, [autoAdvance, pages.length]);
+  const finishPagePlayback = useCallback(() => setCompletedPageId(page?.id), [page?.id]);
+  function toggleChild(childId) {
+    setSelectedChildIds((current) =>
+      current.includes(childId)
+        ? current.filter((id) => id !== childId)
+        : [...current, childId],
+    );
+    setRecommendationSaved(false);
+  }
+  function saveRecommendations(event) {
+    event.preventDefault();
+    const childIds = children.map((child) => child.id ?? child.Id);
+    const selected = new Set(selectedChildIds);
+    const nextItems = (recommendations.items || []).filter(
+      (item) => item.storyId !== storyId || !childIds.includes(item.childId),
+    );
+    nextItems.push(
+      ...children
+        .filter((child) => selected.has(child.id ?? child.Id))
+        .map((child) => ({
+          childId: child.id ?? child.Id,
+          storyId,
+          title: story?.title || "Câu chuyện",
+        })),
+    );
+    updateRecommendations({ items: nextItems });
+    setRecommendationSaved(true);
+  }
 
   return (
     <div className="parent-page parent-catalog family-catalog library-redesign parent-reader-page">
@@ -53,20 +100,63 @@ function Reader() {
         </div>
       </header>
 
-      <Link className="parent-text-link parent-reader-back" to={location.state?.returnTo || `/parent/library?story=${encodeURIComponent(storyId || "")}`}>
-        <ArrowLeft size={18} aria-hidden="true" /> Về thư viện truyện
-      </Link>
+      <div className="parent-reader-toolbar">
+        <Link className="parent-text-link parent-reader-back library-back-button" to={location.state?.returnTo || "/parent/library"}>
+          <ArrowLeft size={18} aria-hidden="true" /> Về thư viện truyện
+        </Link>
+        <div className="parent-reader-recommend">
+          <button
+            className="workspace-button workspace-button-quiet parent-reader-recommend-trigger"
+            type="button"
+            aria-expanded={recommendationOpen}
+            onClick={() => setRecommendationOpen((open) => !open)}
+          >
+            <PaperPlaneTilt size={18} aria-hidden="true" /> Đề xuất truyện <CaretDown size={16} aria-hidden="true" />
+          </button>
+          {recommendationOpen && (
+            <form className="parent-reader-recommend-menu" onSubmit={saveRecommendations}>
+              <strong>Chọn bé nhận đề xuất</strong>
+              {isFamilyLive && familyQuery.isPending ? (
+                <LoadingState label="Đang tải hồ sơ bé" />
+              ) : isFamilyLive && familyQuery.isError ? (
+                <ErrorState message={familyQuery.error.message} onRetry={() => familyQuery.refetch()} />
+              ) : children.length ? (
+                <>
+                  <div className="parent-reader-recommend-options">
+                    {children.map((child) => {
+                      const id = child.id ?? child.Id;
+                      const name = child.nickName || child.NickName || child.displayName || child.name || "Bé";
+                      return (
+                        <label key={id}>
+                          <input type="checkbox" checked={selectedChildIds.includes(id)} onChange={() => toggleChild(id)} />
+                          <span>{name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <button className="workspace-button" type="submit" disabled={!selectedChildIds.length}>
+                    {recommendationSaved ? "Đã đề xuất" : "Đề xuất"}
+                  </button>
+                  {recommendationSaved && <p className="parent-reader-recommend-status" role="status">Đã đề xuất truyện cho bé.</p>}
+                </>
+              ) : (
+                <p>Chưa có hồ sơ bé để chọn.</p>
+              )}
+            </form>
+          )}
+        </div>
+      </div>
 
-      {!isLive ? (
+      {!isLive && !location.state?.story ? (
         <section className="family-panel parent-reader-message" role="status">
           <BookOpen size={32} aria-hidden="true" />
           <h2>Chưa bật API thư viện truyện</h2>
           <p>Màn đọc cần chế độ API thật để tải nội dung truyện.</p>
           <Link className="workspace-button" to="/parent/library">Quay lại thư viện</Link>
         </section>
-      ) : storyQuery.isPending ? (
+      ) : isLive && storyQuery.isPending ? (
         <LoadingState label="Đang tải truyện" />
-      ) : storyQuery.isError ? (
+      ) : isLive && storyQuery.isError ? (
         <ErrorState message={storyQuery.error.message} onRetry={() => storyQuery.refetch()} />
       ) : !pages.length ? (
         <section className="family-panel parent-reader-message">
@@ -81,9 +171,8 @@ function Reader() {
             <span>{story.category || "Câu chuyện"}</span>
             <span>Trang {safePageIndex + 1} / {pages.length}</span>
           </div>
-          <ParentReaderStage key={page.id} story={story} page={page} onFinished={finishPage} />
-          <ParentReaderActivities key={`${story.id}:${page.id}`} story={story} page={page} isLastPage={safePageIndex === pages.length - 1} />
-          <label className="parent-reader-auto"><input type="checkbox" checked={autoAdvance} onChange={event => setAutoAdvance(event.target.checked)} /> Chuyển trang khi phát xong</label>
+          <ParentReaderStage key={page.id} story={story} page={page} onFinished={finishPagePlayback} />
+          <ParentReaderActivities key={`${story.id}:${page.id}`} story={story} page={page} isLastPage={safePageIndex === pages.length - 1} isPageComplete={completedPageId === page.id} />
           <nav className="catalog-pagination parent-reader-pagination" aria-label="Điều hướng trang truyện">
             <button
               className="workspace-button workspace-button-quiet"

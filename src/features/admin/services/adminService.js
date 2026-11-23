@@ -253,9 +253,14 @@ export const adminService = {
   updateReport: ({ reportId, signal, ...payload }) => adminService.updateContentReportStatus({ reportId, signal, ...payload }),
 
   // 3. Nhật ký kiểm toán (Real API /audit-logs)
-  listAudit: async ({ scope = "all", value = "", signal } = {}) => {
+  listAudit: async ({ scope = "", value = "", signal } = {}) => {
     const scopes = { user: "user-id", entity: "entity-name", target: "entity-id" };
-    const path = scopes[scope] && value.trim() ? `/audit-logs/${scopes[scope]}/${encodeURIComponent(value.trim())}` : "/audit-logs";
+    const scopePath = scopes[scope];
+    const filterValue = value.trim();
+    if (!scopePath || !filterValue) {
+      throw new Error("Hãy chọn phạm vi và nhập giá trị trước khi tải nhật ký.");
+    }
+    const path = `/audit-logs/${scopePath}/${encodeURIComponent(filterValue)}`;
     const [auditResult, usersResult] = await Promise.allSettled([
       apiRequest({ path, signal, forceReal: true }),
       loadUserDirectory(signal),
@@ -339,11 +344,10 @@ export const adminService = {
 
   // Admin overview counts; revenue and credit aggregates are not in the API yet.
   getOverview: async ({ signal } = {}) => {
-    const [reportsResult, usersResult, plansResult, auditResult] = await Promise.allSettled([
+    const [reportsResult, usersResult, plansResult] = await Promise.allSettled([
       apiRequest({ path: "/content-reports", signal, forceReal: true }),
       apiRequest({ path: "/users", signal, forceReal: true }),
       apiRequest({ path: "/subscription-plans", signal, forceReal: true }),
-      apiRequest({ path: "/audit-logs", signal, forceReal: true }),
     ]);
     const readItems = (result, label) => {
       if (result.status === "rejected") return { items: null, error: result.reason?.message || "Không tải được: " + label };
@@ -353,13 +357,11 @@ export const adminService = {
     const reports = readItems(reportsResult, "reports");
     const users = readItems(usersResult, "users");
     const plans = readItems(plansResult, "subscription plans");
-    const audit = readItems(auditResult, "audit logs");
-    const errors = [["reports", reports], ["users", users], ["plans", plans], ["audit", audit]]
+    const errors = [["reports", reports], ["users", users], ["plans", plans]]
       .filter(([, result]) => result.error)
       .map(([section, result]) => ({ section, message: result.error }));
     const reportItems = reports.items || [];
     const planItems = plans.items || [];
-    const auditLogs = (audit.items || []).map(normalizeAudit);
     const reportsOpen = reports.items ? reportItems.filter((report) => Number(report.status) === 0).length : null;
     const reportsUnderReview = reports.items ? reportItems.filter((report) => Number(report.status) === 1).length : null;
     const activePlans = plans.items && planItems.every((plan) => typeof plan.isActive === "boolean")
@@ -383,13 +385,7 @@ export const adminService = {
       counts: { reportsOpen, reportsUnderReview, totalUsers: users.items?.length ?? null, activePlans },
       revenue: { total: null, growthPercent: null, subscriptionTotal: null, creditUsed: null, activeSubscriptionsCount: null, monthlyTrend: [], packages: [], recentSubscriptions: [] },
       queue,
-      recentAudit: auditLogs.slice(0, 6).map((log) => ({
-        id: log.id,
-        action: log.action || log.auditAction || "Thao tác",
-        actorName: log.actorName || "",
-        target: log.entityName || "",
-        createdAt: log.createdAt || log.timestamp || null,
-      })),
+      recentAudit: [],
     };
   },
 };

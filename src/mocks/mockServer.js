@@ -2,6 +2,7 @@ import { ApiError } from "../lib/api/errors";
 import { multiRoleStoryFixture } from "../features/content/data/contentFixtures";
 import { bobbyAssetFixtures, bobbyStoryFixture } from "../features/content/data/bobbyStoryFixture";
 import { gardenGiftAudio, gardenGiftStoryFixture } from "../features/content/data/gardenGiftStoryFixture";
+import { vocabularyAppearsInRawText, vocabularyWordsEqualIgnoreCase } from "../features/content/services/vocabularyContract";
 
 const DATABASE_KEY = "sketchtale.mock.database.v1";
 const SESSION_KEY = "sketchtale.session.v1";
@@ -726,12 +727,23 @@ function validateRole(body) {
   if (!body?.name?.trim()) fieldError("Vai chưa đủ thông tin.", { name: "Nhập tên vai." });
 }
 
-function validateVocabulary(body, story) {
+function validateVocabulary(body, story, existingVocabulary = null) {
   const errors = {};
-  if (!body?.word?.trim()) errors.word = "Nhập từ vựng.";
-  if (!body?.meaning?.trim()) errors.meaning = "Nhập nghĩa của từ.";
+  if (typeof body?.word !== "string" || !body.word.trim()) errors.word = "Nhập từ vựng.";
+  if (typeof body?.meaning !== "string" || !body.meaning.trim()) errors.meaning = "Nhập nghĩa của từ.";
   if (!body?.pageId) errors.pageId = "Chọn trang chứa từ vựng.";
   else if (story && !story.pages.some((page) => page.id === body.pageId)) errors.pageId = "Trang đã chọn không còn trong truyện. Hãy chọn lại trang.";
+  else if (story && typeof body?.word === "string" && body.word.trim()) {
+    const page = story.pages.find((item) => item.id === body.pageId);
+    const wordChanged = !existingVocabulary
+      || existingVocabulary.pageId !== body.pageId
+      || !vocabularyWordsEqualIgnoreCase(body.word, existingVocabulary.word);
+    if (wordChanged) {
+      const rawText = page?.rawText ?? page?.RawText ?? page?.text ?? "";
+      if (typeof rawText !== "string" || !rawText.trim()) errors.word = "Trang chưa có nội dung văn bản (RawText), không thể lưu từ vựng.";
+      else if (!vocabularyAppearsInRawText(body.word, rawText)) errors.word = `Từ vựng '${body.word.trim()}' phải xuất hiện trong nội dung văn bản của trang truyện.`;
+    }
+  }
   if (Object.keys(errors).length) fieldError("Từ vựng chưa đủ thông tin.", errors);
 }
 
@@ -1386,7 +1398,6 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
       assertStoryRevision(story, body?.revision);
       const page = story.pages.find((candidate) => candidate.id === body?.pageId);
       if (!page) fieldError("Slot chưa đủ thông tin.", { pageId: "Chọn một page có trong story." });
-      if (role.slots.some((slot) => slot.pageId === body.pageId)) fieldError("Nhân vật đã có trên trang.", { pageId: "Mỗi nhân vật chỉ có một vị trí trên cùng trang." });
       const x = Number(body.x); const y = Number(body.y); const scale = Number(body.scale || 1); const rotation = Number(body.rotation || 0);
       if ([x, y, scale, rotation].some((value) => !Number.isFinite(value)) || x < 0 || x > 100 || y < 0 || y > 100 || scale <= 0 || scale > 5 || Math.abs(rotation) > 3600) fieldError("Tọa độ slot chưa hợp lệ.", { coordinates: "X/Y trong khoảng 0–100, scale từ 0,1–5, góc xoay trong ±3600°." });
       role.slots.push({ id: `slot-${Date.now()}`, pageId: body.pageId, x, y, scale, rotation, flip: Boolean(body.flip), layer: Number(body.layer || 1) });
@@ -1450,7 +1461,7 @@ export async function mockRequest({ path, method = "GET", body, signal }) {
     const vocabularyIndex = story.vocabulary.findIndex((item) => item.id === vocabularyDetailMatch[2]);
     if (vocabularyIndex < 0) throw new ApiError({ status: 404, code: "NOT_FOUND", message: "Không tìm thấy từ vựng." });
     if (method === "PATCH") {
-      validateVocabulary(body, story);
+      validateVocabulary(body, story, story.vocabulary[vocabularyIndex]);
       story.vocabulary[vocabularyIndex] = { ...story.vocabulary[vocabularyIndex], ...mutationPayload(body), word: body.word.trim(), meaning: body.meaning.trim(), audioUrl: body.audioUrl?.trim() || "" };
     } else {
       story.vocabulary.splice(vocabularyIndex, 1);

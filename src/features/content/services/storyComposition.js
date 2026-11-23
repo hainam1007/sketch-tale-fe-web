@@ -7,6 +7,42 @@ export const STORY_COMPOSITION_MAX_IMAGES = 100;
 export const STORY_COMPOSITION_MAX_AUDIO_TRACKS = 32;
 export const STORY_COMPOSITION_MAX_ANIMATIONS = 200;
 export const STORY_COMPOSITION_MAX_SUBTITLES = 500;
+export const API_STRING_PLACEHOLDER = "string";
+export const DEFAULT_STORY_PAGE_BACKGROUND_URL = "/images/story-page-default-background.jpg";
+
+export const EMPTY_STORY_COMPOSITION_JSON = JSON.stringify({
+  schemaVersion: STORY_COMPOSITION_VERSION,
+  stage: { aspectRatio: "16:9", coordinates: "percent", anchor: "center" },
+  background: { mode: "native", assetId: null, offsetX: 0, offsetY: 0, scale: 1 },
+  subtitles: null,
+  imageObjects: [],
+  animationClips: [],
+  audioTracks: [],
+  slotExtensions: {},
+  quizExtensions: {},
+  assets: [],
+  extensions: {},
+});
+
+export function isApiStringPlaceholder(value) {
+  return typeof value === "string" && value.trim().toLowerCase() === API_STRING_PLACEHOLDER;
+}
+
+export function normalizeApiPageText(value) {
+  return isApiStringPlaceholder(value) ? " " : value ?? "";
+}
+
+export function normalizeApiPageBackground(value) {
+  return isApiStringPlaceholder(value) || typeof value !== "string" || !value.trim()
+    ? DEFAULT_STORY_PAGE_BACKGROUND_URL
+    : value;
+}
+
+export function normalizeApiPageComposition(value) {
+  return isApiStringPlaceholder(value) || value == null || (typeof value === "string" && !value.trim())
+    ? EMPTY_STORY_COMPOSITION_JSON
+    : value;
+}
 
 const isRecord = (value) => Boolean(value && typeof value === "object" && !Array.isArray(value));
 const isFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value);

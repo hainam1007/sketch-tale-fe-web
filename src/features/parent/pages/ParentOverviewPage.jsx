@@ -17,10 +17,7 @@ export default function ParentOverviewPage() {
       <header className="workspace-page-heading">
         <div>
           <p className="workspace-eyebrow">PHỤ HUYNH / TỔNG QUAN</p>
-          <h1>Chào {firstName}, hôm nay mình đọc gì?</h1>
-          <p>
-            Tạo không gian riêng cho từng bé để gia đình đồng hành mỗi ngày.
-          </p>
+          <h1>Chào {firstName}, hôm nay cùng bé khám phá nhé!</h1>
         </div>
         <Link
           className="workspace-button parent-entry-add-button"

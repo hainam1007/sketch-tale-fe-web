@@ -1,6 +1,7 @@
 import { moduleApiRequest } from "../../../lib/api/featureApi";
 import { ApiError } from "../../../lib/api/errors";
 import { readField } from "./parentReaderModel";
+import { mapVocabularyDto } from "../../content/services/vocabularyContract";
 
 function invalid(message) { throw new ApiError({ status: 502, code: "PARENT_READER_ACTIVITIES_INVALID", message }); }
 function rows(value) {
@@ -13,8 +14,8 @@ const sameId = (a, b) => typeof a === "string" && typeof b === "string" && a.toL
 export async function getReaderVocabulary({ pageId, signal }) {
   const data = await moduleApiRequest("parentCatalog", { path: `/story-pages/${encodeURIComponent(pageId)}/vocabularies`, signal });
   return rows(data).map(row => {
-    if (!sameId(readField(row, "storyPageTemplateId"), pageId) || typeof readField(row, "id") !== "string" || typeof readField(row, "word") !== "string" || typeof readField(row, "meaning") !== "string") invalid("Từ vựng không khớp với trang đang đọc.");
-    return { id: readField(row, "id"), word: readField(row, "word"), meaning: readField(row, "meaning"), audioUrl: readField(row, "audioUrl") || "" };
+    try { return mapVocabularyDto(row, pageId); }
+    catch { invalid("Từ vựng không khớp với trang đang đọc hoặc không đúng hợp đồng API."); }
   });
 }
 
