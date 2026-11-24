@@ -95,17 +95,42 @@ function AdminUserDetail() {
 
   function beginUserEdit() {
     setEditOriginal(target);
-    setEditDraft(Object.fromEntries(userUpdateFields.map((field) => [field, target[field] ?? ""])));
+    setEditDraft({
+      ...Object.fromEntries(userUpdateFields.map((field) => [field, target[field] ?? ""])),
+      displayName: target.name || "",
+    });
     updateUserMutation.reset();
     setErrorMsg("");
     setSuccessMsg("");
   }
 
+  function updateDisplayName(value) {
+    const nameParts = value.trim().split(/\s+/).filter(Boolean);
+    const lastName = nameParts.length > 1 ? nameParts.pop() : "";
+    setEditDraft((current) => ({
+      ...current,
+      displayName: value,
+      firstName: nameParts.join(" "),
+      lastName,
+    }));
+  }
+
   function submitUserEdit(event) {
     event.preventDefault();
     if (!editDraft || !canUpdateUser || userQuery.isError || updateUserMutation.isPending) return;
+    if (!editDraft.displayName.trim()) {
+      setErrorMsg("Tên tài khoản không được để trống.");
+      return;
+    }
     const payload = {};
+    const originalDisplayName = [editOriginal.firstName, editOriginal.lastName].filter(Boolean).join(" ") || editOriginal.username || "";
+    const displayNameChanged = editDraft.displayName.trim() !== originalDisplayName;
+    if (displayNameChanged) {
+      payload.firstName = editDraft.firstName.trim();
+      payload.lastName = editDraft.lastName.trim();
+    }
     for (const field of ["firstName", "lastName", "email", "phoneNumber", "dob", "gender"]) {
+      if (["firstName", "lastName"].includes(field)) continue;
       if (!Object.hasOwn(editOriginal, field)) continue;
       let value = editDraft[field];
       if (field === "gender") value = value === "" ? null : value === true || value === "true";
@@ -129,7 +154,7 @@ function AdminUserDetail() {
   return (
     <div className="workspace-dashboard admin-user-detail">
       <div className="admin-detail-back">
-        <Link to={backTo}>
+        <Link className="workspace-button workspace-button-quiet" to={backTo}>
           <ArrowLeft size={17} aria-hidden="true" /> Quay lại danh sách hồ sơ
         </Link>
       </div>
@@ -138,7 +163,6 @@ function AdminUserDetail() {
         <div>
           <p className="workspace-eyebrow">ADMIN / QUẢN LÝ TÀI KHOẢN</p>
           <h1>Chi tiết tài khoản</h1>
-          <p>Thông tin tài khoản lấy từ API users. Chi tiết gói chỉ có khi tồn tại Parent profile liên kết.</p>
         </div>
         {target.profileId
           ? <StatusBadge value={target.plan || "Free"} label={"Plan: " + (target.plan || "Free")} tone={target.plan?.toLowerCase().includes("pro") ? "success" : target.plan?.toLowerCase().includes("plus") ? "accent" : "neutral"} />
@@ -152,8 +176,22 @@ function AdminUserDetail() {
           </span>
           <div>
           <span className="workspace-eyebrow">Tài khoản</span>
-            <h2>{target.name || "Phụ huynh"}</h2>
+            {editDraft
+              ? <input className="admin-detail-name-input" aria-label="Tên tài khoản" form="admin-user-edit-form" required value={editDraft.displayName} disabled={updateUserMutation.isPending} onChange={(event) => updateDisplayName(event.target.value)} />
+              : <h2>{target.name || "Phụ huynh"}</h2>}
             <p>{target.email || "Tài khoản phụ huynh"}</p>
+          </div>
+          <div className="admin-detail-actions">
+            {editDraft ? <>
+              <button className="workspace-button workspace-button-quiet" type="button" disabled={updateUserMutation.isPending} onClick={() => { setEditDraft(null); setErrorMsg(""); }}>
+                Hủy
+              </button>
+              <button className="workspace-button" type="submit" form="admin-user-edit-form" disabled={updateUserMutation.isPending}>
+                <Check size={16} aria-hidden="true" /> {updateUserMutation.isPending ? "Đang lưu…" : "Lưu"}
+              </button>
+            </> : <button className="workspace-button workspace-button-quiet" type="button" disabled={!canUpdateUser} title={!canUpdateUser ? "GET /users chưa trả đủ field để gửi PUT an toàn." : undefined} onClick={beginUserEdit}>
+              <PencilSimple size={16} aria-hidden="true" /> Sửa
+            </button>}
           </div>
         </div>
 
@@ -189,17 +227,10 @@ function AdminUserDetail() {
         {successMsg && <SuccessState>{successMsg}</SuccessState>}
         {errorMsg && <p className="admin-mutation-error" role="alert">{errorMsg}</p>}
 
-        {!editDraft && <div className="admin-plan-actions">
-          <button className="workspace-button workspace-button-quiet" type="button" disabled={!canUpdateUser} title={!canUpdateUser ? "GET /users chưa trả đủ field để gửi PUT an toàn." : undefined} onClick={beginUserEdit}>
-            <PencilSimple size={16} aria-hidden="true" /> Sửa thông tin tài khoản
-          </button>
-          {!canUpdateUser && <span className="admin-field-note">GET /users cần trả đủ field của AdminUpdateUserDto trước khi bật sửa.</span>}
-        </div>}
+        {!canUpdateUser && <span className="admin-field-note">GET /users cần trả đủ field của AdminUpdateUserDto trước khi bật sửa.</span>}
 
-        {editDraft && <form className="admin-limits-card" onSubmit={submitUserEdit}>
+        {editDraft && <form id="admin-user-edit-form" className="admin-limits-card admin-user-edit-form" onSubmit={submitUserEdit}>
           <div className="admin-limit-grid">
-            <label className="admin-limit-field"><span>Tên</span><input value={editDraft.firstName} onChange={(event) => setEditDraft((current) => ({ ...current, firstName: event.target.value }))} /></label>
-            <label className="admin-limit-field"><span>Họ</span><input value={editDraft.lastName} onChange={(event) => setEditDraft((current) => ({ ...current, lastName: event.target.value }))} /></label>
             <label className="admin-limit-field"><span>Email</span><input type="email" value={editDraft.email} onChange={(event) => setEditDraft((current) => ({ ...current, email: event.target.value }))} /></label>
             <label className="admin-limit-field"><span>Số điện thoại</span><input value={editDraft.phoneNumber} disabled={!Object.hasOwn(target, "phoneNumber")} onChange={(event) => setEditDraft((current) => ({ ...current, phoneNumber: event.target.value }))} /></label>
             <label className="admin-limit-field"><span>Ngày sinh</span><input type="date" value={String(editDraft.dob || "").slice(0, 10)} onChange={(event) => setEditDraft((current) => ({ ...current, dob: event.target.value }))} /></label>
@@ -208,7 +239,6 @@ function AdminUserDetail() {
           </div>
           <p className="admin-field-note">Chưa hỗ trợ đổi vai trò hoặc xóa email, ngày sinh, giới tính. Số điện thoại chỉ sửa được khi hồ sơ trả về giá trị hiện tại.</p>
           {updateUserMutation.isError && <p className="admin-mutation-error" role="alert"><WarningCircle size={16} aria-hidden="true" /> {updateUserMutation.error.message}</p>}
-          <div className="admin-limits-actions"><span>Chỉ lưu các thông tin đã thay đổi.</span><div><button className="workspace-button workspace-button-quiet" type="button" disabled={updateUserMutation.isPending} onClick={() => setEditDraft(null)}>Hủy</button><button className="workspace-button" type="submit" disabled={updateUserMutation.isPending}>{updateUserMutation.isPending ? "Đang lưu…" : "Lưu tài khoản"}</button></div></div>
         </form>}
 
         {target.profileId && <div className="admin-plan-assignment-box">
@@ -243,7 +273,6 @@ function AdminUserDetail() {
             </div>
           </form>
         </div>}
-        {!target.profileId && <div className="admin-field-note">{target.profileLookupError ? `Không thể xác định Parent profile: ${target.profileLookupError}` : "Tài khoản này chưa có Parent profile; thao tác gán gói dịch vụ không áp dụng."}</div>}
       </section>
     </div>
   );

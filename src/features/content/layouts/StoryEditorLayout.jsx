@@ -204,7 +204,7 @@ export default function StoryEditorLayout() {
       </div>
       <div className="story-editor-actions">
         <button className="workspace-button" type="button" onClick={publish} disabled={busy || mutationOutcomeBlocked || editorDirty || hasPendingContentWork || hasLocalOnlyChanges || hasUnverifiedComposition || publishStatusBlocked} title={hasLocalOnlyChanges ? "Có thay đổi chỉ lưu trên thiết bị." : hasUnverifiedComposition ? "Có bố cục hoặc tham chiếu cần xử lý." : mutationOutcomeBlocked ? "Tải lại truyện để kiểm tra trạng thái thao tác trước khi tiếp tục." : publishStatusBlocked ? "Trạng thái hiện tại không được xuất bản." : hasPendingContentWork ? "Chờ lưu và tải tư liệu hoàn tất." : undefined}><Rocket size={17} aria-hidden="true" /> {publishMutation.isPending ? "Đang xuất bản..." : publishConfirming ? "Đang xác nhận..." : "Xuất bản"}</button>
-        {(story.status === "published" || hasLocalOnlyChanges) && <details className="story-editor-more"><summary aria-label="Thao tác khác" title="Thao tác khác"><DotsThree size={23} aria-hidden="true" /></summary><div>{story.status === "published" && <><button className="workspace-button workspace-button-danger" type="button" onClick={hide} disabled={busy || editorDirty || hasLocalOnlyChanges || mutationOutcomeBlocked}><EyeSlash size={17} aria-hidden="true" /> Ẩn truyện</button><small>Gỡ truyện khỏi danh mục của người đọc.</small></>}{hasLocalOnlyChanges && <><button className="workspace-button workspace-button-quiet" type="button" onClick={downloadLocalBackup}>Tải bản sao JSON</button><button className="workspace-button workspace-button-danger" type="button" onClick={discardLocalChanges}>Bỏ thay đổi local</button><small>Bản sao JSON không đính kèm file ảnh hoặc âm thanh.</small></>}</div></details>}
+        {(story.status === "published" || hasLocalOnlyChanges) && <details className="story-editor-more"><summary aria-label="Thao tác khác" title="Thao tác khác"><DotsThree size={23} aria-hidden="true" /></summary><div>{story.status === "published" && <><button className="workspace-button workspace-button-danger" type="button" onClick={hide} disabled={busy || editorDirty || hasLocalOnlyChanges || mutationOutcomeBlocked}><EyeSlash size={17} aria-hidden="true" /> Ẩn truyện</button></>}{hasLocalOnlyChanges && <><button className="workspace-button workspace-button-quiet" type="button" onClick={downloadLocalBackup}>Tải bản sao JSON</button><button className="workspace-button workspace-button-danger" type="button" onClick={discardLocalChanges}>Bỏ thay đổi local</button></>}</div></details>}
       </div>
     </header>
     {story.status === "unknown" && <p className="editor-help" role="status">Truyện chưa thể xuất bản lúc này. Vui lòng thử lại sau.</p>}
@@ -215,7 +215,7 @@ export default function StoryEditorLayout() {
     })}</nav>
     {visibleValidation && !(hasLocalOnlyChanges && visibleValidation.message.includes("chỉ được lưu trên thiết bị")) && <div className={`story-action-message ${visibleValidation.type === "error" ? "story-action-error" : "story-action-success"}`} role="status">{visibleValidation.type === "error" ? <WarningCircle size={17} aria-hidden="true" /> : <CheckCircle size={17} aria-hidden="true" />} {visibleValidation.message}{visibleValidation.type === "error" && <DismissButton onClick={() => setValidation(null)} />}</div>}
     <PublishIssues error={actionError} />
-    <div inert={publishMutation.isPending}>
+    <div className="story-editor-outlet" inert={publishMutation.isPending}>
       <Outlet context={{ story, assets: [], queryKey: queryKeys.story(user.id, storyId), setEditorDirty, refetchStory: storyQuery.refetch, onPublish: publish, isPublishing: publishMutation.isPending, publishError: actionError, validation: visibleValidation }} />
     </div>
   </section>;
@@ -227,9 +227,9 @@ function StoryEditorLoadingState({ isStudio, label }) {
       <div>
         <span className="story-editor-loading-kicker"><BookOpen size={15} aria-hidden="true" /> SKETCH TALE / STORY STUDIO</span>
         <h1>Đang mở không gian sáng tác</h1>
-        <p>Đang tải bản thảo, trang truyện và công cụ chỉnh sửa.</p>
+
       </div>
-      <div className="story-editor-loading-status" aria-hidden="true"><span><img src="/images/SketchTale_Mascot_Loading.webp" alt="" /></span><div><strong>Đang tải truyện</strong><small>Chuẩn bị nội dung và tư liệu</small></div></div>
+      <div className="story-editor-loading-status" aria-hidden="true"><span><img src="/images/SketchTale_Mascot_Loading.webp" alt="" /></span><div><strong>Đang tải truyện</strong></div></div>
     </header>
     <nav className="story-editor-loading-tabs" aria-hidden="true">
       {["Thông tin", "Dựng truyện", "Nhân vật", "Từ vựng", "Câu hỏi", "Xem trước"].map((tab, index) => <span className={(isStudio ? index === 1 : index === 0) ? "active" : ""} key={tab}>{tab}</span>)}

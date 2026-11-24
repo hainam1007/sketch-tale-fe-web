@@ -98,7 +98,6 @@ export default function AdminUsersPage() {
         <div>
           <p className="workspace-eyebrow">ADMIN / QUẢN LÝ NGƯỜI DÙNG</p>
           <h1>Tài khoản Người dùng</h1>
-          <p>Danh sách tài khoản từ Backend; hồ sơ gói dịch vụ chỉ hiện khi tài khoản có Parent profile.</p>
         </div>
         <button className="workspace-button" type="button" onClick={() => { setCreateOpen((value) => !value); createUserMutation.reset(); }}>
           {createOpen ? <X size={17} aria-hidden="true" /> : <Plus size={17} aria-hidden="true" />}

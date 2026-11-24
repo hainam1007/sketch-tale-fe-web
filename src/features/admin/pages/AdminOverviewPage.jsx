@@ -289,7 +289,7 @@ export default function AdminOverviewPage() {
               <p>{data.errors?.some((error) => error.section === "reports") ? "Thử làm mới để tải lại dữ liệu." : "Không có báo cáo nào đang chờ xử lý."}</p>
             </div>
           )}
-          <Link className="admin-overview-section-link" to="/admin/reports">
+          <Link className="workspace-button workspace-button-quiet admin-overview-queue-button" to="/admin/reports">
             Mở hàng đợi báo cáo ({queue.length}) <span aria-hidden="true">→</span>
           </Link>
         </section>
@@ -350,7 +350,6 @@ function OverviewStat({ icon: Icon, label, value, to, tone }) {
       <span className="workspace-stat-icon"><Icon size={20} aria-hidden="true" /></span>
       <span className="workspace-stat-label">{label}</span>
       <strong>{displayValue}</strong>
-      <span className="admin-overview-stat-link">Xem danh sách →</span>
     </Link>
   );
 }

@@ -1,14 +1,11 @@
 import { useMemo, useRef, useState } from "react";
-import { BezierCurve, Clock, Diamond, Minus, Pause, Play, Plus, Trash } from "@phosphor-icons/react";
+import { BezierCurve, Clock, Minus, Pause, Play, Plus, Trash } from "@phosphor-icons/react";
 import DismissButton from "../../../components/feedback/DismissButton";
-import { evaluateSlotAnimation, clipsConflict, createId } from "../utils/storyAnimation";
+import { clipsConflict, createId } from "../utils/storyAnimation";
 import { ANIMATION_PRESETS } from "../utils/storyAnimationPresets";
 import { compactAudioFilename } from "../utils/storyAudio";
 
 const presetOptions = ANIMATION_PRESETS.map(({ id, label, description, glyph }) => [id, label, description, glyph]);
-const propertyLabels = { x: "Vị trí ngang", y: "Vị trí dọc", scale: "Kích thước", rotation: "Góc xoay", opacity: "Độ trong suốt" };
-const propertyUnits = { x: "%", y: "%", scale: "×", rotation: "°", opacity: "%" };
-
 function seconds(value) { return (Number(value || 0) / 1000).toFixed(2); }
 
 function TimelineClip({ clip, width, onSelect, onMove, onResize, selected }) {
@@ -18,10 +15,10 @@ function TimelineClip({ clip, width, onSelect, onMove, onResize, selected }) {
   const baseLeft = Number(clip.startMs || 0) / 1000 * width;
   const baseWidth = Math.max(24, Number(clip.durationMs || 900) / 1000 * width);
   return <button
-    className={`story-timeline-clip ${clip.mediaType || ""}${selected ? " is-selected" : ""}${clip.kind === "path" ? " is-path" : clip.kind === "keyframes" ? " is-keyframes" : ""}`}
+    className={`story-timeline-clip ${clip.mediaType || ""}${selected ? " is-selected" : ""}${clip.kind === "path" ? " is-path" : ""}`}
     type="button"
     style={{ left: `${Math.max(0, baseLeft + (edge === "start" ? delta : 0))}px`, width: `${Math.max(24, baseWidth + (edge === "start" ? -delta : edge === "end" ? delta : 0))}px`, transform: edge ? undefined : `translateX(${delta}px)` }}
-    title={`${clip.name || (clip.kind === "path" ? "Đường đi" : clip.kind === "keyframes" ? "Keyframe" : presetOptions.find(([key]) => key === clip.preset)?.[1] || "Hiệu ứng")} · ${seconds(clip.startMs)}–${seconds(Number(clip.startMs || 0) + Number(clip.durationMs || 900))} giây`}
+    title={`${clip.name || (clip.kind === "path" ? "Đường đi" : clip.kind === "keyframes" ? "Chuyển động" : presetOptions.find(([key]) => key === clip.preset)?.[1] || "Hiệu ứng")} · ${seconds(clip.startMs)}–${seconds(Number(clip.startMs || 0) + Number(clip.durationMs || 900))} giây`}
     onPointerDown={(event) => {
       if (event.button !== 0) return;
       event.preventDefault();
@@ -58,10 +55,10 @@ function TimelineClip({ clip, width, onSelect, onMove, onResize, selected }) {
     }}
     onPointerCancel={() => { dragRef.current = null; setDelta(0); setEdge(""); }}
     onClick={() => onSelect(clip.id)}
-  ><span>{clip.name || (clip.kind === "path" ? "Đường đi" : clip.kind === "keyframes" ? "Mốc chuyển động" : presetOptions.find(([key]) => key === clip.preset)?.[1] || "Hiệu ứng")}</span><i className="story-timeline-resize-handle is-start" data-resize-edge="start" aria-hidden="true" /><i className="story-timeline-resize-handle is-end" data-resize-edge="end" aria-hidden="true" /></button>;
+  ><span>{clip.name || (clip.kind === "path" ? "Đường đi" : clip.kind === "keyframes" ? "Chuyển động" : presetOptions.find(([key]) => key === clip.preset)?.[1] || "Hiệu ứng")}</span><i className="story-timeline-resize-handle is-start" data-resize-edge="start" aria-hidden="true" /><i className="story-timeline-resize-handle is-end" data-resize-edge="end" aria-hidden="true" /></button>;
 }
 
-export default function StoryAnimationEditor({ page, slots, assets, audioDurations, clips, onChange, onAudioChange, selectedMedia, onMediaSelect, onSubtitleChange, selectedSlotId, onSlotSelect, playheadMs, onPlayheadChange, isPlaying, onTogglePlayback, selectedClipId, onClipSelect, onPathStart, selectedPathPointIndex = -1, onPathPointChange, onPathPointAdd, pageDurationMs, showPanel = true, showTimeline = true, recording = false, onRecordingChange, property = "x", onPropertyChange, tab = "effects", onTabChange, animationError = "", onAnimationErrorChange }) {
+export default function StoryAnimationEditor({ page, slots, assets, audioDurations, clips, onChange, onAudioChange, selectedMedia, onMediaSelect, onSubtitleChange, selectedSlotId, onSlotSelect, playheadMs, onPlayheadChange, isPlaying, onTogglePlayback, selectedClipId, onClipSelect, onPathStart, selectedPathPointIndex = -1, onPathPointChange, onPathPointAdd, pageDurationMs, showPanel = true, showTimeline = true, tab = "effects", onTabChange, animationError = "", onAnimationErrorChange }) {
   const [zoom, setZoom] = useState(100);
   const [effectSearch, setEffectSearch] = useState("");
   const normalizeSearch = (value) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").toLowerCase();
@@ -71,9 +68,8 @@ export default function StoryAnimationEditor({ page, slots, assets, audioDuratio
   const selectedClip = clips.find((clip) => clip.id === selectedClipId);
   const durationMs = Math.max(pageDurationMs || 3000, ...clips.map((clip) => Number(clip.startMs || 0) + Number(clip.durationMs || 0)), 3000);
   const width = zoom;
-  const selectedKeyframe = selectedClip?.kind === "keyframes" ? [...(selectedClip.keyframes || [])].sort((a, b) => Number(a.timeMs) - Number(b.timeMs)).find((frame) => Math.abs(Number(frame.timeMs) + Number(selectedClip.startMs || 0) - playheadMs) < 80) : null;
   const selectedPathPoint = selectedClip?.kind === "path" && selectedPathPointIndex >= 0 ? selectedClip.points?.[selectedPathPointIndex] : null;
-  const currentValue = target ? evaluateSlotAnimation(target.slot, clips, playheadMs)[property] : 0;
+  const activeTab = tab === "path" ? "path" : "effects";
   const audioById = useMemo(() => new Map((assets || []).map((asset) => [asset.id, asset])), [assets]);
 
   function addPreset(preset) {
@@ -81,29 +77,6 @@ export default function StoryAnimationEditor({ page, slots, assets, audioDuratio
     const candidate = { id: createId("clip"), targetId: target.slot.id, kind: "preset", preset, startMs: playheadMs, durationMs: 900, easing: "ease-in-out", params: { distance: 12 } };
     if (clipsConflict(clips, candidate)) return onAnimationErrorChange("Hiệu ứng này trùng thuộc tính với một clip khác. Hãy chỉnh lại thời điểm hoặc thông số của hiệu ứng khác.");
     onAnimationErrorChange(""); onChange([...clips, candidate]); onClipSelect(candidate.id);
-  }
-
-  function setKeyframe() {
-    if (!target) return onAnimationErrorChange("Hãy chọn nhân vật trước khi tạo keyframe.");
-    let clip = clips.find((item) => item.kind === "keyframes" && item.targetId === target.slot.id);
-    const frameTime = Math.max(0, playheadMs - Number(clip?.startMs || 0));
-    if (!clip) clip = { id: createId("keyframes"), targetId: target.slot.id, kind: "keyframes", startMs: 0, durationMs: Math.max(3000, pageDurationMs || 0), keyframes: [] };
-    const value = evaluateSlotAnimation(target.slot, clips, playheadMs)[property];
-    const nextFrame = { id: createId("frame"), timeMs: frameTime, [property]: Number(value) };
-    const existing = (clip.keyframes || []).find((frame) => Math.abs(Number(frame.timeMs) - frameTime) < 60);
-    const nextFrames = existing
-      ? clip.keyframes.map((frame) => frame.id === existing.id ? { ...frame, [property]: nextFrame[property] } : frame)
-      : [...(clip.keyframes || []), nextFrame];
-    const nextClip = { ...clip, durationMs: Math.max(Number(clip.durationMs || 0), frameTime + 100), keyframes: nextFrames };
-    const nextClips = clips.some((item) => item.id === clip.id) ? clips.map((item) => item.id === clip.id ? nextClip : item) : [...clips, nextClip];
-    if (clipsConflict(clips, nextClip, clip.id)) return onAnimationErrorChange("Thuộc tính này đang được clip khác điều khiển trong cùng khoảng thời gian.");
-    onAnimationErrorChange(""); onChange(nextClips); onClipSelect(clip.id);
-  }
-
-  function updateSelectedFrame(value) {
-    if (!selectedClip || !selectedKeyframe || !Number.isFinite(Number(value))) return;
-    const normalized = property === "opacity" ? Math.max(0, Math.min(100, Number(value))) / 100 : Number(value);
-    onChange(clips.map((clip) => clip.id !== selectedClip.id ? clip : { ...clip, keyframes: clip.keyframes.map((frame) => frame.id === selectedKeyframe.id ? { ...frame, [property]: normalized } : frame) }));
   }
 
   function moveClip(id, startMs) {
@@ -141,30 +114,24 @@ export default function StoryAnimationEditor({ page, slots, assets, audioDuratio
       <div className="story-animation-panel-heading"><div><h3>{target?.role.name || "Chọn nhân vật"}</h3></div><span className="story-animation-time"><Clock size={15} aria-hidden="true" /> {seconds(playheadMs)} s</span></div>
       {selectedClip && <button type="button" className="workspace-button workspace-button-danger story-animation-delete-button" aria-label="Xóa chuyển động đã chọn" title="Xóa chuyển động đã chọn" onClick={deleteSelectedClip}><Trash size={16} aria-hidden="true" /> Xóa chuyển động</button>}
       <div className="story-animation-tabs" role="tablist" aria-label="Công cụ chuyển động">
-        {[ ["effects", "Hiệu ứng"], ["keyframes", "Keyframe"], ["path", "Đường đi"] ].map(([id, label]) => <button key={id} id={`story-animation-tab-${id}`} role="tab" aria-selected={tab === id} aria-controls="story-animation-tabpanel" type="button" onClick={() => onTabChange(id)}>{label}</button>)}
+        {[ ["effects", "Hiệu ứng"], ["path", "Đường đi"] ].map(([id, label]) => <button key={id} id={`story-animation-tab-${id}`} role="tab" aria-selected={activeTab === id} aria-controls="story-animation-tabpanel" type="button" onClick={() => onTabChange(id)}>{label}</button>)}
       </div>
-      <div className="story-animation-tabpanel" id="story-animation-tabpanel" role="tabpanel" aria-labelledby={`story-animation-tab-${tab}`}>
-        {tab === "effects" && <>
-          <label className="story-effect-search">Tìm hiệu ứng<input type="search" value={effectSearch} onChange={(event) => setEffectSearch(event.target.value)} placeholder="Ví dụ: trượt, rung, xoay…" /></label>
-          {!target && <p className="editor-help">Chọn nhân vật trên khung truyện hoặc dòng thời gian để thêm hiệu ứng.</p>}
-          <div className="story-preset-grid">{visiblePresets.map(([id, label, description, glyph]) => <button type="button" key={id} title={description} onClick={() => addPreset(id)} disabled={!target} aria-label={`Thêm hiệu ứng ${label}`}><span className={`story-preset-glyph preset-${id}`} aria-hidden="true">{glyph}</span><strong>{label}</strong><small>{description}</small></button>)}</div>
+      <div className="story-animation-tabpanel" id="story-animation-tabpanel" role="tabpanel" aria-labelledby={`story-animation-tab-${activeTab}`}>
+        {activeTab === "effects" && <>
+          <input className="story-effect-search" type="search" aria-label="Tìm hiệu ứng" value={effectSearch} onChange={(event) => setEffectSearch(event.target.value)} placeholder="Tìm hiệu ứng…" />
+
+          <div className="story-preset-grid">{visiblePresets.map(([id, label, description, glyph]) => <button type="button" key={id} onClick={() => addPreset(id)} disabled={!target} aria-label={`Thêm hiệu ứng ${label}`}><span className={`story-preset-glyph preset-${id}`} aria-hidden="true">{glyph}</span><strong>{label}</strong></button>)}</div>
           {!visiblePresets.length && <p className="editor-help" role="status">Không tìm thấy hiệu ứng. Thử từ khóa khác.</p>}
           {selectedClip?.kind === "preset" && <div className="story-animation-fields"><label>Thời điểm (giây)<input type="number" min="0" step="0.1" value={seconds(selectedClip.startMs)} onChange={(event) => moveClip(selectedClip.id, Math.max(0, Number(event.target.value) * 1000 || 0))} /></label><label>Thời lượng (giây)<input type="number" min="0.1" step="0.1" value={seconds(selectedClip.durationMs)} onChange={(event) => updateClip(selectedClip.id, { durationMs: Math.max(100, Number(event.target.value) * 1000 || 100) })} /></label><label>Nhân vật<select value={selectedClip.targetId} onChange={(event) => updateClip(selectedClip.id, { targetId: event.target.value })}>{slots.map(({ role, slot }) => <option value={slot.id} key={slot.id}>{role.name}</option>)}</select></label><label>Chuyển động<select value={selectedClip.easing || "ease-in-out"} onChange={(event) => updateClip(selectedClip.id, { easing: event.target.value })}><option value="linear">Đều</option><option value="ease-in">Nhanh dần</option><option value="ease-out">Chậm dần</option><option value="ease-in-out">Nhanh rồi chậm</option></select></label></div>}
         </>}
-        {tab === "keyframes" && <>
-          <label className="story-record-toggle"><input type="checkbox" checked={recording} onChange={(event) => onRecordingChange(event.target.checked)} /> Ghi keyframe</label>
-          <label className="story-animation-field">Thuộc tính<select value={property} onChange={(event) => onPropertyChange(event.target.value)}>{Object.entries(propertyLabels).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-          <div className="story-keyframe-value"><label>{propertyLabels[property]} ({propertyUnits[property]})<input type="number" step={property === "rotation" ? 1 : 0.1} min={property === "opacity" ? 0 : property === "scale" ? 0.1 : ["x", "y"].includes(property) ? 0 : -3600} max={property === "opacity" ? 100 : property === "scale" ? 5 : ["x", "y"].includes(property) ? 100 : 3600} value={Number(property === "opacity" ? (selectedKeyframe?.[property] ?? currentValue) * 100 : (selectedKeyframe?.[property] ?? currentValue)).toFixed(1)} disabled={!target || !recording || !selectedKeyframe} onChange={(event) => updateSelectedFrame(event.target.value)} /></label><div className="story-keyframe-actions"><button type="button" className="workspace-button" disabled={!target || !recording} onClick={setKeyframe}><Diamond size={16} aria-hidden="true" /> Đặt mốc tại {seconds(playheadMs)} s</button> </div></div>
-          {selectedKeyframe && <label className="story-animation-field">Chuyển động giữa mốc này và mốc sau<select value={selectedKeyframe.easing || "linear"} onChange={(event) => onChange(clips.map((clip) => clip.id !== selectedClip.id ? clip : { ...clip, keyframes: clip.keyframes.map((frame) => frame.id === selectedKeyframe.id ? { ...frame, easing: event.target.value } : frame) }))}><option value="linear">Đều</option><option value="ease-in">Nhanh dần</option><option value="ease-out">Chậm dần</option><option value="ease-in-out">Nhanh rồi chậm</option></select></label>}
-        </>}
-        {tab === "path" && <>
+        {activeTab === "path" && <>
           <button type="button" className="workspace-button story-draw-path-button" disabled={!target} onClick={onPathStart}><BezierCurve size={17} aria-hidden="true" /> Vẽ đường trên canvas</button>
           {selectedClip?.kind === "path" && <div className="story-animation-fields"><label>Thời điểm (giây)<input type="number" min="0" step="0.1" value={seconds(selectedClip.startMs)} onChange={(event) => moveClip(selectedClip.id, Math.max(0, Number(event.target.value) * 1000 || 0))} /></label><label>Thời lượng (giây)<input type="number" min="0.1" step="0.1" value={seconds(selectedClip.durationMs)} onChange={(event) => updateClip(selectedClip.id, { durationMs: Math.max(100, Number(event.target.value) * 1000 || 100) })} /></label><label>Chuyển động<select value={selectedClip.easing || "ease-in-out"} onChange={(event) => updateClip(selectedClip.id, { easing: event.target.value })}><option value="linear">Đều</option><option value="ease-in">Nhanh dần</option><option value="ease-out">Chậm dần</option><option value="ease-in-out">Nhanh rồi chậm</option></select></label>{selectedPathPoint && <div className="story-path-point-fields"><strong>Điểm {selectedPathPointIndex + 1}</strong><label>X (%)<input type="number" min="0" max="100" step="0.1" value={Number(selectedPathPoint.x).toFixed(1)} onChange={(event) => onPathPointChange?.(selectedClip.id, selectedPathPointIndex, { x: event.target.value })} /></label><label>Y (%)<input type="number" min="0" max="100" step="0.1" value={Number(selectedPathPoint.y).toFixed(1)} onChange={(event) => onPathPointChange?.(selectedClip.id, selectedPathPointIndex, { y: event.target.value })} /></label></div>}<button type="button" className="workspace-button workspace-button-quiet" disabled={selectedClip.points.length >= 160} onClick={() => onPathPointAdd?.(selectedClip.id)}><Plus size={15} aria-hidden="true" /> Thêm điểm trên đường</button><button type="button" className="workspace-button workspace-button-quiet" onClick={() => updateClip(selectedClip.id, { points: [...selectedClip.points].reverse() })}>Đảo chiều đường đi</button></div>}
         </>}
         {animationError && <p className="story-animation-error" role="alert"><span>{animationError}</span><DismissButton onClick={() => onAnimationErrorChange?.("")} /></p>}
       </div>
     </div>}
-    {showTimeline && <div className="story-timeline">
+    {showTimeline && <div id="story-timeline" className="story-timeline">
       <div className="story-timeline-transport"><div className="story-timeline-heading"><strong>Dòng thời gian</strong><span className="story-timecode">{seconds(playheadMs)} / {seconds(durationMs)} s</span></div><div className="story-timeline-actions"><button type="button" className="icon-button" aria-label={isPlaying ? "Tạm dừng" : "Phát thử"} onClick={onTogglePlayback}>{isPlaying ? <Pause size={17} /> : <Play size={17} />}</button><button type="button" className="icon-button" aria-label="Thu nhỏ timeline" onClick={() => setZoom((value) => Math.max(40, value - 20))}><Minus size={16} /></button><span>{zoom}%</span><button type="button" className="icon-button" aria-label="Phóng to timeline" onClick={() => setZoom((value) => Math.min(200, value + 20))}><Plus size={16} /></button></div></div>
       <div className="story-timeline-scroll" ref={timelineRef}>
         <div className="story-timeline-content" style={{ width: `${184 + durationMs / 1000 * width}px`, minWidth: "100%", "--timeline-second": `${width}px` }}>
@@ -176,8 +143,7 @@ export default function StoryAnimationEditor({ page, slots, assets, audioDuratio
             return <div className={`story-timeline-track${slot.id === selectedSlotId ? " is-active" : ""}`} key={slot.id}>
               <button className="story-timeline-track-label" type="button" onClick={() => onSlotSelect(slot.id)}>{role.name}<small>{slotClips.length} chuyển động</small></button>
               <div className="story-timeline-lane" onPointerDown={(event) => { if (event.target === event.currentTarget) seekFromPointer(event); }}>
-                {slotClips.map((clip) => <TimelineClip key={clip.id} clip={clip} width={width} selected={clip.id === selectedClipId} onSelect={(id) => { onClipSelect(id); onSlotSelect(clip.targetId); onTabChange(clip.kind === "path" ? "path" : clip.kind === "keyframes" ? "keyframes" : "effects"); }} onMove={moveClip} onResize={updateClip} />)}
-                {slotClips.filter((clip) => clip.kind === "keyframes").flatMap((clip) => (clip.keyframes || []).map((frame) => <button key={frame.id} className="story-timeline-keyframe" type="button" aria-label={`Keyframe của ${role.name} tại ${seconds(Number(clip.startMs || 0) + Number(frame.timeMs))} giây`} style={{ left: `${(Number(clip.startMs || 0) + Number(frame.timeMs)) / 1000 * width}px` }} onClick={() => { onClipSelect(clip.id); onSlotSelect(clip.targetId); onPlayheadChange(Number(clip.startMs || 0) + Number(frame.timeMs)); onTabChange("keyframes"); }} />))}
+                {slotClips.map((clip) => <TimelineClip key={clip.id} clip={clip} width={width} selected={clip.id === selectedClipId} onSelect={(id) => { onClipSelect(id); onSlotSelect(clip.targetId); onTabChange(clip.kind === "path" ? "path" : "effects"); }} onMove={moveClip} onResize={updateClip} />)}
               </div>
             </div>;
           })}
