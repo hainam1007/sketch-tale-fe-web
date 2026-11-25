@@ -1,5 +1,11 @@
 # Admin — audit và tích hợp API
 
+## Đối chiếu sau pull 18/11/2026
+
+BE mới `de3209f` + staged; Swagger live 120 paths/161 operations. Không có thay đổi mới ở nhóm controller/service Admin, Payment/Subscription/ParentProfile/audit trong diff từ baseline 7849600. **Giữ mở SEC-ADM, AUDIT-DATA, ADM-01 và PAY-01**; kết quả runtime 16/11 bên dưới là lịch sử, chưa tái kiểm tra hôm nay.
+
+Parent/Child profile DTO nay dùng id; cần kiểm tra consumers/join Admin theo field này. Thay đổi seed data không chứng minh dữ liệu deploy hay giá gói đã cập nhật, không chép giá seed thành quyền lợi thực tế. Không mở lại tạo Child/gán gói Parent đã bị khóa theo quyết định người dùng. [Contract mới](../api/CONTRACTS.md).
+
 Cập nhật **16/11/2026**. FE `59d1efb` + working tree; BE đọc tại `7849600` + 24 staged modifications có sẵn. Chỉ sửa FE/tests/docs; không sửa BE/DB, không commit/deploy. [UI spec](../specs/ADMIN_UI_UX.md) là tham chiếu, router/source hiện tại quyết định phạm vi.
 
 ## Nguồn và kết quả xác minh
@@ -18,7 +24,7 @@ Education themes dùng đúng DTO `nameVi`/`nameEn`/description/status; trước
 
 Reports giữ nguyên reason của người báo cáo, mô tả rõ PATCH không ẩn/xóa target; giữ lỗi 401/403/404 gốc, dùng cùng module mode cho đọc/ghi, bỏ tải audit toàn bộ chỉ để đoán reporter. Tên/email chỉ ghép từ `GET /users` khi `CreateBy` khớp tài khoản; GUID rỗng hoặc ID không có trong directory để trống, không dựng “Người dùng {ID}”. Runtime đã đọc 5 báo cáo, trong đó 4 bản ghi có `CreateBy=Guid.Empty` nên không thể truy ra người gửi từ dữ liệu hiện tại. Read-back fail giữ trạng thái đã nhận mutation + nút GET-only; timeout/5xx chặn gửi lại cho đến khi đối chiếu. Không có note/evidence API đủ quyền để tự mở thêm.
 
-Audit ghép tên/email/vai trò từ `GET /users` bằng `CreateBy`; ID rỗng/không khớp để trống, không gán nhãn “Hệ thống”. Runtime có 291/978 log với `CreateBy=Guid.Empty`; theo source BE, `Infrastructure/Audit/AuditConfiguration.cs` còn gán `CreateBy = Guid.Empty` khi tạo log, nên FE không thể nhận diện những thao tác này. Log có actor ID thật mới có thể ghép directory. Có tra cứu actor/entity/target bằng endpoint sẵn có, nút detail dùng bàn phím. Không sửa Z thành +07 trong timestamp. Dashboard link lọc đúng report status, không đếm partial envelope thành tổng; `fetchedAt` là thời điểm FE tải, `generatedAt=null` vì BE chưa cấp snapshot. Giá trị thiếu để trống; không render thông báo thay thế trong KPI/biểu đồ/cơ cấu gói, không tự tạo tiêu đề/ngày cho report thiếu field.
+Audit ghép tên/email/vai trò từ `GET /users` bằng `CreateBy`; ID rỗng/không khớp để trống, không gán nhãn “Hệ thống”. Màn hình không gọi list audit khi chưa có bộ lọc; mọi truy vấn list phải dùng endpoint theo user/entity/target trước. Chọn ngày lọc trên kết quả đã tải. Runtime có 291/978 log với `CreateBy=Guid.Empty`; theo source BE, `Infrastructure/Audit/AuditConfiguration.cs` còn gán `CreateBy = Guid.Empty` khi tạo log, nên FE không thể nhận diện những thao tác này. Log có actor ID thật mới có thể ghép directory. BE chưa có lọc ngày hoặc pagination cho audit; mỗi endpoint scoped vẫn trả toàn bộ list theo scope, nên cần query ngày + page/pageSize ở DB để chặn tải nhiều log của một actor. Có tra cứu actor/entity/target bằng endpoint sẵn có, nút detail dùng bàn phím. Không sửa Z thành +07 trong timestamp. Dashboard không tải all audit chỉ để lấy vài dòng gần đây do chưa có API recent/page. `fetchedAt` là thời điểm FE tải, `generatedAt=null` vì BE chưa cấp snapshot. Giá trị thiếu để trống; không render thông báo thay thế trong KPI/biểu đồ/cơ cấu gói, không tự tạo tiêu đề/ngày cho report thiếu field.
 
 ## Ma trận action
 
@@ -52,8 +58,8 @@ Prefix API `/api`. `A=adminService`, `C=adminCatalogService`, `M=adminModeration
 | Reports list/filter/page/detail → A | GET /content-reports[/{id}] | targetType/targetId/reason/status/BaseFields | Không Authorize/owner | module real; W/I/R-read list | P0 anonymous list 200; evidence/preview thiếu contract |
 | Report resolve/dismiss → A | PATCH /content-reports/{id} | giữ targetType/targetId/reason; status 2/3 → 204 | Parent check bị map DTO ghi đè status; không transition matrix | module real; W/I | P0 auth/transition; note/reviewer/time thiếu; target không bị đổi |
 | Report delete caller | DELETE /content-reports/{id} | no body → 204 | Chỉ set Dismissed | Caller, không mở nút mới | Không gọi là xóa target; runtime chờ |
-| Audit list/detail → A | GET /audit-logs[/{id}] | auditAction/entityName/primaryKey/oldValues/newValues/BaseFields | Không Authorize | forceReal; W/I/R-read list | P0 anonymous 200, credential redaction, actor thật |
-| Audit scoped/filter/page → A.listAudit | GET /audit-logs/user-id/{id},entity-name/{name},entity-id/{id} | array; time/action/search/page client | Không Authorize | W/I | P1 server paging/timezone/outcome; không khẳng định có failed/denied events |
+| Audit list/detail → A | GET /audit-logs/{id}; list requires a scope | auditAction/entityName/primaryKey/oldValues/newValues/BaseFields | Không Authorize | forceReal; W/I/R-read scoped | P0 anonymous 200, credential redaction, actor thật |
+| Audit scoped/filter/page → A.listAudit | GET /audit-logs/user-id/{id},entity-name/{name},entity-id/{id}; FE không gọi GET /audit-logs list | array; ngày/action/search/page lọc trong scope đã tải | Không Authorize; chưa có date query/paging | W/I | P1 DB filter date + pagination/timezone/outcome; không khẳng định có failed/denied events |
 | Parent plan assignment | PUT /parent-profiles/{id} | subscriptionPlanId → result | Chỉ đổi FK; không quota/subscription | **disabled theo người dùng** | P0 quyền + atomic entitlement; read-back quota/kỳ hiệu lực |
 | Subscription/trial callers | GET /subscriptions,/{id},/parent-profile/{id},/subscription-plan/{id}; PATCH /parent-profiles/{id}/mark-trial-plan-used | resource DTO; mark trial flag | Thiếu auth/owner | forceReal callers, không mở màn mới | SEC-01; không dùng làm doanh thu |
 | Dashboard → A.getOverview | GET users/reports/plans/audit | counts từ full lists; partial errors/null | Quyền các nguồn như trên | forceReal; W/I | Revenue/credit used null; không DAU/MAU; cần aggregate ledger |
@@ -72,7 +78,7 @@ Prefix API `/api`. `A=adminService`, `C=adminCatalogService`, `M=adminModeration
 
 ## Kiểm thử và giới hạn
 
-**Kiểm thử intercept:** `npm run test:api -- admin-api-ux.spec.js`. Suite `tests/admin-api-ux.spec.js` phủ envelope/nullable/lockout; role create và Child disabled; edit changed-only, false/zero; char type DTO; catalog whitelist; report giữ reason + accepted write/read-back failure GET-only; 400/401/403/404/409; incomplete totals; ánh xạ actor từ directory và để trống actor thiếu; response cũ sau đổi session; audit scoped API/detail/focus; report pagination; responsive 1366/768/390 và redirects. Intercept không chứng minh server lưu hoặc enforce policy.
+**Kiểm thử intercept:** `npm run test:api -- admin-api-ux.spec.js`. Suite `tests/admin-api-ux.spec.js` phủ envelope/nullable/lockout; role create và Child disabled; edit changed-only, false/zero; char type DTO; catalog whitelist; report giữ reason + accepted write/read-back failure GET-only; 400/401/403/404/409; incomplete totals; ánh xạ actor từ directory và để trống actor thiếu; response cũ sau đổi session; audit không tải all trước khi scope, query scoped, lọc ngày trong scope, detail/focus; report pagination; responsive 1366/768/390 và redirects. Intercept không chứng minh server lưu hoặc enforce policy.
 
 Build/lint được chạy lại trong đợt này; build còn cảnh báo bundle >500 KB, lint có warnings hiện hữu (Admin audit Date.now và helper restrictions chưa dùng, cùng Content/Parent). Runtime chỉ login/đọc/logout như trên; không tuyên bố toàn bộ Admin đã nghiệm thu end-to-end.
 

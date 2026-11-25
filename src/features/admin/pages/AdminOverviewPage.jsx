@@ -198,7 +198,7 @@ export default function AdminOverviewPage() {
                 <div>
                   <strong>Đăng ký gói gần đây (API /subscriptions)</strong>
                   <small style={{ display: "block", color: "#64748b", fontWeight: 400, marginTop: "2px" }}>
-                    Danh sách thuê bao ghi nhận trực tiếp từ backend
+                    Các lượt đăng ký gói gần đây
                   </small>
                 </div>
                 <span className="admin-filter-result-count">{revenue.recentSubscriptions.length} lượt</span>

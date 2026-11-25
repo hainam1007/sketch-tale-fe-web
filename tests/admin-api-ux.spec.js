@@ -23,6 +23,38 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test("catalog lock requires confirmation and supports unlocking", async ({ page }) => {
+  let plan = { id: "plan-1", name: "Test plan", price: 10, monthlyCreditLimit: 10, childProfileLimit: 1, isActive: true };
+  const writes = [];
+  await page.route("**/api/subscription-plans**", async (route) => {
+    const request = route.request();
+    if (["PUT", "PATCH"].includes(request.method())) {
+      writes.push(request.postDataJSON());
+      plan = { ...plan, ...request.postDataJSON() };
+    }
+    const isList = new URL(request.url()).pathname === "/api/subscription-plans";
+    await route.fulfill({ json: isList ? [plan] : plan });
+  });
+  await page.goto("/admin/subscription-plans");
+  await expect(page.getByRole("switch")).toHaveCount(0);
+  await page.getByRole("button", { name: "Khóa Test plan", exact: true }).click();
+  await expect(page.getByRole("alertdialog")).toBeVisible();
+  expect(writes).toHaveLength(0);
+  await page.getByRole("button", { name: "Hủy", exact: true }).click();
+  await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  expect(writes).toHaveLength(0);
+  await page.getByRole("button", { name: "Khóa Test plan", exact: true }).click();
+  await page.getByRole("button", { name: "Xác nhận khóa", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Mở khóa Test plan", exact: true })).toBeEnabled();
+  expect(writes).toHaveLength(1);
+  expect(writes[0].isActive).toBe(false);
+  await page.getByRole("button", { name: "Mở khóa Test plan", exact: true }).click();
+  await page.getByRole("button", { name: "Xác nhận mở khóa", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Khóa Test plan", exact: true })).toBeEnabled();
+  expect(writes).toHaveLength(2);
+  expect(writes[1].isActive).toBe(true);
+});
+
 test("audit clamps pages, calls scoped API and restores keyboard focus", async ({ page }) => {
   await page.goto("/admin/audit?scope=entity&value=StoryTemplate&page=999&range=all");
   await expect(page.getByText("Trang 2 / 2", { exact: true })).toBeVisible();

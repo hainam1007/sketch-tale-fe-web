@@ -143,7 +143,7 @@ export default function StoryPreviewPage() {
   if (previewQuery.isLoading || assetsQuery.isLoading) return <LoadingState label="Đang dựng bản xem trước" />;
 
   return (
-    <EditorPanel eyebrow="XEM TRƯỚC" title="Đọc thử bản đã lưu" description="Đi qua từng trang, nghe âm thanh và kiểm tra từ vựng cùng câu hỏi trong ngữ cảnh." action={<div className="story-preview-header-actions"><span className="story-editor-count"><Eye size={17} aria-hidden="true" /> Bản hiện tại · lần chỉnh sửa #{preview.revision ?? "—"}</span><div className="story-preview-mode-switch" role="group" aria-label="Chế độ xem trước"><button className={mode === "read" ? "active" : ""} type="button" aria-pressed={mode === "read"} onClick={() => setMode("read")}><Eye size={16} aria-hidden="true" /> Đọc thử</button><button className={mode === "inspect" ? "active" : ""} type="button" aria-label="Rà soát bản xem trước" aria-pressed={mode === "inspect"} onClick={() => setMode("inspect")}><EyeSlash size={16} aria-hidden="true" /> Kiểm tra</button></div></div>}>
+    <EditorPanel eyebrow="XEM TRƯỚC" title="Đọc thử bản đã lưu" action={<div className="story-preview-header-actions"><span className="story-editor-count"><Eye size={17} aria-hidden="true" /> Bản hiện tại · lần chỉnh sửa #{preview.revision ?? "—"}</span><div className="story-preview-mode-switch" role="group" aria-label="Chế độ xem trước"><button className={mode === "read" ? "active" : ""} type="button" aria-pressed={mode === "read"} onClick={() => setMode("read")}><Eye size={16} aria-hidden="true" /> Đọc thử</button><button className={mode === "inspect" ? "active" : ""} type="button" aria-label="Rà soát bản xem trước" aria-pressed={mode === "inspect"} onClick={() => setMode("inspect")}><EyeSlash size={16} aria-hidden="true" /> Kiểm tra</button></div></div>}>
       {assetsQuery.isError && <div className="story-preview-error" role="alert">Không thể tải thư viện tư liệu: {assetsQuery.error?.message} <button className="workspace-text-link" type="button" onClick={() => assetsQuery.refetch()}>Thử lại</button></div>}{previewQuery.isError ? <div className="story-preview-error" role="alert">Không thể dựng bản xem trước: {previewQuery.error.message} <button className="workspace-text-link" type="button" onClick={() => previewQuery.refetch()}>Thử lại</button></div> : pages.length ? <div className="story-preview-layout">
         <aside className="story-preview-navigation"><div className="story-preview-section-label">Các trang</div>{pages.map((page, index) => <button className={page.id === currentPage.id ? "active" : ""} type="button" key={page.id} onClick={() => selectPage(page.id)}><span>{String(index + 1).padStart(2, "0")}</span>Trang {index + 1}</button>)}</aside>
         <div className="story-preview-main">
@@ -159,7 +159,7 @@ export default function StoryPreviewPage() {
             }) : <p className="story-preview-learning-empty">Trang này chưa có câu hỏi.</p>}</section>
           </div>
         </div>
-      </div> : <div className="editor-empty"><p>Chưa có trang để xem trước.</p><p>Thêm trang có nội dung để dựng trải nghiệm đọc.</p></div>}
+      </div> : <div className="editor-empty"><p>Chưa có trang để xem trước.</p></div>}
     </EditorPanel>
   );
 }

@@ -1,8 +1,20 @@
 # Kế hoạch FE web: soạn, lưu, xuất bản và đọc truyện thật
 
+## Điều chỉnh kế hoạch theo BE 18/11/2026
+
+Thực hiện WEB01 dựa trên [contract mới](../api/CONTRACTS.md). Không làm lại reader/codec đã có.
+
+1. **PUB-01/WEB06 FE đã có:** story Draft/Active/Pending/Archived có thể publish nếu child cần đọc Draft/Active; child Pending/Archived/unknown bị chặn. Cover/page/composition validation, pending save/upload gate, post-confirm dirty recheck, single POST guard, server read-back status checks, GET-only reconcile và editor/preview/catalog invalidation. Intercept mô phỏng Draft → Active cascade, chưa xác nhận deploy/runtime.
+2. **BE còn mở:** `PublishStoryAsync` promote story Pending/Archived nhưng chỉ chuyển child Draft; Parent source route `/published/{storyId}` khác Swagger 18/11 `/pages/{storyId}`. Role/slot GET source chưa gate published hierarchy. Chốt route, trạng thái và quyền trước runtime; không tự chuyển page Active hoặc dùng authoring route.
+3. WEB05: dùng URL reuse cover/background/quiz và gallery CM khi adapter được cập nhật; có alias upload CM mới. Gallery chỉ URL list, không thay registry/retention/multi-audio. Migration có backup/checkpoint vẫn cần làm.
+4. WEB07: vocabulary `wordVi`/RawText và Parent reader đã có FE source/tests; audio mapping BE còn mở. Reading/quiz source đã có nhưng owner/scoring gates còn thiếu; không bật Parent write.
+5. WEB09: suite `content-integration.spec.js` chạy 37/37; lint exit 0 với 21 repo warnings; build thành công, còn cảnh báo chunk JS >500 kB. Intercept/build tách khỏi runtime. Runtime mutation chỉ khi người dùng xác nhận environment, account và story test.
+
+Các mốc trước 18/11 bên dưới là chứng cứ/kế hoạch lịch sử. Không còn chờ BE thêm cascade hoặc CM role alias ở source; phần deploy/runtime và các vấn đề còn lại vẫn mở.
+
 Cập nhật 13/11/2026. Kế hoạch đang mở, chưa nghiệm thu. Baseline hiện tại ở [Content Manager](../roles/CONTENT_MANAGER.md) và [contract API](../api/CONTRACTS.md); không làm lại codec/adapter đã có.
 
-**Recheck 17/11:** suite CM 17/17 và hai reader checks qua; lint/build thành công. Đây là kiểm chứng FE/intercept, không có runtime mới. Parent browser trước đó mở truyện Tôn giáo nhưng không có trang Active: live trả 3 Draft. Chưa mutation nội dung runtime; publish lifecycle còn chờ Backend/người dùng. Reader đã nối vocab/quiz practice; migration media/mock-slot có checkpoint và lưu learning log còn mở. Chi tiết duy nhất ở ma trận [Content Manager](../roles/CONTENT_MANAGER.md); các đoạn baseline 13/11 bên dưới mang tính lịch sử, không dùng để kết luận reader còn bỏ CompositionJson.
+**Recheck 18/11:** test status hiện hành ở [ma trận Content Manager](../roles/CONTENT_MANAGER.md); toàn bộ API trong test là stateful intercept. Đây không phải runtime evidence. Parent browser trước đó mở truyện Tôn giáo nhưng không có trang Active: live trả 3 Draft. Chưa mutation nội dung runtime; route/status release chưa xác minh lại. Reader đã hydrate composition/vocab/quiz trong source; migration media/mock-slot có checkpoint và lưu learning log còn mở.
 
 ## 1. Phạm vi và quyết định
 
@@ -17,13 +29,13 @@ Cập nhật 13/11/2026. Kế hoạch đang mở, chưa nghiệm thu. Baseline h
 
 ## 2. Bằng chứng hiện có và phần chưa biết
 
-**Cập nhật Parent 14/11:** Swagger live vẫn `/storypage-template/pages/{storyId}` (Parent HTTP 200); giữ route này theo người dùng. `parentReaderModel` đã hydrate composition/roles/slots; `ParentReaderStage` dùng chung renderer/animation/audio với editor và dùng chung giữa catalog preview/reader. Intercept v1/null subtitle/seek/unknown version đã qua. Không đọc local overlay. Còn nghiệm thu dữ liệu v1 thực, published hierarchy/quyền BE, quiz/vocab và lưu learning log; xem [Parent](../roles/PARENT.md). Baseline 13/11 ngay dưới đây là lịch sử trước thay đổi này.
+**Runtime Parent 14/11 (bằng chứng lịch sử):** Swagger live khi đó chỉ ra `/storypage-template/pages/{storyId}` và GET Parent trả 200; recheck Swagger live 18/11 timeout nên chưa xác nhận route deploy hiện tại. `parentReaderModel` đã hydrate composition/roles/slots; `ParentReaderStage` dùng chung renderer/animation/audio với editor và dùng chung giữa catalog preview/reader. Intercept v1/null subtitle/seek/unknown version đã qua. Không đọc local overlay. Còn nghiệm thu dữ liệu v1 thực, published hierarchy/quyền BE, quiz/vocab và lưu learning log; xem [Parent](../roles/PARENT.md). Baseline 13/11 ngay dưới đây là lịch sử trước thay đổi này.
 
-Source đã có codec và page write/read-back, server preview tách overlay, publish endpoint. Build được báo cáo ở lượt cũ, chưa chạy lại ngày 13/11. Chưa có bằng chứng API runtime/reader sạch hoặc Mobile.
+Source đã có codec và page write/read-back, server preview tách overlay, publish endpoint. Ghi chú build 13/11 là lịch sử; build hiện tại và kết quả suite/lint ghi ở phần điều chỉnh 18/11. Chưa có bằng chứng API runtime/reader sạch hoặc Mobile.
 
-`parentCatalogService.mapPage` hiện bỏ CompositionJson; `ParentStoryReaderPage` chỉ dựng ảnh/text/audio cơ bản. Đó là phần FE chắc chắn còn thiếu. Lỗi upload 403 trong ảnh người dùng là bằng chứng lịch sử, chưa đủ để kết luận quyền Backend hiện tại vẫn lỗi. Snapshot API dùng làm baseline là 12/11; tải lại khi bắt đầu triển khai và ghi delta, không coi snapshot là API live mãi mãi.
+Lịch sử trước thay đổi 14/11: `parentCatalogService.mapPage` từng bỏ CompositionJson và reader chỉ dựng ảnh/text/audio cơ bản; source hiện tại đã hydrate composition/roles/slots và dùng renderer chung. Lỗi upload 403 trong ảnh người dùng là bằng chứng lịch sử. Swagger snapshot 18/11 là contract mới nhất lưu trong repo; live Swagger GET timeout lần này, không coi snapshot là xác nhận deploy.
 
-BE local hiện dùng `/storypage-template/published/{storyId}` cho Parent/Child, khác path FE `/pages/{storyId}`; publish chỉ đổi story Active. WEB01 phải xử lý khác biệt này trước khi nghiệm thu. Upload background-image chỉ nhận claim `content manager`. Rà chi tiết DOC-API-01/02 và PUB-01.
+BE local hiện dùng `/storypage-template/published/{storyId}` cho Parent/Child, khác path FE `/pages/{storyId}`; publish hiện cascade Draft của con sang Active (source 18/11), chưa runtime. WEB01 phải xử lý khác biệt release trước nghiệm thu. Upload đã nhận alias `content manager, ContentManager`. Rà chi tiết DOC-API-01/02 và PUB-01.
 
 ## 3. Jobs và điều kiện hoàn thành
 

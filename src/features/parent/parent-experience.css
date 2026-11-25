@@ -651,6 +651,25 @@
 }
 .family-child-add-card strong { font-size:18px; }
 .family-child-add-card p { line-height:1.6; }
+.family-child-profile-grid.has-mascot { position:relative; }
+.family-profile-trail {
+  position:absolute; z-index:2; top:13%; left:31%; width:38%; height:95px;
+  color:#b88c45; opacity:.45; pointer-events:none;
+}
+.family-mascot-note {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  align-self:center; justify-self:center; width:min(100%,300px); min-height:310px;
+  padding:16px; box-sizing:border-box; text-align:center;
+}
+.family-mascot-art { position:relative; display:grid; place-items:center; width:220px; height:225px; }
+.family-mascot-art img { position:relative; z-index:2; width:184px; height:184px; object-fit:contain; margin-top:-23px; }
+.family-mascot-books { position:absolute; bottom:20px; left:26px; width:166px; height:61px; transform:rotate(-5deg); }
+.family-mascot-books i { position:absolute; display:block; height:18px; border:2px solid #16325b; border-radius:5px; box-shadow:0 3px 0 #d5bd88; }
+.family-mascot-books i:nth-child(1) { left:14px; bottom:0; width:144px; background:#f8bd31; }
+.family-mascot-books i:nth-child(2) { left:3px; bottom:18px; width:140px; background:#fff5d4; transform:rotate(8deg); }
+.family-mascot-books i:nth-child(3) { left:27px; bottom:37px; width:127px; background:#a9d5cf; transform:rotate(-4deg); }
+.family-mascot-note p { max-width:24ch; margin:0; color:#657188; font-size:15px; font-weight:700; line-height:1.5; }
+@media(max-width:1000px) { .family-mascot-note,.family-profile-trail { display:none; } }
 @media(max-width:650px) {
   .family-add-card.family-child-add-card { min-height:210px; }
 }

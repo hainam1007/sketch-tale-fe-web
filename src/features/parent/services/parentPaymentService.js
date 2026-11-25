@@ -1,6 +1,7 @@
 import { ApiError } from "../../../lib/api/errors";
 import { apiRequest } from "../../../lib/api/httpClient";
 import { moduleApiModes } from "../../../lib/api/featureApi";
+import { hasProPlan } from "./currentParentPlan";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -63,6 +64,15 @@ export const parentPaymentService = {
         status: 400,
         code: "PAYMENT_PLAN_NOT_PAYABLE",
         message: "Gói này chưa có mức giá thanh toán hợp lệ.",
+      });
+    }
+
+    const profileResponse = await apiRequest({ path: "/auth/profile", signal, forceReal: true });
+    if (hasProPlan(profileResponse?.user ?? profileResponse)) {
+      throw new ApiError({
+        status: 409,
+        code: "PARENT_PRO_ALREADY_ACTIVE",
+        message: "Gia đình đã đăng ký Pro nên không thể đăng ký gói khác.",
       });
     }
 

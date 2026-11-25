@@ -12,13 +12,13 @@
 .profile-identity p { margin: 0; color: #626b76; font-size: 14px; overflow-wrap: anywhere; }
 .profile-home-link { display: inline-flex; align-items: center; justify-content: center; gap: 12px; flex-shrink: 0; min-height: 46px; padding: 11px 16px; border: 1px solid #e0b543; border-radius: 10px; color: #47340a; background: #f4ce69; font-size: 14px; font-weight: 800; text-decoration: none; transition: background 180ms ease, transform 180ms ease; }
 .profile-home-link:hover { background: #edc052; }
-.profile-content-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; gap: 24px; margin-top: 24px; }
+.profile-content-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: stretch; gap: 24px; margin-top: 24px; }
 .profile-content-grid.is-single { grid-template-columns: 1fr; }
 .profile-panel, .profile-workspace-panel { min-width: 0; padding: 28px; border: 1px solid #e4e3dd; border-radius: 18px; background: #fff; }
 .profile-panel-heading { display: flex; align-items: flex-start; gap: 12px; }
 .profile-panel-icon { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; color: #725719; background: #faf3df; }
 .profile-panel h2, .profile-section-heading h2 { margin: 0; font-size: 21px; line-height: 1.35; letter-spacing: -.4px; }
-.profile-panel-heading p, .profile-section-heading > p:last-child { margin: 6px 0 0; color: #626b76; font-size: 14px; line-height: 1.6; }
+.profile-section-heading > p:last-child { margin: 6px 0 0; color: #626b76; font-size: 14px; line-height: 1.6; }
 .profile-details-list { margin: 25px 0 22px; }
 .profile-details-list > div { display: grid; grid-template-columns: minmax(110px, .7fr) minmax(0, 1fr); align-items: baseline; gap: 14px; padding: 17px 0; border-bottom: 1px solid #efeee9; }
 .profile-details-list > div:first-child { border-top: 1px solid #efeee9; }
@@ -30,8 +30,6 @@
 .profile-session > svg { flex-shrink: 0; }
 .profile-session h3 { margin: 0; color: #263343; font-size: 14px; font-weight: 800; }
 .profile-session p { display: flex; align-items: center; gap: 5px; margin: 4px 0 0; font-size: 13px; }
-.profile-session-footnote { display: flex; align-items: flex-start; gap: 7px; margin: 18px 0 0; color: #626b76; font-size: 12px; line-height: 1.6; }
-.profile-session-footnote svg { flex-shrink: 0; margin-top: 2px; }
 .profile-workspace-panel { background: #fcfbf7; }
 .profile-section-heading { margin-bottom: 20px; }
 .profile-shortcuts { display: grid; gap: 4px; }
@@ -44,6 +42,8 @@
 .profile-shortcut-arrow { flex-shrink: 0; margin-left: auto; color: #806016; transition: transform 180ms ease; }
 .profile-shortcut:hover .profile-shortcut-arrow { transform: translateX(3px); }
 .profile-password-panel { margin-top: 24px; padding: 28px; border: 1px solid #e4e3dd; border-radius: 18px; background: #fff; }
+.profile-password-heading { align-items: center; }
+.profile-password-reveal { display: grid; place-items: center; flex: 0 0 44px; width: 44px; min-height: 44px; margin-left: auto; padding: 0; border-radius: 12px; }
 .profile-password-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 16px; margin-top: 22px; }
 .profile-password-field { display: grid; gap: 7px; min-width: 0; }
 .profile-password-field label { color: #4f5965; font-size: 13px; font-weight: 750; }
@@ -55,7 +55,6 @@
 .profile-password-toggle:hover { color: #47340a; background: #fff2c9; }
 .profile-password-toggle:focus-visible { outline: 3px solid #947018; outline-offset: 1px; }
 .profile-password-form > .workspace-button { justify-self: start; min-height: 44px; }
-.profile-password-form > small { grid-column: 1 / -1; margin-top: -8px; color: #626b76; font-size: 12px; }
 .profile-password-feedback { grid-column: 1 / -1; min-height: 0; }
 .profile-password-feedback p { margin: 0; color: #a62f43; font-size: 13px; line-height: 1.5; }
 .profile-password-unavailable { margin: 20px 0 0; color: #626b76; font-size: 14px; line-height: 1.6; }

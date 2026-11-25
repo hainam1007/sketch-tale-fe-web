@@ -1,4 +1,5 @@
-import { Funnel, LockKey, MagnifyingGlass, PencilSimple, Plus, Prohibit, WarningCircle, X } from "@phosphor-icons/react";
+import AdminStatusButton from "../components/AdminStatusButton";
+import { Funnel, Trash, MagnifyingGlass, PencilSimple, Plus, Prohibit, WarningCircle, X } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -148,7 +149,6 @@ export default function AdminRestrictionsPage() {
         <div>
           <p className="workspace-eyebrow">ADMIN / TỪ KHÓA HẠN CHẾ</p>
           <h1>Từ khóa hạn chế</h1>
-          <p>Quản lý các quy tắc phát hiện và xử lý nội dung nhạy cảm được kết nối trực tiếp với API backend.</p>
         </div>
         <Prohibit size={43} className="admin-heading-icon" aria-hidden="true" />
       </div>
@@ -231,24 +231,18 @@ export default function AdminRestrictionsPage() {
                       <button
                         className="admin-icon-btn is-danger"
                         type="button"
-                        title="Khóa / Xóa từ khóa"
-                        aria-label={`Khóa từ khóa ${item.value}`}
+                        title="Xóa từ khóa"
+                        aria-label={`Xóa từ khóa ${item.value}`}
                         onClick={() => setDeleteTarget(item)}
                       >
-                        <LockKey size={16} aria-hidden="true" />
+                        <Trash size={16} aria-hidden="true" />
                       </button>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={item.status === "active"}
-                        className={`admin-switch-btn ${item.status === "active" ? "is-active" : ""}`}
-                        title={item.status === "active" ? "Nhấn để ngưng áp dụng" : "Nhấn để áp dụng"}
-                        aria-label={item.status === "active" ? `Ngưng áp dụng ${item.value}` : `Áp dụng ${item.value}`}
+                      <AdminStatusButton
+                        active={item.status === "active"}
+                        name={`từ khóa ${item.value}`}
                         disabled={pendingIds.has(item.id) || item.status === "other"}
-                        onClick={() => toggleMutation.mutate({ item, nextStatus: item.status === "active" ? "disabled" : "active" })}
-                      >
-                        <span className="admin-switch-slider" />
-                      </button>
+                        onChange={() => toggleMutation.mutate({ item, nextStatus: item.status === "active" ? "disabled" : "active" })}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -260,7 +254,7 @@ export default function AdminRestrictionsPage() {
         <EmptyState
           icon={Prohibit}
           title={items.length ? "Không có từ khóa phù hợp" : "Chưa có từ khóa hạn chế"}
-          message={items.length ? "Thử đổi từ khóa hoặc bộ lọc." : "Chưa có từ khóa nào được thiết lập trong hệ thống backend."}
+          message={items.length ? "Thử đổi từ khóa hoặc bộ lọc." : "Chưa có từ khóa hạn chế nào."}
         />
       )}
 
@@ -276,7 +270,7 @@ export default function AdminRestrictionsPage() {
           <section className="admin-editor-panel" role="dialog" aria-modal="true" aria-labelledby="keyword-editor-title">
             <div className="admin-dialog-heading">
               <div>
-                <p className="workspace-eyebrow">API BACKEND / TỪ KHÓA HẠN CHẾ</p>
+                <p className="workspace-eyebrow">TỪ KHÓA HẠN CHẾ</p>
                 <h2 id="keyword-editor-title">{editor.id ? "Sửa từ khóa" : "Thêm từ khóa"}</h2>
               </div>
               <button className="icon-button" type="button" aria-label="Đóng biểu mẫu từ khóa" onClick={() => setEditor(null)} disabled={saveMutation.isPending}>
@@ -323,14 +317,14 @@ export default function AdminRestrictionsPage() {
       {deleteTarget && (
         <div className="admin-overlay" role="presentation">
           <section className="admin-editor-panel admin-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="keyword-delete-title">
-            <h2 id="keyword-delete-title">Khóa / Xóa từ khóa hạn chế?</h2>
-            <p>Xóa hoặc vô hiệu hóa “{deleteTarget.keyword}” khỏi hệ thống kiểm duyệt backend.</p>
+            <h2 id="keyword-delete-title">Xóa từ khóa hạn chế?</h2>
+            <p>Xóa hoặc vô hiệu hóa “{deleteTarget.keyword}” khỏi danh sách kiểm duyệt.</p>
             {deleteMutation.isError && <p role="alert">{deleteMutation.error.message}</p>}
             <div className="admin-dialog-actions">
               <button className="workspace-button workspace-button-quiet" type="button" onClick={() => setDeleteTarget(null)} disabled={deleteMutation.isPending}>Hủy</button>
               <button className="workspace-button workspace-button-danger" type="button" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}>
-                <LockKey size={16} aria-hidden="true" />
-                {deleteMutation.isPending ? "Đang xử lý…" : "Xác nhận khóa"}
+                <Trash size={16} aria-hidden="true" />
+                {deleteMutation.isPending ? "Đang xử lý…" : "Xác nhận xóa"}
               </button>
             </div>
           </section>

@@ -7,7 +7,7 @@ const parentId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const parentProfileId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 
 async function setup(page) {
-  const state = { writes: [], paths: [], failRead: false, wrongProfile: false, wrongCharacter: false, approved: false, failInbox: false, subscriptions: [], wrongSubscriptionOwner: false, failSubscriptions: false, emptyParentProfileId: false };
+  const state = { writes: [], paths: [], failRead: false, wrongProfile: false, wrongCharacter: false, approved: false, failInbox: false, subscriptions: [], wrongSubscriptionOwner: false, failSubscriptions: false, emptyParentProfileId: false, currentPlan: "Plus", plans: [] };
   let child = { childProfileId: childId, nickName: "Mây", dailyTimeLimit: 30, dailyCharacterLimit: 3 };
   const character = { characterId, childProfileId: childId, childNickName: "Mây", characterName: "Thỏ", status: 1, finalImageUrl: "https://images.example.test/rabbit.svg" };
   await page.addInitScript(() => {
@@ -19,8 +19,8 @@ async function setup(page) {
     const req = route.request();
     const path = new URL(req.url()).pathname;
     state.paths.push(`${req.method()} ${path}`);
-    if (path === "/api/auth/profile") return route.fulfill({ json: { id: parentId, name: "Parent A", role: "Parent", parentProfile: { parentProfileId: state.emptyParentProfileId ? "00000000-0000-0000-0000-000000000000" : parentProfileId, currentPlan: "Plus" } } });
-    if (path === "/api/subscription-plans") return route.fulfill({ json: [] });
+    if (path === "/api/auth/profile") return route.fulfill({ json: { id: parentId, name: "Parent A", role: "Parent", parentProfile: { parentProfileId: state.emptyParentProfileId ? "00000000-0000-0000-0000-000000000000" : parentProfileId, currentPlan: state.currentPlan, subscriptionPlanId: state.plans.find(plan => plan.name === state.currentPlan)?.id } } });
+    if (path === "/api/subscription-plans") return route.fulfill({ json: state.plans });
     const expectedSubscriptionParentId = state.emptyParentProfileId ? parentId : parentProfileId;
     if (path === `/api/subscriptions/parent-profile/${expectedSubscriptionParentId}`) {
       if (state.failSubscriptions) return route.fulfill({ status: 503, json: { message: "Subscription history unavailable" } });
@@ -197,6 +197,37 @@ test("plan status reads the authenticated parent's subscription and maps BE enum
   expect(state.paths).toContain("GET /api/auth/profile");
 });
 
+test("plan status uses the plan from the authenticated profile without a subscription record", async ({ page }) => {
+  const state = await setup(page);
+
+  await page.goto("/parent/plan");
+
+  await expect(page.locator(".plan-current-meta dd").first()).toHaveText("Đang sử dụng");
+  await expect(page.getByText("Theo gói đang áp dụng trong hồ sơ phụ huynh.")).toBeVisible();
+  expect(state.paths).toContain(`GET /api/subscriptions/parent-profile/${parentProfileId}`);
+});
+
+test("active Pro is highlighted and prevents selecting another plan or opening checkout", async ({ page }) => {
+  const state = await setup(page);
+  state.currentPlan = "Pro";
+  state.plans = [
+    { id: "66666666-6666-6666-6666-666666666666", code: "FREEPLAN", name: "Free", price: 0, isActive: true },
+    { id: "77777777-7777-7777-7777-777777777777", code: "PLUSPLAN", name: "Plus", price: 49000, isActive: true },
+    { id: "88888888-8888-8888-8888-888888888888", code: "PROPLAN", name: "Pro", price: 99000, isActive: true },
+  ];
+
+  await page.goto("/parent/plan");
+
+  await expect(page.locator(".plan-status-name")).toHaveText("Pro");
+  await expect(page.locator(".plan-status-name")).toHaveCSS("background-color", "rgb(245, 198, 78)");
+  await expect(page.getByRole("link", { name: /Chọn (Free|Plus)/ })).toHaveCount(0);
+  await expect(page.getByText("Đã khóa", { exact: true })).toHaveCount(2);
+
+  await page.goto("/parent/checkout?plan=PLUSPLAN");
+  await expect(page.getByRole("heading", { name: "Gói Pro đang được sử dụng" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /thanh toán/i })).toHaveCount(0);
+});
+
 test("plan status uses the verified account ID when BE maps ParentProfileId as Guid.Empty", async ({ page }) => {
   const state = await setup(page);
   state.emptyParentProfileId = true;
@@ -230,7 +261,7 @@ test("plan status rejects subscription rows belonging to a different ParentProfi
   await page.goto("/parent/plan");
 
   await expect(page.getByText("Backend trả về đăng ký không thuộc hồ sơ phụ huynh hiện tại.")).toBeVisible();
-  await expect(page.locator(".plan-current-meta dd").first()).toHaveText("Chưa tải được");
+  await expect(page.locator(".plan-current-meta dd").first()).toHaveText("Đang sử dụng");
 });
 
 test("non-Parent role cannot request subscription data from the FE adapter", async ({ page }) => {
@@ -258,7 +289,7 @@ test("plan status reports read failures without falling back to mock data", asyn
   await page.goto("/parent/plan");
 
   await expect(page.getByText("Subscription history unavailable")).toBeVisible();
-  await expect(page.locator(".plan-current-meta dd").first()).toHaveText("Chưa tải được");
+  await expect(page.locator(".plan-current-meta dd").first()).toHaveText("Đang sử dụng");
   expect(state.paths.filter(path => path.startsWith("GET /api/subscriptions/parent-profile/")).length).toBe(1);
 });
 

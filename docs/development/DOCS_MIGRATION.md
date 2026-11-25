@@ -34,7 +34,7 @@ Ngày 13/11/2026. Các report/audit/plan theo ngày đã gộp vào nguồn hi�
 | `api-integration/CONTENT_MANAGER_SWAGGER_AUDIT_2026-11-10.md` | [roles/CONTENT_MANAGER.md](../roles/CONTENT_MANAGER.md) |
 | `api-integration/CONTENT_WEB_BACKEND_REQUESTS_2026-11-12.md` | [roles/CONTENT_MANAGER.md](../roles/CONTENT_MANAGER.md) |
 | `api-integration/CONTENT_WEB_PRODUCTION_PLAN_2026-11-12.md` | [plans/WEB_READER.md](../plans/WEB_READER.md) |
-| `api-integration/LOCAL_STORY_DEMO.md` | [development/LOCAL_STORY_DEMO.md](../development/LOCAL_STORY_DEMO.md) |
+| `api-integration/LOCAL_STORY_DEMO.md` | Đã gỡ ở lượt sau; xem [kế hoạch migration/recovery](../plans/WEB_READER.md) |
 | `api-integration/LUNA_API_HANDOFF_2026-10-21.md` | [api/CONTRACTS.md](../api/CONTRACTS.md) |
 | `api-integration/LUNA_API_OPERATION_MATRIX_2026-10-21.md` | [api/CONTRACTS.md](../api/CONTRACTS.md) |
 | `api-integration/PARENT_API_AUDIT_AND_PLAN_2026-11-12.md` | [roles/PARENT.md](../roles/PARENT.md) |
@@ -63,11 +63,9 @@ Ngày 13/11/2026. Các report/audit/plan theo ngày đã gộp vào nguồn hi�
 
 `api-integration/openapi-2026-10-19.snapshot.json` đã bỏ khỏi docs; baseline gần nhất giữ ở `artifacts/swagger-parent-2026-11-12.json`.
 
-## Ki?m ch?ng ??t s?p x?p
+## Kiểm chứng sắp xếp ngày 13/11
 
-- Markdown: 58 ? 24; gi? ri?ng 8 ??c t? tham chi?u, m?t plan reader ?ang m?, Composition fixture v? diagrams.
-- Ki?m tra 219 li?n k?t local trong docs/README g?c: kh?ng c? ???ng d?n h?ng (kh?ng ki?m tra anchor n?i trang ho?c URL m?ng).
-- Fixture JSON parse th?nh c?ng; inventory c? 146 method/path duy nh?t, t??ng ?ng 146 HTTP attributes trong controller local (145 action, m?t action status c? PATCH v? PUT).
-- `git diff --check -- README.md docs` ??t; kh?ng ch?y build/test ?ng d?ng v? ch? s?a t?i li?u.
-- B?n sao working tree tr??c s?a tr?n m?y: `C:/Users/pc/AppData/Local/Temp/sketchtale-docs-before-2026-11-13-172554.zip`; ZIP CRC ?? ki?m tra. ???ng d?n local n?y kh?ng ???c gi? ??nh t?n t?i tr?n m?y kh?c.
-- SHA-256 b?n sao: `563d2e9f5441a0e9716f04738882c9cea8d8a9c4eb5c56cfef9047462716588f`.
+- Khi sắp xếp: 58 → 24 Markdown; các lượt sau có thể tiếp tục gỡ tài liệu đã hết giá trị.
+- Lượt đó kiểm tra 219 liên kết local, fixture JSON và 146 operations source; không thay kết quả kiểm tra contract ngày 18/11.
+- Bản sao trước sắp xếp: `C:/Users/pc/AppData/Local/Temp/sketchtale-docs-before-2026-11-13-172554.zip`; ZIP CRC đã được kiểm tra ở lượt đó. Không giả định tệp temp vẫn tồn tại hoặc có trên máy khác.
+- SHA-256: `563d2e9f5441a0e9716f04738882c9cea8d8a9c4eb5c56cfef9047462716588f`.

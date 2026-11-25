@@ -115,7 +115,7 @@ export default function AdminUsersPage() {
           <button className="workspace-button" type="submit" disabled={createUserMutation.isPending || !createDraft.username.trim() || createDraft.password.length < 6}>{createUserMutation.isPending ? "Đang tạo…" : <><Check size={16} aria-hidden="true" /> Tạo tài khoản</>}</button>
         </form>
         {createUserMutation.isError && <p className="admin-mutation-error" role="alert"><WarningCircle size={16} aria-hidden="true" /> {createUserMutation.error.message}</p>}
-        {createUserMutation.isSuccess && <p className="workspace-inline-success" role="status">Backend đã tạo tài khoản.</p>}
+        {createUserMutation.isSuccess && <p className="workspace-inline-success" role="status">Đã tạo tài khoản.</p>}
       </section>}
 
       <section className="admin-filter-panel">
@@ -170,7 +170,7 @@ export default function AdminUsersPage() {
         </>
       )}
     </div>
-    {pendingStatus && <div className="admin-overlay" role="presentation"><section className="admin-editor-panel admin-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="admin-user-status-confirm-title"><p className="workspace-eyebrow">CẬP NHẬT TRẠNG THÁI</p><h2 id="admin-user-status-confirm-title">{pendingStatus.isLocked ? "Khóa tài khoản?" : "Mở khóa tài khoản?"}</h2><p><strong>{pendingStatus.name}</strong></p><label className="admin-catalog-field"><span>Lý do (BE hiện chưa lưu lý do này)</span><textarea rows={3} value={statusReason} onChange={(event) => setStatusReason(event.target.value)} /></label>{toggleStatusMutation.isError && <p className="admin-mutation-error" role="alert">{toggleStatusMutation.error.message}</p>}<div className="admin-dialog-actions"><button className="workspace-button workspace-button-quiet" type="button" disabled={toggleStatusMutation.isPending} onClick={() => setPendingStatus(null)}>Hủy</button><button className="workspace-button workspace-button-danger" type="button" disabled={toggleStatusMutation.isPending} onClick={confirmStatusChange}>{toggleStatusMutation.isPending ? "Đang lưu…" : pendingStatus.isLocked ? "Xác nhận khóa" : "Xác nhận mở khóa"}</button></div></section></div>}
+    {pendingStatus && <div className="admin-overlay" role="presentation"><section className="admin-editor-panel admin-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="admin-user-status-confirm-title"><p className="workspace-eyebrow">CẬP NHẬT TRẠNG THÁI</p><h2 id="admin-user-status-confirm-title">{pendingStatus.isLocked ? "Khóa tài khoản?" : "Mở khóa tài khoản?"}</h2><p><strong>{pendingStatus.name}</strong></p><label className="admin-catalog-field"><span>Lý do (chưa được lưu)</span><textarea rows={3} value={statusReason} onChange={(event) => setStatusReason(event.target.value)} /></label>{toggleStatusMutation.isError && <p className="admin-mutation-error" role="alert">{toggleStatusMutation.error.message}</p>}<div className="admin-dialog-actions"><button className="workspace-button workspace-button-quiet" type="button" disabled={toggleStatusMutation.isPending} onClick={() => setPendingStatus(null)}>Hủy</button><button className="workspace-button workspace-button-danger" type="button" disabled={toggleStatusMutation.isPending} onClick={confirmStatusChange}>{toggleStatusMutation.isPending ? "Đang lưu…" : pendingStatus.isLocked ? "Xác nhận khóa" : "Xác nhận mở khóa"}</button></div></section></div>}
     </>
   );
 }
