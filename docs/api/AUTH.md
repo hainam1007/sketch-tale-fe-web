@@ -1,5 +1,7 @@
 # Auth — contract và phiên
 
+Cập nhật 18/11/2026: Auth profile nested Parent/Child DTO đổi định danh sang `id`; register/child local staged vẫn trả `childProfileId` ở response riêng, không đồng nhất hai shape. GET confirm-email có Required/EmailAddress validation trong source hiện tại. Refresh/rotation chưa có runtime mới; giữ AUTH-01. Source BE chỉ đọc; xem [contract mới](CONTRACTS.md).
+
 Đối chiếu 13/11/2026: AuthController, AuthService, Program.cs; FE authService/AuthProvider/authTokenStorage/httpClient. Prefix `/api/auth`. Chi tiết tên DTO xem controller và danh mục [ENDPOINTS](ENDPOINTS.md); không suy tất cả response cùng envelope.
 
 | Method/path | Quyền / dữ liệu chính |
@@ -33,4 +35,4 @@ AUTH-01: expired access + valid refresh, invalid/revoked refresh, blacklist sau 
 
 Error codes/status và fieldErrors chưa được chuẩn hóa toàn hệ thống. 401 ở Character API có thể là sai owner, không chỉ token hết hạn; FE cần phân biệt nghiệp vụ khi BE chuẩn hóa lỗi. Không tự retry mutation sau timeout/5xx; không tự fallback mock.
 
-Role FE chuẩn hóa Parent→parent, Child→child, Admin→admin, ContentManager→content_manager; role claim BE theo từng controller, đặc biệt UploadController chỉ ghi `content manager`. Route guard web không thay authorization server.
+Role FE chuẩn hóa Parent→parent, Child→child, Admin→admin, ContentManager→content_manager; role claim BE theo từng controller, UploadController 18/11 đã nhận `content manager, ContentManager`. Route guard web không thay authorization server.

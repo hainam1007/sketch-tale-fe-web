@@ -1,6 +1,7 @@
+import AdminStatusButton from "../components/AdminStatusButton";
 import { useState } from "react";
 import {
-  LockKey,
+  Trash,
   PencilSimple,
   Plus,
   WarningCircle,
@@ -199,7 +200,7 @@ export default function AdminModerationCatalogPage({ kind }) {
           !numericValues[field].includes(Number(draft[field])),
       )
     ) {
-      setFormError("Một mã enum không hợp lệ.");
+      setFormError("Vui lòng chọn một giá trị hợp lệ.");
       return;
     }
     setFormError("");
@@ -232,11 +233,6 @@ export default function AdminModerationCatalogPage({ kind }) {
         <div>
           <p className="workspace-eyebrow">ADMIN / DANH MỤC KIỂM DUYỆT</p>
           <h1>{titles[kind]}</h1>
-          <p>
-            {kind === "prohibitedThemes"
-              ? "Quản lý danh mục các chủ đề bị cấm và chính sách kiểm duyệt nội dung."
-              : "Quản lý danh mục loại nhân vật phục vụ tạo truyện và hình ảnh."}
-          </p>
         </div>
       </div>
       <section className="admin-filter-panel">
@@ -309,29 +305,18 @@ export default function AdminModerationCatalogPage({ kind }) {
                       <button
                         className="admin-icon-btn is-danger"
                         type="button"
-                        title={`Khóa / Xóa ${item.name || "mục"}`}
-                        aria-label={`Khóa ${item.name || "mục"}`}
+                        title={`Xóa ${item.name || "mục"}`}
+                        aria-label={`Xóa ${item.name || "mục"}`}
                         onClick={() => setDeleteTarget(item)}
                       >
-                        <LockKey size={16} aria-hidden="true" />
+                        <Trash size={16} aria-hidden="true" />
                       </button>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={item.status === 2}
-                        className={`admin-switch-btn ${item.status === 2 ? "is-active" : ""}`}
-                        title={item.status === 2 ? "Nhấn để ngưng áp dụng" : "Nhấn để áp dụng"}
-                        aria-label={item.status === 2 ? `Ngưng áp dụng ${item.name}` : `Áp dụng ${item.name}`}
+                      <AdminStatusButton
+                        active={item.status === 2}
+                        name={item.nameVi || item.name || "mục"}
                         disabled={pendingIds.has(item.id)}
-                        onClick={() =>
-                          toggleMutation.mutate({
-                            item,
-                            nextStatus: item.status === 2 ? "disabled" : "active",
-                          })
-                        }
-                      >
-                        <span className="admin-switch-slider" />
-                      </button>
+                        onChange={() => toggleMutation.mutate({ item, nextStatus: item.status === 2 ? "disabled" : "active" })}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -385,7 +370,7 @@ export default function AdminModerationCatalogPage({ kind }) {
             aria-modal="true"
             aria-labelledby="moderation-delete-title"
           >
-            <h2 id="moderation-delete-title">Khóa / Xóa {titles[kind]?.toLowerCase() || "mục"}?</h2>
+            <h2 id="moderation-delete-title">Xóa {titles[kind]?.toLowerCase() || "mục"}?</h2>
             <p>Xóa hoặc vô hiệu hóa “{deleteTarget.name || "mục chưa đặt tên"}” khỏi hệ thống.</p>
             {remove.isError && (
               <p className="admin-mutation-error" role="alert">
@@ -407,8 +392,8 @@ export default function AdminModerationCatalogPage({ kind }) {
                 onClick={() => remove.mutate()}
                 disabled={remove.isPending}
               >
-                <LockKey size={16} aria-hidden="true" />
-                {remove.isPending ? "Đang xử lý…" : "Xác nhận khóa"}
+                <Trash size={16} aria-hidden="true" />
+                {remove.isPending ? "Đang xử lý…" : "Xác nhận xóa"}
               </button>
             </div>
           </section>

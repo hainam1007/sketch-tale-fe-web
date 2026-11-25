@@ -103,7 +103,7 @@ export default function AdminContentReportsPage() {
   }
 
   if (query.isLoading)
-    return <LoadingState label="Đang tải báo cáo nội dung backend" />;
+    return <LoadingState label="Đang tải báo cáo nội dung" />;
   if (query.isError && !query.data)
     return (
       <ErrorState
@@ -119,7 +119,6 @@ export default function AdminContentReportsPage() {
         <div>
           <p className="workspace-eyebrow">ADMIN / KIỂM DUYỆT</p>
           <h1>Báo cáo vi phạm nội dung</h1>
-          <p>Xem xét khiếu nại từ người dùng và đưa ra quyết định xử lý vi phạm.</p>
         </div>
         <WarningCircle
           size={42}
@@ -353,7 +352,7 @@ export function AdminContentReportDetailPage() {
     return (
       <ErrorState
         title="Dữ liệu báo cáo không hợp lệ"
-        message="Backend không trả một báo cáo hợp lệ."
+        message="Không thể đọc thông tin báo cáo. Vui lòng thử lại."
         onRetry={() => query.refetch()}
       />
     );
@@ -368,7 +367,6 @@ export function AdminContentReportDetailPage() {
         <div>
           <p className="workspace-eyebrow">ADMIN / CHI TIẾT BÁO CÁO</p>
           <h1>Báo cáo vi phạm: {item.reason || formatTargetType(item.targetType)}</h1>
-          <p>Nội dung khiếu nại đối với {formatTargetType(item.targetType).toLowerCase()}</p>
         </div>
         <StatusBadge
           value={String(item.status ?? "unknown")}
@@ -416,7 +414,7 @@ export function AdminContentReportDetailPage() {
         <div className="admin-report-actions-box">
           <div className="admin-report-actions-info">
             <h3>Xử lý khiếu nại nội dung</h3>
-            <p>Thao tác chỉ đổi trạng thái báo cáo; không tự ẩn hoặc xóa nội dung bị báo cáo. API chưa có ghi chú xử lý riêng.</p>
+            <p>Thao tác chỉ đổi trạng thái báo cáo; không tự ẩn hoặc xóa nội dung bị báo cáo.</p>
           </div>
           <div className="admin-report-actions-buttons">
             <button

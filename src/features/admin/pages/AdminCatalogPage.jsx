@@ -1,3 +1,4 @@
+import AdminStatusButton from "../components/AdminStatusButton";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowClockwise, Check, Coins, GraduationCap, MagnifyingGlass, Package, PencilSimple, Plus, X } from "@phosphor-icons/react";
 import { useBlocker } from "react-router-dom";
@@ -10,7 +11,7 @@ import "../admin.css";
 
 const config = {
   plans: {
-    path: "/admin/subscription-plans", title: "Gói sử dụng", eyebrow: "DANH MỤC · GÓI", description: "Quản lý giới hạn và quyền lợi được cấu hình cho từng gói.", icon: Package,
+    path: "/admin/subscription-plans", title: "Gói sử dụng", eyebrow: "DANH MỤC · GÓI", icon: Package,
     fields: [
       { key: "name", label: "Tên gói", type: "text", required: true },
       { key: "price", label: "Giá", type: "number", min: 0, step: "any", required: true },
@@ -20,13 +21,13 @@ const config = {
       { key: "freeTrialDays", label: "Dùng thử (ngày)", type: "number", min: 0, step: 1, nullable: true },
       { key: "accessFullStories", label: "Truy cập toàn bộ truyện", type: "checkbox" },
       { key: "canExportStory", label: "Được xuất truyện", type: "checkbox" },
-      { key: "haveParentProfileSub", label: "Có subscription Parent", type: "boolean", help: "Field mới trong Swagger. Để trống khi sửa nếu backend chưa trả field này." },
+      { key: "haveParentProfileSub", label: "Gói dành cho phụ huynh", type: "boolean" },
       { key: "isActive", label: "Đang cung cấp", type: "checkbox" },
     ],
     columns: ["name", "price", "monthlyCreditLimit", "childProfileLimit", "haveParentProfileSub", "isActive"],
   },
   credits: {
-    path: "/admin/credit-costs", title: "Chi phí credit", eyebrow: "DANH MỤC · CREDIT", description: "Cấu hình chi phí credit theo tính năng; trang này không quản lý số dư tài khoản.", icon: Coins,
+    path: "/admin/credit-costs", title: "Chi phí credit", eyebrow: "DANH MỤC · CREDIT", icon: Coins,
     fields: [
       { key: "featureKey", label: "Mã tính năng", type: "text", required: true },
       { key: "featureNameVi", label: "Tên tiếng Việt", type: "text", required: true },
@@ -37,7 +38,7 @@ const config = {
     columns: ["featureNameVi", "featureNameEn", "cost", "isActive"],
   },
   themes: {
-    path: "/admin/education-themes", title: "Chủ đề giáo dục", eyebrow: "DANH MỤC · NỘI DUNG", description: "Danh mục chủ đề được Content Manager dùng khi biên soạn truyện.", icon: GraduationCap,
+    path: "/admin/education-themes", title: "Chủ đề giáo dục", eyebrow: "DANH MỤC · NỘI DUNG", icon: GraduationCap,
     fields: [
       { key: "nameVi", label: "Tên chủ đề (Tiếng Việt)", type: "text", required: true },
       { key: "nameEn", label: "Tên chủ đề (Tiếng Anh)", type: "text", required: true },
@@ -55,7 +56,7 @@ const defaults = {
 };
 
 const labels = {
-  name: "Tên", nameVi: "Tên chủ đề (Tiếng Việt)", nameEn: "Tên chủ đề (Tiếng Anh)", code: "Mã gói", price: "Giá trị", childProfileLimit: "Hồ sơ trẻ", monthlyCreditLimit: "Credit/tháng", durationDays: "Thời hạn", freeTrialDays: "Dùng thử", accessFullStories: "Truyện đầy đủ", canExportStory: "Xuất truyện", haveParentProfileSub: "Subscription Parent", isActive: "Trạng thái", featureKey: "Mã tính năng", featureNameVi: "Tên tiếng Việt", featureNameEn: "Tên tiếng Anh", cost: "Credit/lượt", description: "Mô tả", status: "Trạng thái",
+  name: "Tên", nameVi: "Tên chủ đề (Tiếng Việt)", nameEn: "Tên chủ đề (Tiếng Anh)", code: "Mã gói", price: "Giá trị", childProfileLimit: "Hồ sơ trẻ", monthlyCreditLimit: "Credit/tháng", durationDays: "Thời hạn", freeTrialDays: "Dùng thử", accessFullStories: "Truyện đầy đủ", canExportStory: "Xuất truyện", haveParentProfileSub: "Gói phụ huynh", isActive: "Trạng thái", featureKey: "Mã tính năng", featureNameVi: "Tên tiếng Việt", featureNameEn: "Tên tiếng Anh", cost: "Credit/lượt", description: "Mô tả", status: "Trạng thái",
 };
 
 export default function AdminCatalogPage({ kind }) {
@@ -250,7 +251,6 @@ export default function AdminCatalogPage({ kind }) {
         <div>
           <p className="workspace-eyebrow">{page.eyebrow}</p>
           <h1>{page.title}</h1>
-          <p>{page.description}</p>
         </div>
         <div className="admin-page-heading-actions">
           <button
@@ -364,18 +364,12 @@ export default function AdminCatalogPage({ kind }) {
                         >
                           <PencilSimple size={16} aria-hidden="true" />
                         </button>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={active}
-                          className={`admin-switch-btn ${active ? "is-active" : ""}`}
-                          title={active ? "Nhấn để ngừng hoạt động" : "Nhấn để kích hoạt"}
-                          aria-label={active ? `Ngừng hoạt động ${item.nameVi || item.name || item.featureNameVi || item.code || "mục"}` : `Kích hoạt ${item.nameVi || item.name || item.featureNameVi || item.code || "mục"}`}
+                        <AdminStatusButton
+                          active={active}
+                          name={item.nameVi || item.name || item.featureNameVi || item.code || "mục"}
                           disabled={toggleMutation.isPending || saveMutation.isPending}
-                          onClick={() => handleToggleActive(item)}
-                        >
-                          <span className="admin-switch-slider" />
-                        </button>
+                          onChange={() => handleToggleActive(item)}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -405,8 +399,8 @@ export default function AdminCatalogPage({ kind }) {
                   <Field key={field.key} field={field} editor={editor} setEditor={setEditor} error={formErrors[field.key] || saveMutation.error?.fieldErrors?.[field.key]} statuses={kind === "themes" ? adminCatalogService.mode === "real" ? [0, 1, 2, 3, 4] : [...new Set((query.data || []).map((item) => item.status).filter((value) => value !== null && value !== undefined).concat(editor.values.status !== "" ? [editor.values.status] : []))] : []} allowStatusEdit />
                 ))}
               </div>
-              {kind === "credits" && <p className="admin-field-note">Chi phí được lưu theo API. Cách tính cho tác vụ đang chạy và hoàn credit cần được xác nhận ở Backend.</p>}
-              {kind === "themes" && <p className="admin-field-note">Chủ đề có thể đang được truyện sử dụng. Xóa dùng API Backend và chuyển trạng thái sang Inactive; CommonStatus đã được ánh xạ theo source.</p>}
+              {kind === "credits" && <p className="admin-field-note">Kiểm tra mức credit mới trước khi xác nhận thay đổi.</p>}
+              {kind === "themes" && <p className="admin-field-note">Chủ đề có thể đang được sử dụng trong truyện. Kiểm tra trước khi ngừng hoạt động.</p>}
               {saveMutation.isError && <p className="admin-mutation-error" role="alert">{saveMutation.error.message}</p>}
               {saveMutation.isSuccess && <p className="workspace-inline-success" role="status">Đã lưu thay đổi.</p>}
               {dirty && (
@@ -494,7 +488,7 @@ function Field({ field, editor, setEditor, error, statuses, allowStatusEdit }) {
   function update(next) { setEditor((current) => ({ ...current, values: { ...current.values, [field.key]: next } })); }
   const id = `admin-catalog-${field.key}`;
   if (field.type === "checkbox") return <label className="admin-catalog-checkbox" htmlFor={id}><input id={id} type="checkbox" checked={Boolean(value)} onChange={(event) => update(event.target.checked)} /><span>{field.label}</span></label>;
-  if (field.type === "boolean") return <label className="admin-catalog-field" htmlFor={id}><span>{field.label}</span><select id={id} value={value === true ? "true" : value === false ? "false" : ""} onChange={(event) => update(event.target.value)}><option value="">Không đổi / backend chưa trả field</option><option value="true">Có</option><option value="false">Không</option></select><small>{field.help}</small>{error && <small className="admin-field-error">{error}</small>}</label>;
+  if (field.type === "boolean") return <label className="admin-catalog-field" htmlFor={id}><span>{field.label}</span><select id={id} value={value === true ? "true" : value === false ? "false" : ""} onChange={(event) => update(event.target.value)}><option value="">Giữ nguyên</option><option value="true">Có</option><option value="false">Không</option></select>{field.help && <small>{field.help}</small>}{error && <small className="admin-field-error">{error}</small>}</label>;
   if (field.type === "status") {
     if (!allowStatusEdit) return <label className="admin-catalog-field" htmlFor={id}><span>{field.label}</span><output id={id} className="admin-catalog-status-locked">{value === "" ? "Không gửi trạng thái chưa được xác nhận" : `Giá trị hiện tại: ${String(value)}`}</output><small>CommonStatus chưa được xác nhận.</small></label>;
     const source = statuses.length ? statuses : [0, 1, 2, 3, 4];

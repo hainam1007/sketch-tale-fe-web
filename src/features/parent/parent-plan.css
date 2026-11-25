@@ -124,6 +124,7 @@
 }
 
 .plan-current-meta dt { margin-bottom: 5px; color: #7c725a; font-size: 10px; font-weight: 900; letter-spacing: 1.1px; text-transform: uppercase; }
+.plan-status-name { display: inline-block; padding: 4px 8px; margin-left: 4px; border: 1px solid #b98716; border-radius: 6px; color: #3b2a06; background: #f5c64e; font-size: 12px; font-weight: 1000; letter-spacing: .5px; text-transform: none; }
 .plan-current-meta dd { margin: 0; color: #322b1b; font-size: 17px; font-weight: 900; letter-spacing: -.25px; }
 .plan-current-meta small { display: block; margin-top: 4px; color: #817967; font-size: 11px; line-height: 1.4; }
 
@@ -191,6 +192,8 @@
 .plan-option-action { display: flex; align-items: center; min-height: 48px; margin-top: auto; padding-top: 19px; }
 .plan-option-action .workspace-button { width: 100%; min-height: 48px; border-radius: 12px; }
 .plan-option-disabled { display: inline-flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 46px; padding: 10px; border: 1px solid #d7e5da; border-radius: 12px; color: #62836a; background: #f2f8f3; font-size: 12px; font-weight: 900; }
+.plan-option-action.is-locked { justify-content: center; }
+.plan-option-locked { display: inline-flex; align-items: center; justify-content: center; padding: 5px 11px; border: 1px solid #e4e0d6; border-radius: 999px; color: #747b7b; background: #f0efeb; font-size: 11px; font-weight: 900; letter-spacing: .2px; }
 .plan-option-card-pro .plan-option-disabled { border-color: rgb(255 255 255 / 20%); color: #d7e6f7; background: rgb(255 255 255 / 7%); }
 .plan-option-footnote { color: #898d91; font-size: 11px; font-weight: 800; }
 .plan-current-card-unavailable { border-color: #e5e1d4; background: #faf8f2; }

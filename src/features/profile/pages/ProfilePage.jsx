@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  ArrowDown,
   ArrowRight,
   BookOpen,
   ChartLineUp,
@@ -40,7 +41,6 @@ const workspaceDetails = {
   [ROLES.CONTENT]: {
     eyebrow: "Không gian nội dung",
     title: "Đưa mỗi bản nháp đến gần một trang sách.",
-    description: "Quản lý truyện, tài sản sáng tạo và hiệu quả nội dung tại một nơi.",
     shortcuts: [
       { icon: BookOpen, title: "Kho truyện", description: "Quản lý bản nháp và phiên bản truyện.", to: "/content/stories" },
       { icon: Package, title: "Kho tài sản", description: "Tìm và quản lý tài sản dùng chung.", to: "/content/assets" },
@@ -57,11 +57,19 @@ export default function ProfilePage() {
   const [passwordMessage, setPasswordMessage] = useState("");
   const [passwordMessageType, setPasswordMessageType] = useState("status");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isPasswordFormOpen, setIsPasswordFormOpen] = useState(false);
   const details = workspaceDetails[user.role];
   const home = roleHome(user.role);
   const roleLabel = roleLabels[user.role] || "Tài khoản SketchTale";
   const displayName = user.name?.trim() || "Tài khoản SketchTale";
   const initials = displayName.split(/\s+/).filter(Boolean).slice(-2).map((part) => Array.from(part)[0]).join("").toLocaleUpperCase("vi");
+
+  function openPasswordForm() {
+    setIsPasswordFormOpen(true);
+    window.requestAnimationFrame(() => {
+      document.getElementById("profile-password-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
 
   async function changePassword(event) {
     event.preventDefault();
@@ -132,7 +140,7 @@ export default function ProfilePage() {
         <section className="profile-panel" aria-labelledby="profile-details-title">
           <div className="profile-panel-heading">
             <span className="profile-panel-icon"><UserCircle size={24} aria-hidden="true" /></span>
-            <div><h2 id="profile-details-title">Thông tin tài khoản</h2><p>Thông tin bạn dùng để đăng nhập SketchTale.</p></div>
+            <div><h2 id="profile-details-title">Thông tin tài khoản</h2></div>
           </div>
           <dl className="profile-details-list">
             <div><dt>Họ và tên</dt><dd>{displayName}</dd></div>
@@ -143,14 +151,13 @@ export default function ProfilePage() {
             <ShieldCheck size={23} aria-hidden="true" />
             <div><h3 id="profile-session-title">Phiên đăng nhập</h3><p><CheckCircle size={16} weight="fill" aria-hidden="true" /> Đang hoạt động</p></div>
           </div>
-          <p className="profile-session-footnote"><LockKey size={16} aria-hidden="true" /> Quyền truy cập được giới hạn theo vai trò của bạn.</p>
         </section>
 
         {details && <section className="profile-workspace-panel" aria-labelledby="profile-shortcuts-title">
           <div className="profile-section-heading">
             <p className="profile-eyebrow">{details.eyebrow}</p>
             <h2 id="profile-shortcuts-title">{user.role === ROLES.PARENT ? "Đồng hành cùng bé" : user.role === ROLES.CHILD ? "Khám phá SketchTale" : "Tiếp tục công việc"}</h2>
-            <p>{details.description}</p>
+            {details.description && <p>{details.description}</p>}
           </div>
           <nav className="profile-shortcuts" aria-label="Truy cập nhanh theo vai trò">
             {details.shortcuts.map(({ icon: Icon, title, description, to }) => (
@@ -165,18 +172,20 @@ export default function ProfilePage() {
       </div>
 
       <section className="profile-password-panel" aria-labelledby="profile-password-title">
-        <div className="profile-panel-heading">
+        <div className="profile-panel-heading profile-password-heading">
           <span className="profile-panel-icon"><LockKey size={24} aria-hidden="true" /></span>
-          <div><h2 id="profile-password-title">Đổi mật khẩu</h2><p>Mật khẩu hiện tại sẽ được xác minh trước khi cập nhật.</p></div>
+          <div><h2 id="profile-password-title">Đổi mật khẩu</h2></div>
+          {!isPasswordFormOpen && <button className="workspace-button profile-password-reveal" type="button" aria-label="Cuộn xuống để đổi mật khẩu" aria-expanded="false" aria-controls="profile-password-content" onClick={openPasswordForm}><ArrowDown size={20} aria-hidden="true" /></button>}
         </div>
-        {isRealApi ? <form className="profile-password-form" onSubmit={changePassword}>
-          {passwordField("current", "Mật khẩu hiện tại", "current-password")}
-          {passwordField("next", "Mật khẩu mới", "new-password")}
-          {passwordField("confirm", "Nhập lại mật khẩu mới", "new-password")}
-          <div className="profile-password-feedback" role={passwordMessageType} aria-live="polite">{passwordMessage && <p>{passwordMessage}</p>}</div>
-          <button className="workspace-button" type="submit" disabled={isChangingPassword}>{isChangingPassword ? "Đang cập nhật..." : "Cập nhật mật khẩu"}</button>
-          <small>Yêu cầu về độ mạnh của mật khẩu sẽ được hệ thống kiểm tra.</small>
-        </form> : <p className="profile-password-unavailable" role="status">Đổi mật khẩu sẽ khả dụng khi kết nối API thật. Bản demo không lưu thông tin mật khẩu.</p>}
+        <div id="profile-password-content">
+          {isPasswordFormOpen && (isRealApi ? <form id="profile-password-form" className="profile-password-form" onSubmit={changePassword}>
+            {passwordField("current", "Mật khẩu hiện tại", "current-password")}
+            {passwordField("next", "Mật khẩu mới", "new-password")}
+            {passwordField("confirm", "Nhập lại mật khẩu mới", "new-password")}
+            <div className="profile-password-feedback" role={passwordMessageType} aria-live="polite">{passwordMessage && <p>{passwordMessage}</p>}</div>
+            <button className="workspace-button" type="submit" disabled={isChangingPassword}>{isChangingPassword ? "Đang cập nhật..." : "Đổi mật khẩu"}</button>
+          </form> : <p className="profile-password-unavailable" role="status">Đổi mật khẩu sẽ khả dụng khi kết nối API thật. Bản demo không lưu thông tin mật khẩu.</p>)}
+        </div>
       </section>
     </div>
   );

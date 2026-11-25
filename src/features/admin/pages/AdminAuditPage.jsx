@@ -80,7 +80,6 @@ export default function AdminAuditPage() {
   const scope = validScopes.includes(requestedScope) ? requestedScope : "";
   const scopeValue = searchParams.get("value") || "";
   const rawPage = Number(searchParams.get("page"));
-  const rawPageSize = Number(searchParams.get("pageSize"));
   const requestedRange = searchParams.get("range");
   const filters = {
     role: searchParams.get("role") || "all",
@@ -91,7 +90,7 @@ export default function AdminAuditPage() {
       : "30d",
     search: searchParams.get("search") || "",
     page: Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1,
-    pageSize: [10, 25, 50].includes(rawPageSize) ? rawPageSize : 10,
+    pageSize: 10,
   };
 
   const auditQuery = useQuery({
@@ -110,10 +109,10 @@ export default function AdminAuditPage() {
 
   function updateFilter(key, value) {
     const next = new URLSearchParams(searchParams);
+    next.delete("pageSize");
     const isDefault =
       ((key === "role" || key === "action") && value === "all") ||
       (key === "range" && value === "30d") ||
-      (key === "pageSize" && value === "10") ||
       (key === "page" && value === "1");
     if (value && !isDefault) next.set(key, value);
     else next.delete(key);
@@ -176,7 +175,6 @@ export default function AdminAuditPage() {
         <div>
           <p className="workspace-eyebrow">ADMIN / AUDIT VIEWER</p>
           <h1>Nhật ký thao tác</h1>
-          <p>Theo dõi lịch sử thay đổi hệ thống và hoạt động của người dùng.</p>
         </div>
         <ShieldCheck
           size={43}
@@ -196,7 +194,7 @@ export default function AdminAuditPage() {
         <label>Giá trị tra cứu<input aria-label="Giá trị tra cứu" value={valueDraft} onChange={(event) => setValueDraft(event.target.value)} required placeholder={scopeDraft === "user" ? "Nhập ID người dùng" : scopeDraft === "entity" ? "Nhập tên entity" : "Nhập ID đối tượng"} /></label>
         <button className="workspace-button" type="submit">Tra cứu</button>
       </form>
-      <p className="admin-refresh-note">Nhật ký chỉ được tải sau khi tra cứu theo người dùng, entity hoặc đối tượng. Backend hiện chưa hỗ trợ lọc ngày; ngày cụ thể và khoảng thời gian lọc trên kết quả đã tải.</p>
+      <p className="admin-refresh-note">Tra cứu theo người dùng hoặc đối tượng trước, sau đó lọc thời gian trong kết quả tìm được.</p>
       <div className="audit-filter-panel">
         <label>
           <span>Vai trò người thực hiện</span>
@@ -260,18 +258,6 @@ export default function AdminAuditPage() {
               placeholder="Tìm theo tên, email hoặc đối tượng..."
             />
           </div>
-        </label>
-        <label>
-          <span>Số dòng</span>
-          <select
-            aria-label="Số dòng audit"
-            value={String(filters.pageSize)}
-            onChange={(event) => updateFilter("pageSize", event.target.value)}
-          >
-            <option value="10">10 / trang</option>
-            <option value="25">25 / trang</option>
-            <option value="50">50 / trang</option>
-          </select>
         </label>
       </div>
 

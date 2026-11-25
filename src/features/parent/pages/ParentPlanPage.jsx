@@ -7,6 +7,7 @@ import { moduleApiModes } from "../../../lib/api/featureApi";
 import { useAuth } from "../../auth/useAuth";
 import { publicService } from "../../public/services/publicService";
 import { parentSubscriptionService } from "../services/parentSubscriptionService";
+import { getCurrentParentPlan, hasProPlan } from "../services/currentParentPlan";
 import "../parent-plan.css";
 
 export default function ParentPlanPage() {
@@ -25,15 +26,8 @@ export default function ParentPlanPage() {
 
   const availability = plansQuery.data;
   const plans = availability?.plans || [];
-  const parentProfile = user?.parentProfile ?? user?.ParentProfile;
-  const currentPlanId =
-    parentProfile?.subscriptionPlanId ?? parentProfile?.SubscriptionPlanId ?? null;
-  const currentPlanName =
-    parentProfile?.subscriptionPlan?.name ??
-    parentProfile?.SubscriptionPlan?.Name ??
-    parentProfile?.currentPlan ??
-    parentProfile?.CurrentPlan ??
-    null;
+  const { id: currentPlanId, name: currentPlanName } = getCurrentParentPlan(user);
+  const isProCurrent = hasProPlan(user);
   const subscriptions = subscriptionsQuery.data || [];
   const currentSubscription = [...subscriptions].sort((left, right) => {
     const statusRank = { active: 0, pending_payment: 1, expired: 2, cancelled: 3 };
@@ -65,26 +59,33 @@ export default function ParentPlanPage() {
           <h2 id="plan-options-title">Chọn gói phù hợp với nhịp đọc</h2>
           <p>
             {currentPlanName
-              ? `Gia đình hiện đang dùng gói ${currentPlanName}. So sánh quyền lợi và hạn mức của các gói khác.`
+              ? isProCurrent
+                ? "Gia đình hiện đang dùng gói Pro."
+                : `Gia đình hiện đang dùng gói ${currentPlanName}. So sánh quyền lợi và hạn mức của các gói khác.`
               : "So sánh quyền lợi và hạn mức của từng gói dành cho gia đình."}
           </p>
         </div>
         <dl className="plan-current-meta">
           <div>
-            <dt>Trạng thái đăng ký</dt>
+            <dt>Trạng thái đăng ký{currentPlanName ? " " : ""}{currentPlanName && <span className="plan-status-name">{currentPlanName}</span>}</dt>
             <dd>
-              {moduleApiModes.parentSubscription !== "real"
-                ? "Chưa khả dụng"
-                : subscriptionsQuery.isPending
-                  ? "Đang tải"
-                : subscriptionsQuery.isError
-                  ? "Chưa tải được"
-                  : currentSubscription
-                    ? subscriptionStatusLabel(currentSubscription.status)
-                    : "Chưa có bản ghi"}
+              {currentSubscription
+                ? subscriptionStatusLabel(currentSubscription.status)
+                : currentPlanId || currentPlanName
+                  ? "Đang sử dụng"
+                  : moduleApiModes.parentSubscription !== "real"
+                    ? "Chưa khả dụng"
+                    : subscriptionsQuery.isPending
+                      ? "Đang tải"
+                      : subscriptionsQuery.isError
+                        ? "Chưa tải được"
+                        : "Chưa có đăng ký"}
             </dd>
-            {moduleApiModes.parentSubscription !== "real" && <small>API này chưa được bật vì Backend chưa xác nhận quyền truy cập theo Parent.</small>}
+            {moduleApiModes.parentSubscription !== "real" && !(currentPlanId || currentPlanName) && <small>API này chưa được bật vì Backend chưa xác nhận quyền truy cập theo Parent.</small>}
             {moduleApiModes.parentSubscription === "real" && subscriptionsQuery.isError && <small>{subscriptionsQuery.error.message}</small>}
+            {!currentSubscription && (currentPlanId || currentPlanName) && (
+              <small>Theo gói đang áp dụng trong hồ sơ phụ huynh.</small>
+            )}
           </div>
           {currentSubscription && (
             <div>
@@ -121,6 +122,7 @@ export default function ParentPlanPage() {
                 key={plan.id}
                 plan={plan}
                 currentPlanId={currentPlanId}
+                blockOtherPlans={isProCurrent}
                 canCheckout={
                   availability?.source === "backend"
                     ? availability.checkoutEnabled === true
@@ -158,7 +160,7 @@ function formatSubscriptionDate(value) {
   }).format(date);
 }
 
-function PlanOptionCard({ plan, currentPlanId, canCheckout }) {
+function PlanOptionCard({ plan, currentPlanId, canCheckout, blockOtherPlans }) {
   const planIdentity = plan.backendId || plan.id;
   const isCurrent = Boolean(
     currentPlanId &&
@@ -214,11 +216,13 @@ function PlanOptionCard({ plan, currentPlanId, canCheckout }) {
           </li>
         ))}
       </ul>
-      <div className="plan-option-action">
+      <div className={`plan-option-action ${blockOtherPlans && !isCurrent ? "is-locked" : ""}`}>
         {isCurrent ? (
           <span className="plan-option-disabled">
             <CheckCircle size={16} aria-hidden="true" /> Gói hiện tại
           </span>
+        ) : blockOtherPlans ? (
+          <span className="plan-option-locked">Đã khóa</span>
         ) : canCheckout ? (
           <Link
             className="workspace-button"

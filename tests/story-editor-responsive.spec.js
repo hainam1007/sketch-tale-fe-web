@@ -7,7 +7,7 @@ test("editor tools and section navigation remain reachable across viewports", as
   await page.locator("form button[type=submit]").click();
   await expect(page).toHaveURL(/\/content$/);
   await page.goto("/content/stories/story-first-spark/pages");
-  await expect(page.getByLabel("Tên trang", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đóng bảng công cụ" })).toBeVisible();
   for (const width of [1366, 1024, 768, 390]) {
     await page.setViewportSize({ width, height: 850 });
     await page.getByRole("button", { name: "Đóng bảng công cụ" }).click();
@@ -21,9 +21,9 @@ test("editor tools and section navigation remain reachable across viewports", as
     await link.click({ trial: true });
     await page.locator(".story-studio-section-menu summary").click();
     await page.screenshot({ path: `artifacts/story-editor-${width}.png` });
-    await page.getByRole("button", { name: "Cảnh", exact: true }).click();
-    await expect(page.getByLabel("Tên trang", { exact: true })).toBeVisible();
-    await page.getByLabel("Tên trang", { exact: true }).click({ trial: true });
+    await page.getByRole("button", { name: "Phụ đề", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Đóng bảng công cụ" })).toBeVisible();
+    await page.getByLabel("Nội dung truyện", { exact: true }).click({ trial: true });
   }
   const text = page.getByLabel("Nội dung truyện", { exact: true });
   await text.fill("Một mầm cây thức dậy sau cơn mưa.");

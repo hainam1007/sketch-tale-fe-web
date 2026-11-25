@@ -1,4 +1,4 @@
-import { Plus, BookOpen, ChartBar, Package, ArrowRight } from "@phosphor-icons/react";
+import { BookOpen, ChartBar, Package, ArrowRight } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import FamilyProfilesLive from "../components/FamilyProfilesLive";
@@ -19,19 +19,13 @@ export default function ParentOverviewPage() {
           <p className="workspace-eyebrow">PHỤ HUYNH / TỔNG QUAN</p>
           <h1>Chào {firstName}, hôm nay cùng bé khám phá nhé!</h1>
         </div>
-        <Link
-          className="workspace-button parent-entry-add-button"
-          to="/parent/children/new"
-        >
-          <Plus size={18} aria-hidden="true" /> Thêm tài khoản bé
-        </Link>
       </header>
       {moduleApiModes.parentProfile === "real" ? (
-        <FamilyProfilesLive />
+        <FamilyProfilesLive showAddAction showMascot />
       ) : showFamilyProfilePreview ? (
-        <FamilyProfilesPreview overview />
+        <FamilyProfilesPreview overview showAddAction />
       ) : (
-        <FamilyProfilesStatus showCreate={false} />
+        <FamilyProfilesStatus showCreate />
       )}
       <nav
         className="family-action-grid family-home-actions"

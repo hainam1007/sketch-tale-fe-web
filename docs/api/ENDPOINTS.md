@@ -1,11 +1,41 @@
-# Endpoint BE local
+# Endpoint BE local và Swagger live
 
-**Delta deploy 14/11:** danh mục dưới đây vẫn mô tả local read-only. Deploy giữ reader `/storypage-template/pages/{storyId}`; quiz chuyển sang `/child-quiz-answers/...`, thêm reading-log progress/completed. Xem [CONTRACTS](CONTRACTS.md) và [snapshot live](../../artifacts/swagger-parent-2026-11-14.json). Không dùng quiz routes local dưới đây để suy endpoint live còn tồn tại.
+## Delta source 24/11/2026 (`main` 3c1e02f)
 
-Sinh từ controller working tree ngày 13/11/2026 (HEAD 933b8d1 + staged). Đây là danh mục route/attribute để tra source, **không phải OpenAPI deploy**, không suy owner checks từ cột quyền. DTO/body/response và service phải đọc theo action. Xem [contract và khác biệt release](CONTRACTS.md).
+Danh mục bên dưới được lập từ `de3209f` và Swagger 18/11, nên phần chênh lệch “live có, local không có” về allowed-themes/story-recommends đã **hết đúng với source local mới**. Source hiện có 4 route sau; chúng kế thừa `[Authorize(Roles = "Parent,parent,Child,child,Admin,admin")]`, hai PUT thêm Parent/Admin. Cả bốn chưa kiểm tra owner của `{id}`.
 
-Tổng cộng **145 action / 146 operation HTTP** được trích từ controller local; không so trực tiếp với 144 operation live vì có route/mutation local khác baseline.
-Ký hiệu: JWT = `[Authorize]`; `—` = không có attribute tại controller/action đã đọc, chưa chứng minh anonymous qua mọi middleware. Quyền lớp và action cùng áp dụng; AllowAnonymous được ghi riêng.
+| Method/path | Action | Quyền source |
+| --- | --- | --- |
+| GET `/api/child-profiles/{id}/allowed-themes` | GetAllowedThemes | Parent/Child/Admin; thiếu owner |
+| PUT `/api/child-profiles/{id}/allowed-themes` | UpdateAllowedThemes | Parent/Admin; thiếu owner |
+| GET `/api/child-profiles/{id}/story-recommends` | GetStoryTemplateRecommends | Parent/Child/Admin; thiếu owner |
+| PUT `/api/child-profiles/{id}/story-recommends` | UpdateStoryTemplateRecommends | Parent/Admin; thiếu owner |
+| POST `/api/system-jobs/reset-daily-limits` | ResetDailyLimits | `AllowAnonymous` + `X-Cron-Secret` |
+| POST `/api/system-jobs/check-expire-subscriptions` | CheckExpiredSubscription | `AllowAnonymous` + `X-Cron-Secret` |
+
+Các route khác trong bảng 18/11 vẫn cần kiểm tra release; nhất là `/storypage-template/pages/{storyId}` trên Swagger so với `/published/{storyId}` trong source. Đọc [delta contract](CONTRACTS.md) trước khi dùng bảng cũ.
+
+Đối chiếu 18/11/2026: BE HEAD de3209f + staged; route/attribute không thay owner checks trong service. `—` = không tìm thấy Authorize trên class/action, không mặc định an toàn. Source links trỏ working tree cạnh FE. [Contract và blocker](CONTRACTS.md).
+
+Swagger live GET đã timeout khi recheck trong lượt PUB-01; danh sách dưới đây đối chiếu source local với snapshot đã lưu 18/11, không khẳng định route đang chạy trên deploy hiện tại.
+
+**Local: 158 actions / 159 operations. Live: 120 paths / 161 operations.** Không so số tổng để suy hai nguồn tương đương.
+
+## Chênh lệch route (chuẩn hóa tên tham số/constraint)
+
+Live có, local không có tại mốc 18/11 (bốn route child profile nay đã có trong source 24/11):
+
+- `GET /api/child-profiles/{id}/allowed-themes`
+- `PUT /api/child-profiles/{id}/allowed-themes`
+- `GET /api/child-profiles/{id}/story-recommends`
+- `PUT /api/child-profiles/{id}/story-recommends`
+- `GET /api/storypage-template/pages/{storyId}`
+
+Local có, live không công bố:
+
+- `GET /api/storypage-template/pages/by-story/{storyId:guid}`
+- `GET /api/storypage-template/published/{storyId:guid}`
+- `GET /api/user-story-character-mappings/child/{childProfileId:guid}`
 
 ## [AuditLogController](../../../SEP490Backend/sketch-tale-backend/sketch_tale.API/Controllers/AuditLogController.cs)
 
@@ -40,12 +70,14 @@ Ký hiệu: JWT = `[Authorize]`; `—` = không có attribute tại controller/a
 
 | Method/path | Action | Attribute quyền |
 | --- | --- | --- |
+| GET `/api/characters/child-profiles/{childId}` | GetAllCharacters | — |
 | GET `/api/characters/pending-approval` | GetPendingCharactersForParent | parent, Parent |
 | GET `/api/characters/{id}` | GetCharacterDetail | parent, Parent |
 | PUT `/api/characters/{id}/approve` | ApproveCharacter | parent, Parent |
 | PUT `/api/characters/{id}/reject` | RejectCharacter | parent, Parent |
 | POST `/api/characters/{id}/accept` | AcceptPreview | — |
 | POST `/api/characters/{id}/cancel-preview` | CancelPreview | — |
+| PUT `/api/characters/{characterId}/name` | UpdateNameCharacter | — |
 
 ## [CharacterSlotTemplateController](../../../SEP490Backend/sketch-tale-backend/sketch_tale.API/Controllers/CharacterSlotTemplateController.cs)
 
@@ -77,6 +109,14 @@ Ký hiệu: JWT = `[Authorize]`; `—` = không có attribute tại controller/a
 | GET `/api/child-profiles/{id}/daily-time-limit` | GetDailyTimeLimit | Parent,parent,Child,child,Admin,admin |
 | GET `/api/child-profiles/{id}/daily-character-limit` | GetDailyCharacterLimit | Parent,parent,Child,child,Admin,admin |
 | PUT `/api/child-profiles/{id}` | UpdateChildProfile | Parent,parent,Child,child,Admin,admin + Parent,parent,Admin,admin |
+
+## [ChildQuizAnswerController](../../../SEP490Backend/sketch-tale-backend/sketch_tale.API/Controllers/ChildQuizAnswerController.cs)
+
+| Method/path | Action | Attribute quyền |
+| --- | --- | --- |
+| POST `/api/child-quiz-answers` | SubmitAnswer | JWT + child,Child |
+| GET `/api/child-quiz-answers/reading-logs/{readingLogId}` | GetQuizAnswersByReadingLog | JWT + parent,Parent,child,Child |
+| GET `/api/child-quiz-answers/child-profiles/{childProfileId}` | GetQuizAnswersByChild | JWT + parent,Parent,child,Child |
 
 ## [ContentReportController](../../../SEP490Backend/sketch-tale-backend/sketch_tale.API/Controllers/ContentReportController.cs)
 
@@ -125,6 +165,14 @@ Ký hiệu: JWT = `[Authorize]`; `—` = không có attribute tại controller/a
 | PATCH `/api/education-themes/{id}` | Update | — |
 | DELETE `/api/education-themes/{id}` | Delete | — |
 
+## [GeneratedStoryController](../../../SEP490Backend/sketch-tale-backend/sketch_tale.API/Controllers/GeneratedStoryController.cs)
+
+| Method/path | Action | Attribute quyền |
+| --- | --- | --- |
+| POST `/api/generated-stories/generate` | GenerateStory | child,Child,parent,Parent |
+| GET `/api/generated-stories/{id}` | GetGeneratedStoryById | child,Child,parent,Parent |
+| GET `/api/generated-stories/child-profiles/{childProfileId}` | GetGeneratedStoriesByChildProfileId | child,Child,parent,Parent |
+
 ## [ParentProfileController](../../../SEP490Backend/sketch-tale-backend/sketch_tale.API/Controllers/ParentProfileController.cs)
 
 | Method/path | Action | Attribute quyền |
@@ -157,9 +205,10 @@ Ký hiệu: JWT = `[Authorize]`; `—` = không có attribute tại controller/a
 
 | Method/path | Action | Attribute quyền |
 | --- | --- | --- |
-| POST `/api/reading-logs/child-quiz-answers` | SubmitAnswer | JWT + child,Child |
-| GET `/api/reading-logs/{readingLogId}/quiz-answers` | GetQuizAnswersByReadingLog | JWT + parent,Parent,child,Child |
-| GET `/api/reading-logs/child-profiles/{childProfileId}/quiz-answers` | GetQuizAnswersByChild | JWT + parent,Parent,child,Child |
+| POST `/api/reading-logs` | StartReadingSession | JWT + child,Child |
+| PUT `/api/reading-logs/{id}/progress` | UpdateReadingProgress | JWT + child,Child |
+| PUT `/api/reading-logs/{id}/complete` | CompleteReadingSession | JWT + child,Child |
+| GET `/api/reading-logs/child-profiles/{childProfileId}/completed` | GetCompletedStoriesByChild | JWT + parent,Parent,child,Child |
 
 ## [RestrictedKeywordController](../../../SEP490Backend/sketch-tale-backend/sketch_tale.API/Controllers/RestrictedKeywordController.cs)
 
@@ -218,6 +267,7 @@ Ký hiệu: JWT = `[Authorize]`; `—` = không có attribute tại controller/a
 | PUT `/api/story-template/{id}` | Update | JWT + ContentManager,content manager |
 | DELETE `/api/story-template/{id}` | Delete | JWT + ContentManager,content manager |
 | POST `/api/story-template/{id}/publish` | Publish | JWT + ContentManager,content manager |
+| POST `/api/story-template/{id}/unpublish` | Unpublish | JWT + ContentManager,content manager |
 
 ## [SubscriptionController](../../../SEP490Backend/sketch-tale-backend/sketch_tale.API/Controllers/SubscriptionController.cs)
 
@@ -246,8 +296,11 @@ Ký hiệu: JWT = `[Authorize]`; `—` = không có attribute tại controller/a
 
 | Method/path | Action | Attribute quyền |
 | --- | --- | --- |
-| POST `/api/upload/background-image` | UploadItemImage | JWT + content manager |
+| POST `/api/upload/background-image` | UploadItemImage | JWT + content manager, ContentManager |
+| POST `/api/upload/content-manager-image` | UploadContentManagerImage | JWT + content manager, ContentManager |
+| GET `/api/upload/content-manager-images` | GetContentManagerUploadedImages | JWT + content manager, ContentManager |
 | POST `/api/upload/avatar` | UploadAvatar | JWT |
+| POST `/api/upload/remove-background` | RemoveBackground | JWT |
 
 ## [UserController](../../../SEP490Backend/sketch-tale-backend/sketch_tale.API/Controllers/UserController.cs)
 

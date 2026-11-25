@@ -14,6 +14,7 @@ const views = [
   { status: "published", label: "Đã xuất bản", icon: CheckCircle },
 ];
 const number = new Intl.NumberFormat("vi-VN");
+const recentStoryLimit = 5;
 
 export default function ContentOverviewPage() {
   const { user } = useAuth();
@@ -21,7 +22,7 @@ export default function ContentOverviewPage() {
   const [view, setView] = useState("all");
   const [search, setSearch] = useState("");
   const storyQueries = useQueries({ queries: views.map(({ status }) => {
-    const filters = { search: "", status, category: "all", sort: "updated_desc", page: 1, pageSize: 5 };
+    const filters = { search: "", status, category: "all", sort: "updated_desc", page: 1, pageSize: recentStoryLimit };
     return { queryKey: queryKeys.stories(user.id, filters), queryFn: ({ signal }) => contentService.listStories({ ...filters, signal }) };
   }) });
   const categoriesQuery = useQuery({ queryKey: queryKeys.contentCategories(user.id), queryFn: ({ signal }) => contentService.listCategories({ signal }), staleTime: 300_000 });
@@ -29,7 +30,7 @@ export default function ContentOverviewPage() {
   const selectedQuery = storyQueries[views.findIndex((item) => item.status === view)];
   const draftQuery = storyQueries[1];
   const activeDraft = draftQuery.data?.items?.[0];
-  const stories = selectedQuery.data?.items || [];
+  const stories = (selectedQuery.data?.items || []).slice(0, recentStoryLimit);
   const categories = categoriesQuery.data?.items || [];
   const libraryPath = view === "all" ? "/content/stories" : `/content/stories?status=${view}`;
 
@@ -42,7 +43,7 @@ export default function ContentOverviewPage() {
   return (
     <div className="workspace-dashboard cm-home">
       <header className="workspace-page-heading cm-home-heading">
-        <div><p className="workspace-eyebrow">KHÔNG GIAN NỘI DUNG</p><h1>Tổng quan</h1><p>Truyện của bạn, công việc đang làm và hiệu quả nội dung.</p></div>
+        <div><p className="workspace-eyebrow">KHÔNG GIAN NỘI DUNG</p><h1>Tổng quan</h1></div>
         <Link className="workspace-button" to="/content/stories/new"><Plus size={18} aria-hidden="true" /> Tạo truyện</Link>
       </header>
 
@@ -51,15 +52,18 @@ export default function ContentOverviewPage() {
           const query = storyQueries[index];
           return <Link key={status} className={`cm-home-metric cm-home-metric-${status}`} to={status === "all" ? "/content/stories" : `/content/stories?status=${status}`}>
             <span className="cm-home-metric-label"><Icon size={20} aria-hidden="true" />{status === "all" ? "Tổng số truyện" : label}<ArrowRight size={16} aria-hidden="true" /></span>
-            <strong>{query.isLoading ? "…" : query.isError ? "—" : metric(query.data?.total)}</strong>
-            <small>{query.isError ? "Chưa tải được số liệu" : status === "all" ? "Trong toàn bộ kho truyện" : status === "draft" ? "Tiếp tục biên tập" : "Quản lý truyện đã xuất bản"}</small>
+            <span className="cm-home-metric-value">
+              <strong>{query.isLoading ? "…" : query.isError ? "—" : metric(query.data?.total)}</strong>
+              {!query.isError && <small>truyện</small>}
+            </span>
+            {query.isError && <small className="cm-home-metric-error">Chưa tải được số liệu</small>}
           </Link>;
         })}
       </section>
 
       <div className="cm-home-columns">
         <section className="cm-home-recent" aria-labelledby="cm-recent-title">
-          <div className="cm-home-section-heading"><div><h2 id="cm-recent-title">Truyện gần đây</h2><p>Cập nhật mới nhất</p></div><Link className="workspace-button workspace-button-quiet cm-home-compact-button" to={libraryPath}>Xem tất cả <ArrowRight size={16} aria-hidden="true" /></Link></div>
+          <div className="cm-home-section-heading"><div><h2 id="cm-recent-title">Truyện gần đây</h2></div><Link className="workspace-button workspace-button-quiet cm-home-compact-button" to={libraryPath}>Xem tất cả <ArrowRight size={16} aria-hidden="true" /></Link></div>
           <form className="cm-home-search" role="search" onSubmit={findStory}>
             <MagnifyingGlass size={20} aria-hidden="true" /><label className="sr-only" htmlFor="cm-find-story">Tìm truyện trong kho</label>
             <input id="cm-find-story" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm truyện theo tên hoặc mô tả…" />

@@ -15,6 +15,7 @@ import { queryKeys } from "../../../lib/api/queryKeys";
 import { moduleApiModes } from "../../../lib/api/featureApi";
 import { useAuth } from "../../auth/useAuth";
 import { parentPaymentService } from "../services/parentPaymentService";
+import { hasProPlan } from "../services/currentParentPlan";
 import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import "../parent-plan.css";
 import "../parent-experience.css";
@@ -35,6 +36,16 @@ export default function ParentCheckoutPage() {
   const [method, setMethod] = useState("wallet");
   const [status, setStatus] = useState("ready");
   const [outcome, setOutcome] = useState("success");
+  if (hasProPlan(user))
+    return (
+      <div className="parent-checkout-page family-workspace">
+        <Link className="family-back" to="/parent/plan"><ArrowLeft /> Quay lại gói sử dụng</Link>
+        <section className="family-panel" role="status">
+          <h1>Gói Pro đang được sử dụng</h1>
+          <p>Gia đình đã đăng ký Pro nên không thể đăng ký gói khác.</p>
+        </section>
+      </div>
+    );
   if (!plan && catalog.isPending)
     return <LoadingState label="Đang chuẩn bị gói đã chọn" />;
   if (!plan)

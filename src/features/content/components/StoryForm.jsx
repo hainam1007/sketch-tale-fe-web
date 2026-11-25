@@ -116,9 +116,9 @@ export default function StoryForm({ assets, assetsLoading, assetsError, categori
     <fieldset disabled={isSaving} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
     <div className="content-form-alerts">{backendEnumBlocked && <div className="parent-form-alert" role="status"><strong>Chưa thể lưu thay đổi của truyện này lúc này.</strong></div>}{serverError && <div className="parent-form-alert" role="alert"><strong>{mutationOutcomeBlocked ? "Hãy kiểm tra trạng thái trước khi gửi lại" : "Chưa thể lưu truyện"}</strong><p>{serverError.message}</p>{mutationOutcomeBlocked && <div className="content-form-reconcile-actions"><button className="workspace-text-link" type="button" onClick={() => window.location.reload()}>Tải lại trang</button><Link className="workspace-text-link" to={serverError.storyId || serverError.createdStoryId ? `/content/stories/${serverError.storyId || serverError.createdStoryId}` : "/content/stories"} target="_blank" rel="noreferrer">{serverError.storyId || serverError.createdStoryId ? "Mở truyện để kiểm tra" : "Mở kho truyện để kiểm tra"}</Link></div>}</div>}</div>
     <div className="content-form-grid"><div>
-      <div className="content-form-section"><span className="content-form-icon"><TextT size={20} aria-hidden="true" /></span><div><h2>Nội dung giới thiệu</h2><p>Giúp người đọc nhận biết truyện trong thư viện.</p></div></div>
+      <div className="content-form-section"><span className="content-form-icon"><TextT size={20} aria-hidden="true" /></span><div><h2>Nội dung giới thiệu</h2></div></div>
       <div className="parent-field"><label htmlFor="story-title">Tên truyện <span>*</span></label><input id="story-title" maxLength="80" value={values.title} onChange={(event) => update("title", event.target.value)} onBlur={() => setTouched((current) => ({ ...current, title: true }))} placeholder="Ví dụ: Hạt mầm đầu tiên" aria-invalid={Boolean(touched.title && (errors.title || serverFields.title))} aria-describedby={touched.title && (errors.title || serverFields.title) ? "story-title-error" : undefined} />{touched.title && (errors.title || serverFields.title) && <p id="story-title-error" className="parent-field-error">{errors.title || serverFields.title}</p>}<small className="content-field-hint">{values.title.length}/80 ký tự</small></div>
-      <div className="parent-field"><label htmlFor="story-description">Mô tả ngắn</label><textarea id="story-description" maxLength="240" rows="4" value={values.description} onChange={(event) => update("description", event.target.value)} placeholder="Một câu mô tả giúp người đọc nhận biết truyện." /><small className="content-field-hint">{values.description.length}/240 ký tự</small></div>
+      <div className="parent-field"><label htmlFor="story-description">Mô tả ngắn</label><textarea id="story-description" maxLength="240" rows="4" value={values.description} onChange={(event) => update("description", event.target.value)} /><small className="content-field-hint">{values.description.length}/240 ký tự</small></div>
       {categoriesLoading && <p className="editor-help" role="status">Đang tải danh mục. Bạn có thể nhập các thông tin khác trước.</p>}
       {categoriesError && <p className="editor-field-error" role="alert">Không tải được danh mục. Nội dung đang nhập vẫn được giữ. <button type="button" className="workspace-text-link" onClick={onRetryCategories}>Thử lại</button></p>}
       <div className="story-form-meta-grid">
@@ -126,7 +126,7 @@ export default function StoryForm({ assets, assetsLoading, assetsError, categori
         {isRealApi && <div className="parent-field"><label htmlFor="story-age-group">Nhóm tuổi <span>*</span></label><select id="story-age-group" value={values.ageGroup ?? ""} onChange={(event) => update("ageGroup", event.target.value)} aria-invalid={Boolean(touched.ageGroup && errors.ageGroup)}><option value="">Chọn nhóm tuổi</option>{ageGroups.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select>{touched.ageGroup && errors.ageGroup && <p className="parent-field-error">{errors.ageGroup}</p>}</div>}
       </div>
     </div><aside className="content-cover-picker">
-      <div className="content-form-section"><span className="content-form-icon"><ImageSquare size={20} aria-hidden="true" /></span><div><h2>Ảnh bìa</h2><p>Chọn ảnh có sẵn trong kho tư liệu hoặc tải ảnh mới trực tiếp từ máy tính.</p></div></div>
+      <div className="content-form-section"><span className="content-form-icon"><ImageSquare size={20} aria-hidden="true" /></span><div><h2>Ảnh bìa</h2></div></div>
       <div className="parent-field">
         <AssetPicker assets={coverAssets} id="story-cover-library" label="Ảnh có sẵn trong kho tư liệu" value={values.coverAssetId} allowUpload={false} showUploadHint={false} disabled={isSaving || isUploadingCover || isPreparingCover || assetsLoading || Boolean(assetsError)} emptyLabel={showCurrentCover ? "Ảnh bìa hiện tại được lưu trực tiếp trên truyện." : undefined} onChange={async (value, asset) => {
           update("coverAssetId", value);
@@ -148,8 +148,8 @@ export default function StoryForm({ assets, assetsLoading, assetsError, categori
             }
           }
         }} />
-        {isRealApi && <small className="content-field-hint">Ảnh chọn từ kho sẽ được tải lên cùng truyện khi bạn lưu.</small>}
-        {assetsError && coverAssets?.length ? <p className="parent-field-error" role="alert">Không thể làm mới kho tư liệu: {assetsError} Bạn vẫn có thể tải ảnh mới từ máy.</p> : assetsLoading ? <p className="content-muted-note">Đang tải kho tư liệu…</p> : !assetsError && !coverAssets?.length && <p className="content-muted-note">Chưa có tư liệu hình ảnh. Bạn vẫn có thể tải ảnh trực tiếp từ máy ở khung bên dưới.</p>}
+
+        {assetsError && coverAssets?.length ? <p className="parent-field-error" role="alert">Không thể làm mới kho tư liệu: {assetsError} Bạn vẫn có thể tải ảnh mới từ máy.</p> : assetsLoading ? <p className="content-muted-note">Đang tải kho tư liệu…</p> : null}
       </div>
       <div className="parent-field">
         <label htmlFor="story-cover-file">{initialValues?.coverImageUrl ? "Tệp ảnh bìa từ máy tính (không bắt buộc)" : "Tải tệp ảnh bìa từ máy tính (không bắt buộc)"}</label>
@@ -194,7 +194,7 @@ export default function StoryForm({ assets, assetsLoading, assetsError, categori
         </div>
         {(isUploadingCover || isPreparingCover) && <small className="content-field-hint">{isPreparingCover ? "Đang chuẩn bị ảnh bìa…" : "Đang tải ảnh lên kho tư liệu…"}</small>}
         {coverFileError && <p className="parent-field-error" role="alert">{coverFileError}</p>}
-        <small className="content-field-hint">{values.coverImageUrl ? "Bỏ trống để giữ ảnh hiện tại. " : ""}PNG, JPG, WEBP, GIF · tối đa 5 MB.</small>
+
       </div>
     </aside></div><div className="parent-form-actions story-form-savebar"><span className="story-form-save-hint" role="status">{isSaving ? "Đang lưu thông tin…" : dirty ? "Có thay đổi chưa lưu" : initialValues ? "Thông tin đã lưu" : "Điền thông tin để tạo truyện"}<small>Ctrl / ⌘ + S để lưu</small></span><button className="workspace-button workspace-button-quiet" type="button" onClick={async () => { if (navigationGuarded || !dirty || await confirmToast({ title: "Rời trang này?", message: "Bạn có thay đổi chưa lưu. Nếu rời trang, các thay đổi này sẽ bị bỏ.", confirmLabel: "Rời trang", tone: "danger" })) onCancel(); }}>{navigationGuarded ? "Sang dựng truyện" : "Hủy"}</button><button className="workspace-button" type="submit" disabled={saveDisabled}><FloppyDisk size={17} aria-hidden="true" /> {isSaving ? "Đang lưu..." : initialValues ? "Lưu thông tin truyện" : "Tạo truyện"}</button></div>
     </fieldset>

@@ -2,9 +2,8 @@ import { ArrowClockwise, CheckCircle, Info, WarningCircle } from "@phosphor-icon
 
 export function LoadingState({ label = "Đang tải dữ liệu", fullPage = false }) {
   return (
-    <div className={`workspace-state loading-state ${fullPage ? "workspace-state-full" : ""}`} role="status" aria-live="polite">
+    <div className={`workspace-state loading-state ${fullPage ? "workspace-state-full" : ""}`} role="status" aria-live="polite" aria-label={label}>
       <img className="workspace-loading-mascot" src="/images/SketchTale_Mascot_Loading.webp" alt="" />
-      <span>{label}</span>
     </div>
   );
 }

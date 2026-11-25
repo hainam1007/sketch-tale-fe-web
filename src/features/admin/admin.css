@@ -33,52 +33,6 @@
 .admin-catalog-td-actions { text-align: center; white-space: nowrap; width: 110px; }
 .admin-catalog-action-group { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
 
-/* Switch Toggle Component */
-.admin-switch-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  width: 38px;
-  height: 22px;
-  padding: 2px;
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  background: #e5e7eb;
-  cursor: pointer;
-  transition: background-color 180ms ease, border-color 180ms ease;
-  vertical-align: middle;
-  outline: none;
-}
-.admin-switch-btn:hover:not(:disabled) {
-  border-color: #9ca3af;
-}
-.admin-switch-btn:focus-visible {
-  outline: 3px solid rgb(244 198 62 / .4);
-}
-.admin-switch-btn.is-active {
-  background: #22c55e;
-  border-color: #16a34a;
-}
-.admin-switch-btn.is-active:hover:not(:disabled) {
-  background: #16a34a;
-}
-.admin-switch-slider {
-  display: block;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
-  transform: translateX(0);
-}
-.admin-switch-btn.is-active .admin-switch-slider {
-  transform: translateX(16px);
-}
-.admin-switch-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 .admin-refresh-note { margin: -3px 2px 9px; color: #7a818b; font-size: 11px; }
 .admin-overlay { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 18px; background: rgb(20 25 33 / .43); }
 .admin-editor-panel { width: min(640px, 100%); max-height: min(840px, calc(100dvh - 36px)); overflow: auto; padding: 23px; border: 1px solid #e4e1d8; border-radius: 15px; background: #fff; box-shadow: 0 18px 55px rgb(27 31 39 / .2); }
@@ -851,3 +805,53 @@
 
 
 
+
+/* Consistent editing surfaces across admin catalogs and account forms. */
+.admin-editor-panel,
+.admin-native-dialog {
+  box-sizing: border-box;
+  border-radius: 20px;
+  padding: 28px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.admin-dialog-heading { gap: 20px; align-items: flex-start; }
+.admin-dialog-heading h2 { line-height: 1.3; text-wrap: balance; }
+.admin-dialog-heading .icon-button { flex-shrink: 0; min-width: 40px; min-height: 40px; }
+.admin-editor-fields { gap: 20px 24px; padding: 24px 0 8px; }
+.admin-catalog-field { gap: 8px; font-size: 13px; font-weight: 700; }
+.admin-catalog-field input,
+.admin-catalog-field select,
+.admin-catalog-field textarea {
+  min-height: 46px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.admin-catalog-field textarea { min-height: 108px; line-height: 1.6; }
+.admin-editor-fields .admin-catalog-field:has(textarea) { grid-column: 1 / -1; }
+.admin-catalog-field input:disabled,
+.admin-catalog-field select:disabled { background: #f5f4f0; color: #777b82; cursor: not-allowed; }
+.admin-catalog-checkbox { min-height: 46px; align-items: center; gap: 10px; }
+.admin-catalog-checkbox input { width: 19px; height: 19px; accent-color: #a97b16; }
+.admin-editor-panel .admin-dialog-actions,
+.admin-native-dialog .admin-dialog-actions {
+  position: sticky;
+  bottom: -28px;
+  z-index: 2;
+  margin-top: 24px;
+  padding: 18px 0;
+  background: #fff;
+}
+.admin-dialog-actions .workspace-button { min-height: 44px; }
+.admin-editor-panel :focus-visible,
+.admin-native-dialog :focus-visible { outline: 3px solid #e8bd54; outline-offset: 3px; }
+@media (max-width: 600px) {
+  .admin-editor-panel, .admin-native-dialog { padding: 20px; border-radius: 16px; max-height: calc(100dvh - 24px); }
+  .admin-editor-fields { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .admin-catalog-field input, .admin-catalog-field select, .admin-catalog-field textarea { font-size: 16px; }
+  .admin-editor-panel .admin-dialog-actions, .admin-native-dialog .admin-dialog-actions { bottom: -20px; flex-direction: column-reverse; }
+  .admin-dialog-actions > * { width: 100%; }
+}

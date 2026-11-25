@@ -136,7 +136,7 @@ function AdminUserDetail() {
       if (field === "gender") value = value === "" ? null : value === true || value === "true";
       if ((editOriginal[field] ?? "") === (value ?? "")) continue;
       if (["email", "dob", "gender"].includes(field) && (value === "" || value === null)) {
-        setErrorMsg("API chưa hỗ trợ xóa email, ngày sinh hoặc giới tính. Giữ giá trị hiện tại hoặc nhập giá trị mới.");
+        setErrorMsg("Vui lòng giữ giá trị hiện tại hoặc nhập giá trị mới cho email, ngày sinh và giới tính.");
         return;
       }
       payload[field] = value;
@@ -242,7 +242,7 @@ function AdminUserDetail() {
         </form>}
 
         {target.profileId && <div className="admin-plan-assignment-box">
-          <p className="admin-field-note">Tạm khóa gán gói: chờ Backend xác nhận cập nhật quota và subscription.</p>
+          <p className="admin-field-note">Tính năng đổi gói hiện chưa khả dụng.</p>
           <h3>
             <Package size={20} aria-hidden="true" /> Gán gói dịch vụ mới
           </h3>
@@ -265,7 +265,7 @@ function AdminUserDetail() {
               <button
                 className="workspace-button"
                 type="submit"
-                disabled title="Chờ Backend xác nhận quota và subscription khi đổi gói"
+                disabled title="Tính năng đổi gói hiện chưa khả dụng"
               >
                 <Check size={18} aria-hidden="true" />
                 {updatePlanMutation.isPending ? "Đang cập nhật…" : "Cập nhật gói cước"}
