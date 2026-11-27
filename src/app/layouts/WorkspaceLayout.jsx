@@ -36,6 +36,7 @@ const roleNavigation = {
   [ROLES.CONTENT]: [
     { to: "/content", label: "Tổng quan", icon: House, end: true },
     { to: "/content/stories", label: "Truyện", icon: BookOpen },
+    { to: "/content/moderation", label: "Đề xuất kiểm duyệt", icon: ShieldCheck },
     { to: "/content/assets", label: "Kho tài sản", icon: Package },
     { to: "/content/statistics", label: "Hiệu quả", icon: ChartLineUp },
   ],
@@ -45,6 +46,7 @@ const roleNavigation = {
     { to: "/admin/subscription-plans", label: "Gói sử dụng", icon: Package },
     { to: "/admin/credit-costs", label: "Chi phí credit", icon: Coins },
     { to: "/admin/reports", label: "Báo cáo nội dung", icon: ShieldCheck },
+    { to: "/admin/moderation", label: "Hàng chờ đề xuất", icon: ClockCounterClockwise },
     { to: "/admin/restrictions", label: "Từ khóa hạn chế", icon: Prohibit },
     { to: "/admin/prohibited-themes", label: "Chủ đề cấm", icon: Prohibit },
     { to: "/admin/education-themes", label: "Chủ đề giáo dục", icon: GraduationCap },

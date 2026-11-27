@@ -41,6 +41,7 @@ const documentedRoutes = [
   "GET /child-profiles/:id/daily-time-limit",
   "GET /child-profiles/:id/daily-character-limit",
   "GET /characters/pending-approval",
+  "GET /characters/child-profiles/:childId",
   "GET /characters/:id",
   "PUT /characters/:id/approve",
   "PUT /characters/:id/reject",

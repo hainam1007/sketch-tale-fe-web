@@ -2,7 +2,6 @@ import {
   BookOpenText,
   Check,
   HighlighterCircle,
-  Play,
   Question,
   SpeakerHigh,
 } from "@phosphor-icons/react";
@@ -25,31 +24,26 @@ export default function ReadingSection() {
       <div className="landing-container landing-reading-grid">
         <Reveal className="landing-reader-preview" direction="left">
           <div className="landing-reader-top">
-            <span>Truyện mẫu</span>
+            <span>Giao diện đọc minh họa</span>
             <span>Trang 2 / 3</span>
           </div>
           <div className="landing-reader-body">
             <img
-              src="/images/rabbit.webp"
-              alt="Thỏ và Sóc cùng chia sẻ chiếc ô vàng trong khu vườn."
+              src="/images/stars.webp"
+              alt="Mèo nhìn những ngôi sao qua kính thiên văn trên ngọn đồi."
               width="800"
               height="600"
             />
             <div className="landing-reader-copy">
-              <span className="landing-reader-category">Một tình bạn nhỏ</span>
-              <h3>Dưới cùng một chiếc ô</h3>
+              <span className="landing-reader-category">Một chuyến khám phá</span>
+              <h3>Mèo tìm ngôi sao</h3>
               <p>
-                <mark>Dưới gốc cây, Sóc đang nép mình tránh mưa.</mark> “Bạn đi
-                cùng mình nhé!” Thỏ gọi.
+                <mark>Cùng mẹ, Mèo mang kính thiên văn lên ngọn đồi.</mark> Qua
+                ống kính, bầu trời hiện ra đầy sao lấp lánh.
               </p>
-              <div className="landing-reader-controls">
-                <button type="button" aria-label="Phát lời kể">
-                  <Play size={18} weight="fill" aria-hidden="true" />
-                </button>
-                <span>
-                  <i />
-                </span>
-                <small>Cùng lắng nghe</small>
+              <div className="landing-reader-sample-note">
+                <span aria-hidden="true" />
+                <small>Trang truyện mẫu tĩnh</small>
               </div>
             </div>
           </div>

@@ -1,4 +1,14 @@
 .family-workspace { max-width:1180px; margin-inline:auto; display:grid; gap:24px; color:#21354c; }
+.parent-character-gallery .family-section-heading { margin-bottom:18px; }
+.parent-character-gallery .family-section-heading p { margin:4px 0 0; }
+.parent-character-count { flex:0 0 auto; color:#735b25; font-size:13px; font-weight:800; }
+.parent-character-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:16px; }
+.parent-character-tile { min-width:0; overflow:hidden; border:1px solid #e8ddc5; border-radius:16px; background:#fffcf5; }
+.parent-character-image { display:grid; place-items:center; aspect-ratio:4/3; color:#9b7c3d; background:#f5ecd6; }
+.parent-character-image img { width:100%; height:100%; object-fit:contain; }
+.parent-character-copy { padding:13px 15px 15px; }
+.parent-character-copy h3 { margin:0 0 6px; color:#163050; font-size:16px; line-height:1.35; overflow-wrap:anywhere; }
+.parent-character-copy span { color:#786947; font-size:12px; font-weight:700; }
 .family-workspace h1 { font-size:clamp(26px,3vw,38px); letter-spacing:-.8px; margin:6px 0 10px; }
 .family-workspace h2,.family-picker h2 { font-size:22px; letter-spacing:-.4px; margin:0 0 8px; }
 .family-workspace p,.family-picker p { color:#637185; line-height:1.7; }

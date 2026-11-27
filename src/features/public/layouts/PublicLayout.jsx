@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { ArrowRight, List, X } from "@phosphor-icons/react";
+import { List, X } from "@phosphor-icons/react";
 import BrandLogo from "../../../components/branding/BrandLogo";
 import { useAuth } from "../../auth/useAuth";
 import { roleHome } from "../../../lib/permissions/roles";
@@ -12,7 +12,7 @@ const navigation = [
   ["/#pricing", "Bảng giá"],
 ];
 const landingNavigation = [
-  ["#features", "Tính năng"],
+  ["#features", "Cách hoạt động"],
   ["#stories", "Truyện"],
   ["#parents", "Dành cho phụ huynh"],
   ["#pricing", "Bảng giá"],
@@ -65,6 +65,19 @@ export default function PublicLayout() {
           <Link to="/" className="brand" aria-label="SketchTale - Trang chủ">
             <BrandLogo />
           </Link>
+          <nav className="desktop-nav" aria-label="Điều hướng chính">
+            {currentNavigation.map(([to, label]) =>
+              landing ? (
+                <a key={to} href={to}>
+                  {label}
+                </a>
+              ) : (
+                <Link key={to} to={to}>
+                  {label}
+                </Link>
+              ),
+            )}
+          </nav>
           <Link className="login-link" to={authLink}>
             {authLabel}
           </Link>
@@ -88,7 +101,6 @@ export default function PublicLayout() {
         >
           {[
             ...currentNavigation,
-            ...(landing ? [["#character", "Bắt đầu ngay"]] : []),
             [authLink, authLabel],
           ].map(([to, label]) =>
             landing && to.startsWith("#") ? (
@@ -108,18 +120,6 @@ export default function PublicLayout() {
           <Outlet />
         </main>
         <footer className={`site-footer ${landing ? "site-footer-landing" : ""}`}>
-          {landing && (
-            <div className="container footer-landing-lead">
-              <div>
-                <span className="footer-landing-kicker">MỞ THÊM MỘT TRANG CÙNG BÉ</span>
-                <h2>Biến nét vẽ hôm nay thành ký ức mai sau.</h2>
-                <p>Mỗi câu chuyện bắt đầu từ một ý tưởng nhỏ của bé.</p>
-              </div>
-              <a className="footer-landing-cta" href="#character">
-                Bắt đầu sáng tạo <ArrowRight size={18} aria-hidden="true" />
-              </a>
-            </div>
-          )}
           <div className="container footer-grid">
             <div className="footer-brand">
               <Link to="/" className="brand">

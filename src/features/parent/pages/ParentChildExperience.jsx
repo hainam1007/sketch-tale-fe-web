@@ -33,7 +33,7 @@ import "../parent-experience.css";
 const tabs = [
   ["", "Tổng quan"],
   ["settings", "Cài đặt"],
-  ["approvals", "Phê duyệt"],
+  ["approvals", "Nhân vật"],
   ["library", "Tủ truyện"],
   ["progress", "Kết quả quiz"],
 ];

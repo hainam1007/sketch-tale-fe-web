@@ -5,6 +5,7 @@ import { BookOpen, Clock, Star, CheckCircle, ShieldCheck, Gear } from "@phosphor
 import { moduleApiModes } from "../../../lib/api/featureApi";
 import { parentApprovalService } from "../services/parentApprovalService";
 import ParentApprovalsLive from "./ParentApprovalsLive";
+import ParentCharactersLive from "./ParentCharactersLive";
 import LiveChildProfilePage from "../pages/LiveChildProfilePage";
 
 // This branch only renders server-backed information. Preview fixtures remain
@@ -23,7 +24,7 @@ export default function LiveChildSection({ child, userId, section }) {
 
   if (section === "approvals") {
     return approvalsEnabled
-      ? <ParentApprovalsLive child={child} userId={userId} />
+      ? <><ParentCharactersLive child={child} userId={userId} /><ParentApprovalsLive child={child} userId={userId} /></>
       : <Unavailable title="Phê duyệt chưa khả dụng" message="Yêu cầu phê duyệt của bé sẽ xuất hiện khi tính năng sẵn sàng." />;
   }
   if (section === "settings") {

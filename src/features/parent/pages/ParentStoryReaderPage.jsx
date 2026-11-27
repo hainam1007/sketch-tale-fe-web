@@ -8,6 +8,7 @@ import { ErrorState, LoadingState } from "../../../components/feedback/States";
 import { moduleApiModes } from "../../../lib/api/featureApi";
 import { useAuth } from "../../auth/useAuth";
 import { childrenService } from "../services/childrenService";
+import ParentContentReportAction from "../components/ParentContentReportAction";
 import { parentProfileService } from "../services/parentProfileService";
 import { previewProfiles, showFamilyProfilePreview } from "../services/familyProfilePreview";
 import { useParentDemo } from "../services/parentDemoState";
@@ -104,6 +105,7 @@ function Reader() {
         <Link className="parent-text-link parent-reader-back library-back-button" to={location.state?.returnTo || "/parent/library"}>
           <ArrowLeft size={18} aria-hidden="true" /> Về thư viện truyện
         </Link>
+        {story && <ParentContentReportAction story={story} />}
         <div className="parent-reader-recommend">
           <button
             className="workspace-button workspace-button-quiet parent-reader-recommend-trigger"

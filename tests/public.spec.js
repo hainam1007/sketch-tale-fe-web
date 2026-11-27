@@ -81,7 +81,7 @@ test("mobile menu keyboard, anchor and route recovery", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Mở menu" })).toBeFocused();
   await page.getByRole("button", { name: "Mở menu" }).click();
-  await page.locator("#mobile-menu").getByText("Tính năng").click();
+  await page.locator("#mobile-menu").getByText("Cách hoạt động").click();
   await expect(page.locator("#mobile-menu")).toBeHidden();
   await expect(page).toHaveURL(/#features/);
   await page.goto("/stories");

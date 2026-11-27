@@ -20,7 +20,7 @@ export default function LandingHero() {
             delay={100}
             direction="left"
           >
-            Mỗi nét vẽ
+            <span>Mỗi nét vẽ</span>
             <br />
             <em>một câu chuyện.</em>
           </Reveal>
@@ -33,10 +33,10 @@ export default function LandingHero() {
               className="landing-button landing-button-primary"
               href="#character"
             >
-              Bắt đầu ngay
+              Xem cách tạo nhân vật
             </a>
             <a className="landing-button landing-button-quiet" href="#stories">
-              Khám phá truyện <ArrowRight size={19} aria-hidden="true" />
+              Tới kệ truyện <ArrowRight size={19} aria-hidden="true" />
             </a>
           </Reveal>
         </div>

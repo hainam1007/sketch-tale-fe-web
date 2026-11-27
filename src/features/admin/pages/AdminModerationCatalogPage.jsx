@@ -299,6 +299,7 @@ export default function AdminModerationCatalogPage({ kind }) {
                         title={`Sửa ${item.name || "mục"}`}
                         aria-label={`Sửa ${item.name || "mục"}`}
                         onClick={() => openEditor(item)}
+                        disabled={item.status === 1}
                       >
                         <PencilSimple size={16} aria-hidden="true" />
                       </button>
@@ -308,13 +309,14 @@ export default function AdminModerationCatalogPage({ kind }) {
                         title={`Xóa ${item.name || "mục"}`}
                         aria-label={`Xóa ${item.name || "mục"}`}
                         onClick={() => setDeleteTarget(item)}
+                        disabled={item.status === 1}
                       >
                         <Trash size={16} aria-hidden="true" />
                       </button>
                       <AdminStatusButton
                         active={item.status === 2}
                         name={item.nameVi || item.name || "mục"}
-                        disabled={pendingIds.has(item.id)}
+                        disabled={pendingIds.has(item.id) || ![2, 3].includes(Number(item.status))}
                         onChange={() => toggleMutation.mutate({ item, nextStatus: item.status === 2 ? "disabled" : "active" })}
                       />
                     </div>

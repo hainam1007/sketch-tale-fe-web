@@ -30,8 +30,9 @@ export const moduleApiModes = Object.freeze({
   parentPayment: import.meta.env.VITE_PARENT_PAYMENT_API_MODE || "mock",
   // Character approval endpoints derive the Parent from the JWT.
   parentApprovals: import.meta.env.VITE_PARENT_APPROVALS_API_MODE || featureApiModes.parent,
-  // Swagger documents list/detail ContentReport operations; keep this module
-  // read-only in the UI until status-transition semantics are confirmed.
+  // Parent content reports require the owner-scoped BE report endpoints.
+  parentContentReports: import.meta.env.VITE_PARENT_CONTENT_REPORTS_API_MODE || "disabled",
+  // Admin report operations are authenticated and follow the ContentReport transition contract.
   adminReports: import.meta.env.VITE_ADMIN_REPORTS_API_MODE || "real",
   adminModerationCatalog: import.meta.env.VITE_ADMIN_MODERATION_CATALOG_API_MODE || adminCatalogApiMode,
 });
@@ -46,6 +47,7 @@ const featureLabels = {
   parentQuizResults: "kết quả quiz Parent",
   parentPayment: "thanh toán Parent",
   parentApprovals: "phê duyệt Parent",
+  parentContentReports: "báo cáo nội dung Parent",
   adminReports: "báo cáo Admin",
   adminModerationCatalog: "danh mục kiểm duyệt Admin",
 };

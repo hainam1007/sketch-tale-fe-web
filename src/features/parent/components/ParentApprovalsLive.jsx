@@ -30,6 +30,7 @@ function ApprovalInbox({ child, userId }) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["child-approvals", userId, child.id] }),
         queryClient.invalidateQueries({ queryKey: ["child-approval", userId, child.id, characterId] }),
+        queryClient.invalidateQueries({ queryKey: ["parent-child-characters", userId, child.id] }),
       ]);
     },
     onSettled: () => { decisionLock.current = false; },

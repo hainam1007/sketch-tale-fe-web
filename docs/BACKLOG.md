@@ -44,10 +44,10 @@ Audit Parent 14/11 đã triển khai recovery hồ sơ, identity/session guards,
 
 | ID | Phần cần hoàn thiện / bên xử lý | Điều kiện đóng |
 | --- | --- | --- |
-| DOC-API-01 | FE + BE: Swagger 18/11 reader `/pages/{storyId}` lệch source Parent/Child `/published/{storyId}`; route pages reader hiện phải gate published hierarchy | Method/path/claim khớp release; Parent/Child catalog/detail/pages/roles/slots/quizzes chỉ đọc story + entity Active; Draft/Pending/Archived bị chặn qua direct URL; không fallback authoring |
+| DOC-API-01 | FE source đã chuyển reader sang `/published/{storyId}` theo BE local; Swagger/deploy contract và role/slot hierarchy chưa xác minh | Release xác nhận route/method/claim; mọi Parent/Child read chỉ trả story + entity Active; Draft/Pending/Archived bị chặn qua direct URL; không fallback authoring |
 | DOC-API-02 | Alias ContentManager đã có source; cần runtime upload/gallery | Đúng token CM upload được, role khác bị chặn, URL đọc ở browser sạch; không bypass avatar |
 | WEB01–06 | FE: codec/reader/shared model/save queue/media migration/publish theo kế hoạch | JSON v1 và unknown fields không mất; text-only giữ composition; late response không xóa edits; browser sạch đọc đủ media/layout |
-| PUB-01 | FE gates/read-back/intercepts xong; BE cascade source có, nhưng story Pending/Archived vẫn promote Active, child Pending/Archived không cascade; reader path/hierarchy chưa thống nhất | BE policy rõ và không publish hierarchy thiếu; release đúng route/version; CM publish Draft story ≥2 pages/roles/slots/quizzes; Parent/Child đọc catalog/detail/full active pages từ context sạch; deep-link draft bị chặn; unpublish role đúng; workflow sửa published/snapshot được công bố |
+| PUB-01 | FE gates/read-back/intercepts xong; FE reader source dùng `/published/{storyId}`; BE vẫn promote story Pending/Archived và role/slot read chưa gate đầy đủ hierarchy | BE policy rõ và không publish hierarchy thiếu; release xác nhận route/version; CM publish Draft story ≥2 pages/roles/slots/quizzes; Parent/Child đọc catalog/detail/full active pages từ context sạch; deep-link draft bị chặn; unpublish role đúng; workflow sửa published/snapshot được công bố |
 | SEC-01 | BE: auth/owner credit/subscription/ParentProfile/payment cancel; `GET /parent-profiles/child?parentId=` phải bind parentId với JWT | Theo yêu cầu người dùng, FE subscription GET chỉ bật trong `.env.development`, lấy ParentProfileId từ `/auth/profile` (fallback User.Id chỉ khi response đã xác minh, theo source relation), intercept chặn response sai owner/session; production vẫn disabled. Đây không thay authorization BE. DTO 18/11 chuyển sang id; FE cần ưu tiên profile.id, BE vẫn phải bảo vệ endpoint. Parent A truyền ID B phải 403/404; non-Admin không quản trị; runtime IDOR trên route đúng chưa kiểm thử |
 | SEC-02 | BE/Mobile: accept/cancel-preview lấy child từ client | JWT + child owner, không truy cập chéo, hoàn quota không lặp |
 | PAY-01 | BE + FE: order status, cancel semantics, webhook entitlement | PayOS success nhưng Parent còn Free đã được báo. Source local webhook active Subscription nhưng không cập nhật ParentProfile.SubscriptionPlanId; cần webhook atomic/idempotent ghi entitlement, GET status Parent-owned, rồi FE profile/status read-back; không tin return URL |
@@ -70,7 +70,7 @@ Audit Parent 14/11 đã triển khai recovery hồ sơ, identity/session guards,
 | MEDIA-01 | Upload audio độc lập + media retention | Durable URL, MIME/codec/size/duration, replace/clear; không ghi đè narration để giả kho audio |
 | CROSS-01 | Revision/ETag + error contract | Stale write bị BE từ chối nguyên tử; field errors/requestId; multi-entity partial save có recovery |
 | PUB-02 | Draft/published version khi cần sửa song song | Bản đang đọc giữ snapshot; retention assets theo references |
-| ADM-02 | Report workflow/evidence, catalogs, audit date filters/pagination | Transition/target effects/note/actor đúng; giá/quota/delete có quy tắc; audit lọc ngày và phân trang tại DB |
+| ADM-02 | Report workflow/evidence, catalogs, audit date filters/pagination | Report Content WF-04 đã có source flow Parent submit → Admin transition/ẩn Story/khóa chủ truyện; runtime còn chờ. Decision note/evidence, catalogs, audit date filter/page vẫn mở |
 | ADM-03 | Doanh thu/credit và metrics thật | Ledger/currency/range/timezone/generatedAt; không tính doanh thu từ giá gói hiện tại |
 | ADM-04 | Limits/monitoring/statistics khi mở scope | Enforcement server; retry/cancel idempotent; metric có định nghĩa |
 | UI-01 | Nghiệm thu UI còn mở trong specs | Loading/empty/error/dirty/conflict; keyboard/focus; responsive; rà checkbox với code trước làm lại |
@@ -95,6 +95,6 @@ Khi đóng một ID, cập nhật contract/role và bằng chứng test; không 
 
 - **P0 SEC-ADM / AUDIT-DATA:** anonymous GET audit-logs/content-reports/parent-profiles runtime 200; bảo vệ endpoint và lọc Identity secrets trong audit persistence/response, actor thật. Không đóng bằng FE guard.
 - **ADM-01:** FE sửa isLockedOut, role ContentManager, changed-only PUT; tạm khóa tạo Child/gán gói theo người dùng. Còn BE self-demotion/last-admin/role-profile lifecycle, revoke token, phone/clear/reason/revision.
-- **ADM-02:** CharType đúng schema; catalog whitelist/code server; reports giữ reason/read-back recovery; audit scoped search và bỏ actor giả. Còn auth/transition/evidence/notes và quota/price/reference policy.
+- **ADM-02:** CharType đúng schema; catalog whitelist/code server; reports giữ reason/read-back recovery. WF-04 source đã thêm role/owner gate, status transition, ẩn Story và lockout chủ truyện; cần staging/runtime để đóng. Decision note/evidence và audit scoped date/pagination cùng quota/price/reference policy còn mở.
 - **ADM-03/04:** tổng chỉ từ full collection; metric chưa có API để trống, không dựng biểu đồ/cơ cấu giả; giữ redirect các route chưa mở.
 - Runtime mutation vẫn chờ dataset/ID test và non-Admin; [ma trận và toàn bộ yêu cầu BE](roles/ADMIN.md).

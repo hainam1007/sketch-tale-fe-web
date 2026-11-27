@@ -78,8 +78,14 @@ async function listThemes({ signal } = {}) {
 }
 
 async function listActivePages({ storyId, signal }) {
+  // Render currently exposes `pages`; the newer Backend source exposes `published`.
+  // Select the deployed contract explicitly instead of retrying a content 404 on another route.
+  const pagesRoute = import.meta.env.VITE_PARENT_READER_PAGES_ROUTE || "published";
+  if (!["pages", "published"].includes(pagesRoute)) {
+    throw new ApiError({ status: 500, code: "PARENT_READER_ROUTE_INVALID", message: "Cấu hình đường đọc truyện không hợp lệ." });
+  }
   const response = await moduleApiRequest("parentCatalog", {
-    path: `/storypage-template/pages/${encodeURIComponent(storyId)}`,
+    path: `/storypage-template/${pagesRoute}/${encodeURIComponent(storyId)}`,
     signal,
   });
   return asRows(response, "story pages")

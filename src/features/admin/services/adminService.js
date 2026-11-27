@@ -215,25 +215,67 @@ export const adminService = {
   },
 
   getContentReport: async ({ reportId, signal }) => {
-    const [reportResult, usersResult] = await Promise.allSettled([
-      moduleApiRequest("adminReports", { path: `/content-reports/${encodeURIComponent(reportId)}`, signal }),
-      loadUserDirectory(signal),
-    ]);
-    if (reportResult.status === "rejected") throw reportResult.reason;
-    const item = reportResult.value;
+    const item = await moduleApiRequest("adminReports", {
+      path: `/content-reports/${encodeURIComponent(reportId)}`,
+      signal,
+    });
     if (!item || typeof item !== "object" || Array.isArray(item) || item.id !== reportId) {
       throw new Error("Backend trả chi tiết báo cáo không hợp lệ.");
     }
+    const [usersResult, pagesResult] = await Promise.allSettled([
+      loadUserDirectory(signal),
+      Number(item.targetType) === 1
+        ? moduleApiRequest("adminReports", {
+            path: `/storypage-template/pages/by-story/${encodeURIComponent(item.targetId)}`,
+            signal,
+          })
+        : Promise.resolve([]),
+    ]);
     const usersMap = usersResult.status === "fulfilled" ? usersResult.value : {};
+    let targetPages = [];
+    let targetPagesError = "";
+    if (Number(item.targetType) === 1) {
+      if (pagesResult.status === "rejected") {
+        targetPagesError = pagesResult.reason?.message || "Không thể tải các trang truyện.";
+      } else {
+        try {
+          targetPages = collectionItems(pagesResult.value, "trang truyện")
+            .filter((page) => {
+              const storyId = page.storyTemplateId ?? page.StoryTemplateId;
+              return !storyId || storyId.toLowerCase() === item.targetId.toLowerCase();
+            })
+            .map((page) => ({
+              ...page,
+              id: page.id ?? page.Id,
+              pageNumber: page.pageNumber ?? page.PageNumber,
+              rawText: page.rawText ?? page.RawText,
+              backgroundUrl: page.backgroundUrl ?? page.BackgroundUrl,
+              audioNarrationUrl: page.audioNarrationUrl ?? page.AudioNarrationUrl,
+            }))
+            .sort((left, right) => Number(left.pageNumber) - Number(right.pageNumber));
+        } catch (error) {
+          targetPagesError = error.message || "Backend trả danh sách trang truyện không hợp lệ.";
+        }
+      }
+    }
     const reporter = resolveUserFromDirectory(item.createBy, usersMap);
-    return { ...item, reporterName: reporter.name, reporterEmail: reporter.email };
+    const targetOwner = resolveUserFromDirectory(item.targetOwnerId, usersMap);
+    return {
+      ...item,
+      reporterName: reporter.name,
+      reporterEmail: reporter.email,
+      targetOwnerName: targetOwner.name,
+      targetOwnerEmail: targetOwner.email,
+      targetPages,
+      targetPagesError,
+    };
   },
 
-  updateContentReportStatus: async ({ reportId, status, reason = "", targetType = 0, targetId, signal }) => {
+  updateContentReportStatus: async ({ reportId, status, suspendTargetOwner = false, suspensionDays, restoreTargetOwner = false, decisionNote, signal }) => {
     return moduleApiRequest("adminReports", {
       path: `/content-reports/${encodeURIComponent(reportId)}`,
       method: "PATCH",
-      body: mutationBody({ status: Number(status), reason, targetType: Number(targetType), targetId }),
+      body: mutationBody({ status: Number(status), suspendTargetOwner: Boolean(suspendTargetOwner), restoreTargetOwner: Boolean(restoreTargetOwner), ...(decisionNote !== undefined ? { decisionNote: String(decisionNote).trim() } : {}), ...(suspendTargetOwner ? { suspensionDays: Number(suspensionDays) } : {}) }),
       signal,
       forceReal: true,
     });

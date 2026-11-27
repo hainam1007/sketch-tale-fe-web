@@ -17,7 +17,25 @@ export default function FinalSection() {
           <Reveal as="h2" id="final-title" delay={100} direction="left">
             Sẵn sàng biến
             <br />
-            <em>nét vẽ nhỏ</em>
+            <span className="landing-final-highlight">
+              <svg
+                className="landing-final-rays landing-final-rays-left"
+                viewBox="0 0 48 80"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="M37 17 23 4M23 40H4m33 23L23 76" />
+              </svg>
+              <em>nét vẽ nhỏ</em>
+              <svg
+                className="landing-final-rays landing-final-rays-right"
+                viewBox="0 0 48 80"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="m11 17 14-13m-14 36h19M11 63l14 13" />
+              </svg>
+            </span>
             <br />
             <span className="landing-final-nowrap">thành cuộc phiêu lưu lớn?</span>
           </Reveal>
@@ -26,29 +44,13 @@ export default function FinalSection() {
           </Reveal>
           <Reveal as="div" className="landing-actions" delay={300} direction="left">
             <a href="#character" className="landing-button landing-button-dark">
-              Bắt đầu sáng tạo <ArrowRight size={19} aria-hidden="true" />
+              Xem cách tạo nhân vật <ArrowRight size={19} aria-hidden="true" />
             </a>
             <a href="#stories" className="landing-button landing-button-quiet">
-              Khám phá truyện <ArrowRight size={19} aria-hidden="true" />
+              Tới kệ truyện mẫu <ArrowRight size={19} aria-hidden="true" />
             </a>
           </Reveal>
         </div>
-        <Reveal className="landing-final-art" delay={160} direction="right">
-          <div className="landing-final-art-card">
-            <img
-              src="/images/hero.webp"
-              alt="Mèo linh vật SketchTale vui mừng bên cuốn sách mở."
-              width="960"
-              height="720"
-              loading="eager"
-            />
-          </div>
-          <span className="landing-final-sticker">
-            Mỗi nét vẽ
-            <br />
-            một câu chuyện.
-          </span>
-        </Reveal>
       </div>
     </section>
   );

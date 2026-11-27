@@ -5,7 +5,7 @@
 Thực hiện WEB01 dựa trên [contract mới](../api/CONTRACTS.md). Không làm lại reader/codec đã có.
 
 1. **PUB-01/WEB06 FE đã có:** story Draft/Active/Pending/Archived có thể publish nếu child cần đọc Draft/Active; child Pending/Archived/unknown bị chặn. Cover/page/composition validation, pending save/upload gate, post-confirm dirty recheck, single POST guard, server read-back status checks, GET-only reconcile và editor/preview/catalog invalidation. Intercept mô phỏng Draft → Active cascade, chưa xác nhận deploy/runtime.
-2. **BE còn mở:** `PublishStoryAsync` promote story Pending/Archived nhưng chỉ chuyển child Draft; Parent source route `/published/{storyId}` khác Swagger 18/11 `/pages/{storyId}`. Role/slot GET source chưa gate published hierarchy. Chốt route, trạng thái và quyền trước runtime; không tự chuyển page Active hoặc dùng authoring route.
+2. **BE còn mở:** `PublishStoryAsync` promote story Pending/Archived nhưng chỉ chuyển child Draft; Parent FE source chuyển sang `/published/{storyId}` theo route local BE 26/11, Swagger/deploy route vẫn cần xác nhận. Role/slot GET source chưa gate published hierarchy. Không tự chuyển page Active hoặc dùng authoring route.
 3. WEB05: dùng URL reuse cover/background/quiz và gallery CM khi adapter được cập nhật; có alias upload CM mới. Gallery chỉ URL list, không thay registry/retention/multi-audio. Migration có backup/checkpoint vẫn cần làm.
 4. WEB07: vocabulary `wordVi`/RawText và Parent reader đã có FE source/tests; audio mapping BE còn mở. Reading/quiz source đã có nhưng owner/scoring gates còn thiếu; không bật Parent write.
 5. WEB09: suite `content-integration.spec.js` chạy 37/37; lint exit 0 với 21 repo warnings; build thành công, còn cảnh báo chunk JS >500 kB. Intercept/build tách khỏi runtime. Runtime mutation chỉ khi người dùng xác nhận environment, account và story test.
@@ -35,7 +35,7 @@ Source đã có codec và page write/read-back, server preview tách overlay, pu
 
 Lịch sử trước thay đổi 14/11: `parentCatalogService.mapPage` từng bỏ CompositionJson và reader chỉ dựng ảnh/text/audio cơ bản; source hiện tại đã hydrate composition/roles/slots và dùng renderer chung. Lỗi upload 403 trong ảnh người dùng là bằng chứng lịch sử. Swagger snapshot 18/11 là contract mới nhất lưu trong repo; live Swagger GET timeout lần này, không coi snapshot là xác nhận deploy.
 
-BE local hiện dùng `/storypage-template/published/{storyId}` cho Parent/Child, khác path FE `/pages/{storyId}`; publish hiện cascade Draft của con sang Active (source 18/11), chưa runtime. WEB01 phải xử lý khác biệt release trước nghiệm thu. Upload đã nhận alias `content manager, ContentManager`. Rà chi tiết DOC-API-01/02 và PUB-01.
+BE local và Parent FE source hiện cùng dùng `/storypage-template/published/{storyId}` cho Parent/Child (đổi caller 26/11); Swagger/deploy route vẫn cần xác nhận. Publish hiện cascade Draft của con sang Active (source 18/11), chưa runtime. Upload đã nhận alias `content manager, ContentManager`. Rà chi tiết DOC-API-01/02 và PUB-01.
 
 ## 3. Jobs và điều kiện hoàn thành
 

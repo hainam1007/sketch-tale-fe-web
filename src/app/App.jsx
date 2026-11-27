@@ -57,6 +57,9 @@ import AdminAuditPage from "../features/admin/pages/AdminAuditPage";
 import AdminCatalogPage from "../features/admin/pages/AdminCatalogPage";
 import AdminModerationCatalogPage from "../features/admin/pages/AdminModerationCatalogPage";
 import AdminContentReportsPage, { AdminContentReportDetailPage } from "../features/admin/pages/AdminContentReportsPage";
+import ParentContentReportsPage from "../features/parent/pages/ParentContentReportsPage";
+import AdminModerationQueuePage from "../features/admin/pages/AdminModerationQueuePage";
+import ContentModerationPage from "../features/moderation/pages/ContentModerationPage";
 import { ROLES } from "../lib/permissions/roles";
 import { moduleApiModes } from "../lib/api/featureApi";
 
@@ -86,8 +89,10 @@ function titleForPath(pathname) {
   if (pathname.includes("/parent/children")) return "Hồ sơ bé";
   if (pathname.startsWith("/parent")) return "Parent Portal";
   if (pathname === "/content") return "Tổng quan Content Manager";
+  if (pathname === "/content/moderation") return "Đề xuất kiểm duyệt";
   if (pathname.startsWith("/content")) return "Content Manager";
   if (pathname === "/admin") return "Tổng quan Admin";
+  if (pathname === "/admin/moderation") return "Hàng chờ đề xuất";
   if (pathname === "/admin/subscription-plans") return "Gói sử dụng";
   if (pathname === "/admin/credit-costs") return "Chi phí credit";
   if (pathname === "/admin/education-themes") return "Chủ đề giáo dục";
@@ -164,6 +169,7 @@ const router = createBrowserRouter(createRoutesFromElements(
           <Route path="parent/exports" element={<ParentUnavailableFeature title="Xuất truyện" />} />
           <Route path="parent/library" element={<ParentLibraryPage />} />
           <Route path="parent/library/:storyId/read" element={<ParentStoryReaderPage />} />
+          <Route path="parent/content-reports" element={<ParentContentReportsPage />} />
           <Route path="parent/reports" element={<ParentUnavailableFeature title="Báo cáo gia đình" />} />
           </Route>
         </Route>
@@ -180,6 +186,7 @@ const router = createBrowserRouter(createRoutesFromElements(
             <Route path="preview" element={<StoryPreviewPage />} />
           </Route>
           <Route path="content/assets" element={<AssetsPage />} />
+          <Route path="content/moderation" element={<ContentModerationPage />} />
           <Route path="content/statistics" element={<ContentStatisticsPage />} />
         </Route>
         <Route element={<RequireRole roles={[ROLES.ADMIN]} />}>
@@ -188,6 +195,7 @@ const router = createBrowserRouter(createRoutesFromElements(
           <Route path="admin/users/:userId" element={<AdminUserDetailPage />} />
           <Route path="admin/reports" element={<AdminContentReportsPage />} />
           <Route path="admin/reports/:reportId" element={<AdminContentReportDetailPage />} />
+          <Route path="admin/moderation" element={<AdminModerationQueuePage />} />
           <Route path="admin/restrictions" element={<AdminRestrictionsPage />} />
           <Route path="admin/subscription-plans" element={<AdminCatalogPage key="plans" kind="plans" />} />
           <Route path="admin/credit-costs" element={<AdminCatalogPage key="credits" kind="credits" />} />

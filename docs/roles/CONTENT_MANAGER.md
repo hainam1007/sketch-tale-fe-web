@@ -1,5 +1,14 @@
 # Content Manager — soạn và phát hành truyện
 
+## WF-05 / F-07 — đề xuất quy tắc kiểm duyệt, FE source 26/11/2026
+
+- `/content/moderation` có tab Từ khóa hạn chế/Chủ đề cấm. CM tạo Draft, sửa Draft do mình tạo và gửi Pending; Pending chỉ đọc. Có thể lưu Draft hoặc gửi thẳng Pending.
+- Màn hình lọc list bằng `CreateBy == auth user id`. Record có owner thiếu/khác bị ẩn và không có nút sửa. API GET hiện chưa owner-scoped, nên filter FE không bảo vệ dữ liệu ở server.
+- Duplicate preflight dùng NFC + trim + so sánh không phân biệt hoa thường trên Draft/Pending/Active đã tải. Khi trùng, giữ biểu mẫu và không gửi; BE vẫn phải chặn duplicate và race.
+- Form hiện khóa policy ở Contains + Reject; severity chọn trong enum API. Keyword consumer local có substring gate ở ý tưởng nhân vật; prohibited theme chưa có consumer được xác minh. Gửi Active sau khi Admin duyệt không chứng minh nội dung mọi luồng đã được kiểm tra.
+- Sau POST/PATCH FE GET detail xác nhận owner, payload và status. Kết quả không rõ giữ form và khóa gửi lại đến khi GET đối chiếu; không lưu draft cục bộ thay cho server. Chưa runtime/build/test trong delta này; chưa dùng dữ liệu production để mutation.
+- API mặc định bị khóa bằng `VITE_WF05_MODERATION_API_MODE=disabled`: source keyword consumer hiện chưa lọc Active và các endpoint chưa xác minh owner/auth đầy đủ. Chỉ bật `real` sau khi BE đã sửa/xác nhận hai điều kiện này.
+
 ## Hiện trạng sau pull 18/11/2026
 
 Ghi nhận cuối lượt: BE có 2 thay đổi unstaged ngoài lượt docs về create-page empty strings và nhiều slot cùng role/page. Chưa deploy/runtime-verified; cần kiểm thử model binding và nhiều slot/animation target theo slot ID trước khi coi hỗ trợ đầy đủ.

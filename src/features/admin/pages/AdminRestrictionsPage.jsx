@@ -18,6 +18,7 @@ const blankKeyword = { keyword: "", description: "", matchType: "", severityLeve
 
 function mapKeyword(item) {
   const status = Number(item.status);
+  const statusKey = ({ 0: "draft", 1: "pending", 2: "active", 3: "disabled", 4: "archived" })[status] || "unknown";
   return {
     ...item,
     type: "Từ khóa",
@@ -25,7 +26,7 @@ function mapKeyword(item) {
     value: item.keyword || "",
     reason: item.description || "",
     updatedAt: item.updatedAt || item.createdAt,
-    status: status === 2 ? "active" : status === 3 ? "disabled" : "other",
+    status: statusKey,
     backendStatus: status,
   };
 }
@@ -172,8 +173,11 @@ export default function AdminRestrictionsPage() {
             <span className="sr-only">Lọc trạng thái rule</span>
             <select aria-label="Lọc trạng thái rule" value={status} onChange={(event) => updateFilter("status", event.target.value)}>
               <option value="all">Tất cả trạng thái</option>
+              <option value="draft">Bản nháp</option>
+              <option value="pending">Chờ duyệt</option>
               <option value="active">Đang áp dụng</option>
               <option value="disabled">Ngưng áp dụng</option>
+              <option value="archived">Lưu trữ</option>
             </select>
           </label>
           {(search || status !== "all") && (
@@ -213,7 +217,7 @@ export default function AdminRestrictionsPage() {
                   <td>
                     <StatusBadge
                       value={item.status}
-                      label={item.status === "active" ? "Đang áp dụng" : "Ngưng áp dụng"}
+                      label={{ draft: "Bản nháp", pending: "Chờ duyệt", active: "Đang áp dụng", disabled: "Ngưng áp dụng", archived: "Lưu trữ", unknown: "Chưa xác định" }[item.status]}
                       tone={item.status === "active" ? "success" : "neutral"}
                     />
                   </td>
@@ -222,9 +226,10 @@ export default function AdminRestrictionsPage() {
                       <button
                         className="admin-icon-btn"
                         type="button"
-                        title="Sửa từ khóa"
                         aria-label={`Sửa từ khóa ${item.value}`}
                         onClick={() => openEditor(item)}
+                        disabled={item.backendStatus === 1}
+                        title={item.backendStatus === 1 ? "Đề xuất chờ duyệt; xử lý trong hàng chờ Admin" : "Sửa từ khóa"}
                       >
                         <PencilSimple size={16} aria-hidden="true" />
                       </button>
@@ -234,13 +239,14 @@ export default function AdminRestrictionsPage() {
                         title="Xóa từ khóa"
                         aria-label={`Xóa từ khóa ${item.value}`}
                         onClick={() => setDeleteTarget(item)}
+                        disabled={item.backendStatus === 1}
                       >
                         <Trash size={16} aria-hidden="true" />
                       </button>
                       <AdminStatusButton
                         active={item.status === "active"}
                         name={`từ khóa ${item.value}`}
-                        disabled={pendingIds.has(item.id) || item.status === "other"}
+                        disabled={pendingIds.has(item.id) || ![2, 3].includes(item.backendStatus)}
                         onChange={() => toggleMutation.mutate({ item, nextStatus: item.status === "active" ? "disabled" : "active" })}
                       />
                     </div>
@@ -299,8 +305,11 @@ export default function AdminRestrictionsPage() {
                 <label className="admin-catalog-field">
                   <span>Trạng thái <b>*</b></span>
                   <select value={formValues.status} onChange={(event) => setFormValues((current) => ({ ...current, status: event.target.value }))}>
+                    <option value="0">Bản nháp</option>
+                    <option value="1">Chờ duyệt</option>
                     <option value="2">Đang áp dụng</option>
                     <option value="3">Ngưng áp dụng</option>
+                    <option value="4">Lưu trữ</option>
                   </select>
                 </label>
               </div>

@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Sparkle } from "@phosphor-icons/react";
+import { ArrowRight, Check } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import Reveal from "./Reveal";
 
@@ -31,6 +31,66 @@ const highlights = {
   ],
 };
 
+const fallbackAudiences = [
+  "Quyền lợi theo cấu hình hiện tại của gói.",
+  "Gói SketchTale",
+];
+
+function getPlanEmphasis(plan, entries) {
+  const audience = plan.audience?.trim();
+  if (audience && !fallbackAudiences.includes(audience)) {
+    return { description: audience, emphasized: [] };
+  }
+
+  const emphasized = [];
+  const findHighlight = (predicate) => entries.find((entry) => predicate(entry));
+  const profileHighlight = Number.isInteger(plan.profileLimit)
+    ? findHighlight((entry) => entry.toLowerCase().includes("hồ sơ"))
+    : null;
+  const creditHighlight = Number.isInteger(plan.monthlyCreditLimit)
+    ? findHighlight((entry) => entry.toLowerCase().includes("credit"))
+    : null;
+
+  if (profileHighlight) emphasized.push(profileHighlight);
+  if (creditHighlight && creditHighlight !== profileHighlight) {
+    emphasized.push(creditHighlight);
+  }
+  if (!emphasized.length && entries.length) emphasized.push(entries[0]);
+
+  return {
+    description: emphasized.length
+      ? emphasized.join(" · ")
+      : "Quyền lợi theo dữ liệu gói hiện có.",
+    emphasized,
+  };
+}
+
+function formatPlanPeriod(plan) {
+  if (Number.isInteger(plan.durationDays) && plan.durationDays > 0) {
+    return `${plan.durationDays} ngày`;
+  }
+  if (plan.cycle === "month") return "Theo tháng";
+  if (plan.price > 0) return "Thời hạn chưa được công bố";
+  return "";
+}
+
+function formatPlanPrice(plan) {
+  if (plan.price === 0) return "Miễn phí";
+  if (plan.price === null || plan.price === undefined) return "Chưa có giá";
+  if (!plan.currency) {
+    return `${new Intl.NumberFormat("vi-VN").format(plan.price)} · Chưa rõ đơn vị tiền`;
+  }
+  try {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: plan.currency,
+      maximumFractionDigits: 0,
+    }).format(plan.price);
+  } catch {
+    return `${new Intl.NumberFormat("vi-VN").format(plan.price)} ${plan.currency}`;
+  }
+}
+
 export default function PricingSection({ availability, loading, error, onRetry }) {
   const plans = availability?.plans || [];
   const ready = !loading && !error && availability?.published && plans.length > 0;
@@ -51,48 +111,74 @@ export default function PricingSection({ availability, loading, error, onRetry }
             <br />
             <em>cho gia đình.</em>
           </Reveal>
-          <Reveal as="p" delay={200} direction="left">
-            Bắt đầu với trải nghiệm phù hợp. Thanh toán chưa được kết nối trong bản thử nghiệm này.
-          </Reveal>
         </div>
-        {loading ? <div className="landing-pricing-state" role="status">Đang tải các gói hiện có…</div> : error ? <div className="landing-pricing-state" role="alert"><p>Chưa thể tải thông tin gói. Thử lại sau giây lát.</p><button type="button" className="landing-price-link" onClick={onRetry}>Tải lại <ArrowRight size={17} aria-hidden="true" /></button></div> : !ready ? <div className="landing-pricing-state" role="status">Hiện chưa có gói nào được công bố.</div> : <div className="landing-price-grid">
-          {plans.map((plan, index) => (
-            <Reveal
-              key={plan.id}
-              className={`landing-price-card landing-price-${plan.styleKey || plan.id} ${plan.id === "pro" ? "is-popular" : ""}`}
-              delay={index * 120}
-              direction="up"
+        {loading ? (
+          <div className="landing-pricing-state" role="status">
+            Đang tải các gói hiện có…
+          </div>
+        ) : error ? (
+          <div className="landing-pricing-state" role="alert">
+            <p>Chưa thể tải thông tin gói. Thử lại sau giây lát.</p>
+            <button
+              type="button"
+              className="landing-price-link"
+              onClick={onRetry}
             >
-              {plan.id === "pro" && (
-                <span className="landing-popular">
-                  <Sparkle size={14} weight="fill" aria-hidden="true" /> Gói phổ
-                  biến
-                </span>
-              )}
-              <span className="landing-price-label">{labels[plan.id] || "Gói SketchTale"}</span>
-              <h3>{plan.name}</h3>
-              <p>{plan.audience || "Quyền lợi theo cấu hình hiện tại của gói."}</p>
-              <strong className="landing-price">
-                {plan.price === 0
-                  ? "Miễn phí"
-                  : plan.price === null || plan.price === undefined
-                    ? "Chưa có giá"
-                    : `${plan.currency === "VND" ? `${new Intl.NumberFormat("vi-VN").format(plan.price)} ₫` : new Intl.NumberFormat("vi-VN").format(plan.price)}`}
-                <small>{plan.price > 0 ? [!plan.currency ? "Đơn vị giá chưa xác định" : "", plan.durationDays ? `${plan.durationDays} ngày` : plan.cycle === "month" ? "/ tháng" : ""].filter(Boolean).join(" · ") : ""}</small>
-              </strong>
-              <ul>
-                {(plan.highlights?.length ? plan.highlights : highlights[plan.id] || plan.limits || []).map((highlight) => (
-                  <li key={highlight}>
-                    <Check size={17} aria-hidden="true" />
-                    {highlight}
-                  </li>
-                ))}
-              </ul>
-              <Link to="/auth/register" className="landing-price-link">Tạo tài khoản <ArrowRight size={17} aria-hidden="true" /></Link>
-            </Reveal>
-          ))}
-        </div>}
-        {availability?.message && ready && <p className="landing-pricing-note" role="note">{availability.message}</p>}
+              Tải lại <ArrowRight size={17} aria-hidden="true" />
+            </button>
+          </div>
+        ) : !ready ? (
+          <div className="landing-pricing-state" role="status">
+            Hiện chưa có gói nào được công bố.
+          </div>
+        ) : (
+          <div className="landing-price-grid">
+            {plans.map((plan, index) => {
+              const entries = plan.highlights?.length
+                ? plan.highlights
+                : highlights[plan.id] || plan.limits || [];
+              const emphasis = getPlanEmphasis(plan, entries);
+              const remainingEntries = entries.filter(
+                (entry) => !emphasis.emphasized.includes(entry),
+              );
+
+              return (
+                <Reveal
+                  key={plan.id}
+                  className={`landing-price-card landing-price-${plan.styleKey || plan.id}`}
+                  delay={index * 120}
+                  direction="up"
+                >
+                  <span className="landing-price-label">
+                    {labels[plan.id] || "Gói SketchTale"}
+                  </span>
+                  <h3>{plan.name}</h3>
+                  <p>{emphasis.description}</p>
+                  <strong className="landing-price">
+                    {formatPlanPrice(plan)}
+                    <small>{formatPlanPeriod(plan)}</small>
+                  </strong>
+                  <ul>
+                    {remainingEntries.map((highlight) => (
+                      <li key={highlight}>
+                        <Check size={17} aria-hidden="true" />
+                        {highlight}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/auth/register" className="landing-price-link">
+                    Tạo tài khoản <ArrowRight size={17} aria-hidden="true" />
+                  </Link>
+                </Reveal>
+              );
+            })}
+          </div>
+        )}
+        {ready && availability.checkoutEnabled === false && (
+          <p className="landing-pricing-note">
+            Giá và thời hạn theo danh mục gói. Đăng ký gói và thanh toán chưa được bật trong bản trải nghiệm.
+          </p>
+        )}
       </div>
     </section>
   );

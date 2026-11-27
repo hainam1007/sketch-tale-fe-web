@@ -1,5 +1,21 @@
 # Admin — audit và tích hợp API
 
+## WF-05 / F-07 — hàng chờ quy tắc kiểm duyệt, FE source 26/11/2026
+
+- `/admin/moderation` tải keyword và prohibited theme, lọc Pending, hiển thị thuộc tính và cho Admin duyệt sang Active hoặc trả về Draft. Cả hai thao tác PATCH full DTO lấy từ GET detail rồi GET xác nhận trạng thái; 5xx/timeout/read-back sai sẽ khóa gửi lại và yêu cầu đối chiếu GET.
+- `/admin/restrictions` và `/admin/prohibited-themes` vẫn quản lý danh mục. Pending bị khóa sửa/xóa/toggle tại màn cũ để quyết định đi qua hàng chờ; trạng thái keyword được hiển thị đủ Draft/Pending/Active/Inactive/Archived.
+- API không có review note, reviewer/time hay concurrency token cho hai resource này; UI không giả lập lịch sử. Admin có thể xử lý nội dung khi `CreateBy` thiếu, nhưng quyền và audit actor vẫn cần xác minh phía BE.
+- Source BE được rà có controller chưa khai báo authorization; dịch vụ keyword/theme chỉ hạn chế một số status cho role ContentManager và chưa có allowlist đầy đủ. Không bật/khẳng định WF-05 an toàn production dựa trên FE route guard.
+- Keyword consumer local đọc toàn bộ keyword list với substring Contains, chưa lọc Active; prohibited theme consumer chưa được thấy. WF-05 API vì vậy mặc định disabled bằng `VITE_WF05_MODERATION_API_MODE=disabled`; chỉ bật sau khi authorization/owner scope và Active-only filter được xác minh. Active status không đồng nghĩa đã áp dụng toàn hệ thống. Chưa có runtime/build/test trong delta này; BE không sửa.
+
+## Delta WF-04 Report Content — source local 26/11/2026
+
+- `ContentReportController` hiện yêu cầu JWT: GET list/detail và PATCH cho Admin; Parent chỉ POST và đọc collection theo user của chính mình. BE validate role/owner dù FE cũng có route guards.
+- Admin nhận report Pending, sau đó Resolve hoặc Dismiss. Resolve StoryTemplate đặt `Inactive` cùng transaction với cập nhật report; các endpoint Parent đọc truyện đang gate story Active. Detail có preview title/description/cover, nội dung các trang qua route Admin-only và owner ID.
+- Admin nhập ghi chú quyết định bắt buộc khi Resolve/Dismiss và có thể chọn khóa Content Manager tạo truyện 1, 7, 30 hoặc 90 ngày. BE ghi lockout Identity, thu hồi refresh token; JWT validation từ chối access token của tài khoản đang khóa. Report lưu reviewer, thời gian, ghi chú và liên kết lockout; detail chỉ hiện nút khôi phục khi tài khoản vẫn mang đúng lockout do report đó tạo.
+- Migration mới lưu reviewer/time/decision note và thông tin suspend/restore. Evidence đính kèm và moderation target ngoài Story chưa có contract.
+- Runtime anonymous 200 16/11 thuộc bản deploy cũ. Source mới chưa build, chưa test hoặc runtime verified; giữ production report submit disabled cho tới khi deploy và nghiệm thu.
+
 ## Đối chiếu sau pull 18/11/2026
 
 BE mới `de3209f` + staged; Swagger live 120 paths/161 operations. Không có thay đổi mới ở nhóm controller/service Admin, Payment/Subscription/ParentProfile/audit trong diff từ baseline 7849600. **Giữ mở SEC-ADM, AUDIT-DATA, ADM-01 và PAY-01**; kết quả runtime 16/11 bên dưới là lịch sử, chưa tái kiểm tra hôm nay.
@@ -55,9 +71,9 @@ Prefix API `/api`. `A=adminService`, `C=adminCatalogService`, `M=adminModeration
 | Prohibited create/update/delete → M | POST /prohibited-themes; PATCH,DELETE /{id} | DTO → DTO/204 | Như keywords | W | P1 reference/regex/revision; delete soft inactive |
 | Char types list/detail → M | GET /char-types[/{id}] | nameEn/nameVi/category/canFly/canSwim/imageUrl/status | Không auth | module real; W/I/R-read list | Đã sửa schema; nullable imageUrl |
 | Char types create/update/delete → M | POST /char-types; PATCH,DELETE /{id} | đúng DTO; category 0..4, boolean → DTO/204 | Không auth; delete inactive | W/I | P0 auth; P1 reference/validation/read-back runtime |
-| Reports list/filter/page/detail → A | GET /content-reports[/{id}] | targetType/targetId/reason/status/BaseFields | Không Authorize/owner | module real; W/I/R-read list | P0 anonymous list 200; evidence/preview thiếu contract |
-| Report resolve/dismiss → A | PATCH /content-reports/{id} | giữ targetType/targetId/reason; status 2/3 → 204 | Parent check bị map DTO ghi đè status; không transition matrix | module real; W/I | P0 auth/transition; note/reviewer/time thiếu; target không bị đổi |
-| Report delete caller | DELETE /content-reports/{id} | no body → 204 | Chỉ set Dismissed | Caller, không mở nút mới | Không gọi là xóa target; runtime chờ |
+| Reports list/filter/page/detail → A | GET /content-reports[/{id}] | targetType/targetId/reason/status/BaseFields; Admin detail thêm preview/reviewer/decision | Source hiện yêu cầu Admin; Parent detail chỉ report của mình | module real; W/I/R-read lịch sử | Migration/deploy/quyền runtime cần xác minh; evidence chưa có contract |
+| Report receive/resolve/dismiss → A | PATCH /content-reports/{id} | Pending→Processing→Resolve/Dismissed; giữ target/reason; note bắt buộc khi kết luận; Resolve Story đặt Inactive | Admin only; role gate, transaction, status concurrency token | module real; W/I lịch sử | Source flow đã có; migration, lockout và staging/runtime cần nghiệm thu |
+| Report delete caller | DELETE /content-reports/{id} | no body → 204; legacy path chuyển Processing thành Dismissed kèm ghi chú mặc định | Admin only; không xóa report hay target | Caller, không mở nút mới | UI WF-04 dùng PATCH có decision note; legacy route cần runtime xác nhận |
 | Audit list/detail → A | GET /audit-logs/{id}; list requires a scope | auditAction/entityName/primaryKey/oldValues/newValues/BaseFields | Không Authorize | forceReal; W/I/R-read scoped | P0 anonymous 200, credential redaction, actor thật |
 | Audit scoped/filter/page → A.listAudit | GET /audit-logs/user-id/{id},entity-name/{name},entity-id/{id}; FE không gọi GET /audit-logs list | array; ngày/action/search/page lọc trong scope đã tải | Không Authorize; chưa có date query/paging | W/I | P1 DB filter date + pagination/timezone/outcome; không khẳng định có failed/denied events |
 | Parent plan assignment | PUT /parent-profiles/{id} | subscriptionPlanId → result | Chỉ đổi FK; không quota/subscription | **disabled theo người dùng** | P0 quyền + atomic entitlement; read-back quota/kỳ hiệu lực |
