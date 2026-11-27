@@ -121,7 +121,6 @@ export default function ContentModerationPage() {
 
   const allItems = query.data || [];
   const ownItems = useMemo(() => allItems.filter((item) => isModerationOwner(item, user.id)), [allItems, user.id]);
-  const otherItems = allItems.length - ownItems.length;
   const duplicate = useMemo(() => {
     const target = normalizeValue(form.value);
     if (!target) return null;
@@ -184,21 +183,16 @@ export default function ContentModerationPage() {
     }
   }
 
-  if (!wf05ApiEnabled) return <main className="workspace-dashboard wf05-page"><header className="workspace-page-heading"><div><p className="workspace-eyebrow">CONTENT MANAGER / KIỂM DUYỆT</p><h1>Đề xuất kiểm duyệt</h1><p>Tạo quy tắc ở trạng thái nháp hoặc gửi Admin duyệt.</p></div><Prohibit size={42} className="admin-heading-icon" aria-hidden="true" /></header><section className="wf05-reconcile"><strong>WF-05 đang khóa</strong><p>Backend hiện chưa xác nhận owner scope và áp dụng keyword theo trạng thái Active. Bật API chỉ sau khi các điều kiện này được kiểm tra trên môi trường thử nghiệm.</p></section></main>;
+  if (!wf05ApiEnabled) return <main className="workspace-dashboard wf05-page"><header className="workspace-page-heading"><div><p className="workspace-eyebrow">CONTENT MANAGER / KIỂM DUYỆT</p><h1>Kiểm duyệt</h1></div><Prohibit size={42} className="admin-heading-icon" aria-hidden="true" /></header><section className="wf05-reconcile"><strong>WF-05 đang khóa</strong><p>Backend hiện chưa xác nhận owner scope và áp dụng keyword theo trạng thái Active. Bật API chỉ sau khi các điều kiện này được kiểm tra trên môi trường thử nghiệm.</p></section></main>;
   if (query.isLoading) return <LoadingState label="Đang tải đề xuất kiểm duyệt" />;
   if (query.isError && !query.data) return <ErrorState title="Không thể tải đề xuất kiểm duyệt" message={query.error.message} onRetry={() => query.refetch()} />;
 
   return (
     <main className="workspace-dashboard wf05-page">
       <header className="workspace-page-heading">
-        <div><p className="workspace-eyebrow">CONTENT MANAGER / KIỂM DUYỆT</p><h1>Đề xuất kiểm duyệt</h1><p>Tạo quy tắc ở trạng thái nháp hoặc gửi Admin duyệt.</p></div>
+        <div><p className="workspace-eyebrow">CONTENT MANAGER / KIỂM DUYỆT</p><h1>Kiểm duyệt</h1></div>
         <Prohibit size={42} className="admin-heading-icon" aria-hidden="true" />
       </header>
-
-      <section className="wf05-note" aria-label="Phạm vi quy tắc">
-        <strong>Phạm vi hiện được xác minh</strong>
-        <p>Đề xuất dùng so khớp “Có chứa” và hành động “Từ chối”. Chủ đề cấm được lưu để Admin duyệt; nơi áp dụng ở Backend chưa được xác minh nên giao diện không khẳng định quy tắc đã có hiệu lực kiểm duyệt.</p>
-      </section>
 
       <nav className="wf05-tabs" aria-label="Loại đề xuất">
         {Object.entries(kinds).map(([key, value]) => <button key={key} type="button" aria-pressed={kind === key} disabled={unresolved || saveMutation.isPending} onClick={() => { setKind(key); setEditor(null); setNotice(""); saveMutation.reset(); }}>{value.label}</button>)}
@@ -206,7 +200,6 @@ export default function ContentModerationPage() {
 
       <section className="wf05-list-panel" aria-labelledby="wf05-list-title">
         <div className="wf05-section-heading"><div><p className="workspace-eyebrow">CÁ NHÂN</p><h2 id="wf05-list-title">Đề xuất của tôi</h2></div><button className="workspace-button" type="button" onClick={() => openEditor()} disabled={unresolved || saveMutation.isPending}><Plus size={17} aria-hidden="true" /> Tạo đề xuất</button></div>
-        {otherItems > 0 && <p className="wf05-owner-note">{otherItems} mục không thuộc tài khoản hiện tại hoặc không xác định được người tạo nên đã ẩn; không thể chỉnh sửa các mục đó từ màn hình này.</p>}
         {query.isFetching && <p className="wf05-muted" role="status">Đang đồng bộ với máy chủ…</p>}
         {ownItems.length ? <div className="wf05-rule-list">{ownItems.map((item) => {
           const status = moderationStatus(item);

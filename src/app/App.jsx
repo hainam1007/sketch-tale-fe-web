@@ -89,7 +89,7 @@ function titleForPath(pathname) {
   if (pathname.includes("/parent/children")) return "Hồ sơ bé";
   if (pathname.startsWith("/parent")) return "Parent Portal";
   if (pathname === "/content") return "Tổng quan Content Manager";
-  if (pathname === "/content/moderation") return "Đề xuất kiểm duyệt";
+  if (pathname === "/content/moderation") return "Kiểm duyệt";
   if (pathname.startsWith("/content")) return "Content Manager";
   if (pathname === "/admin") return "Tổng quan Admin";
   if (pathname === "/admin/moderation") return "Hàng chờ đề xuất";

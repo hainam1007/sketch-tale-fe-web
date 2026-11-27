@@ -1,5 +1,15 @@
 # Endpoint BE local và Swagger live
 
+## Delta source 27/11/2026 (`main` f0e1ffb)
+
+| Method/path | Thay đổi source | Cần lưu ý |
+| --- | --- | --- |
+| GET `/api/story-template/stories` | Chỉ trả story Active; với token Child, lọc theo allowed themes hoặc story recommendations khi có cấu hình | Cả hai collection rỗng hoặc child profile không tìm thấy thì không lọc |
+| GET `/api/story-template/stories/education-theme/{id}` | Bind `{id}` vào `EduThemeId` đã sửa; chỉ trả Active | Child chỉ bị chặn theo AllowedThemes, không xét recommendation ngoài theme |
+| GET `/api/story-template/stories/{id}` | Child có cấu hình được lọc theo allowed themes hoặc recommendations | Chỉ loại Inactive; direct ID vẫn lộ Draft/Pending/Archived cho Parent và Child không có cấu hình |
+
+Đây là kiểm tra code, không phải xác nhận route trên Swagger/Render. `StoryTemplateController` có `[Authorize]` ở class. `Program.cs` chuyển sang `app.Run()`; cần BE kiểm tra host/port deploy. Xem [contract](CONTRACTS.md) và [Backlog](../BACKLOG.md).
+
 ## Delta source 24/11/2026 (`main` 3c1e02f)
 
 Danh mục bên dưới được lập từ `de3209f` và Swagger 18/11, nên phần chênh lệch “live có, local không có” về allowed-themes/story-recommends đã **hết đúng với source local mới**. Source hiện có 4 route sau; chúng kế thừa `[Authorize(Roles = "Parent,parent,Child,child,Admin,admin")]`, hai PUT thêm Parent/Admin. Cả bốn chưa kiểm tra owner của `{id}`.

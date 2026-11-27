@@ -89,13 +89,13 @@ export default function AdminModerationQueuePage() {
     }
   }
 
-  if (!wf05ApiEnabled) return <main className="workspace-dashboard wf05-page"><header className="workspace-page-heading"><div><p className="workspace-eyebrow">ADMIN / KIỂM DUYỆT</p><h1>Hàng chờ đề xuất</h1><p>Duyệt nội dung do Content Manager gửi và quản lý trạng thái ở các danh mục.</p></div><Prohibit size={42} className="admin-heading-icon" aria-hidden="true" /></header><section className="wf05-reconcile"><strong>WF-05 đang khóa</strong><p>Backend chưa xác nhận authorization, owner scope và bộ lọc Active cho keyword consumer. Hàng chờ sẽ mở sau khi các điều kiện này được xác minh trên môi trường thử nghiệm.</p><div className="wf05-rule-actions"><Link className="workspace-button workspace-button-quiet" to="/admin/restrictions">Danh mục từ khóa</Link><Link className="workspace-button workspace-button-quiet" to="/admin/prohibited-themes">Danh mục chủ đề cấm</Link></div></section></main>;
+  if (!wf05ApiEnabled) return <main className="workspace-dashboard wf05-page"><header className="workspace-page-heading"><div><p className="workspace-eyebrow">ADMIN / KIỂM DUYỆT</p><h1>Hàng chờ đề xuất</h1></div><Prohibit size={42} className="admin-heading-icon" aria-hidden="true" /></header><section className="wf05-reconcile"><strong>WF-05 đang khóa</strong><p>Backend chưa xác nhận authorization, owner scope và bộ lọc Active cho keyword consumer. Hàng chờ sẽ mở sau khi các điều kiện này được xác minh trên môi trường thử nghiệm.</p><div className="wf05-rule-actions"><Link className="workspace-button workspace-button-quiet" to="/admin/restrictions">Danh mục từ khóa</Link><Link className="workspace-button workspace-button-quiet" to="/admin/prohibited-themes">Danh mục chủ đề cấm</Link></div></section></main>;
   if (isLoading) return <LoadingState label="Đang tải hàng chờ duyệt" />;
   if (errors.length && queries.every((query) => query.isError)) return <ErrorState title="Không thể tải hàng chờ duyệt" message={errors.join(" · ")} onRetry={() => Promise.all(queries.map((query) => query.refetch()))} />;
 
   return (
     <main className="workspace-dashboard wf05-page">
-      <header className="workspace-page-heading"><div><p className="workspace-eyebrow">ADMIN / KIỂM DUYỆT</p><h1>Hàng chờ đề xuất</h1><p>Duyệt nội dung do Content Manager gửi và quản lý trạng thái ở các danh mục.</p></div><Prohibit size={42} className="admin-heading-icon" aria-hidden="true" /></header>
+      <header className="workspace-page-heading"><div><p className="workspace-eyebrow">ADMIN / KIỂM DUYỆT</p><h1>Hàng chờ đề xuất</h1></div><Prohibit size={42} className="admin-heading-icon" aria-hidden="true" /></header>
       <nav className="wf05-tabs" aria-label="Lọc loại đề xuất">
         <button type="button" aria-pressed={kindFilter === "all"} onClick={() => setKindFilter("all")}>Tất cả <span>{proposals.length}</span></button>
         {ruleKinds.map(({ kind, label }) => <button key={kind} type="button" aria-pressed={kindFilter === kind} onClick={() => setKindFilter(kind)}>{label} <span>{proposals.filter((entry) => entry.kind === kind).length}</span></button>)}
@@ -112,7 +112,6 @@ export default function AdminModerationQueuePage() {
       {notice && <p className="workspace-inline-success" role="status">{notice}</p>}
       {decision.isError && <p className="admin-mutation-error" role="alert"><WarningCircle size={17} aria-hidden="true" /> {decision.error.message}</p>}
       {lockedId && <div className="wf05-reconcile" role="alert"><strong>Kết quả quyết định chưa rõ</strong><p>Không gửi lại quyết định này cho tới khi trạng thái được đối chiếu với máy chủ.</p><button className="workspace-button workspace-button-quiet" type="button" onClick={reconcile}><ArrowClockwise size={16} aria-hidden="true" /> Đối chiếu bằng GET</button></div>}
-      <p className="wf05-note">Duyệt đổi trạng thái đề xuất sang Active theo API hiện có. Việc đó chưa xác nhận quy tắc đã được áp dụng trong mọi luồng tạo nội dung; cần nghiệm thu consumer Backend riêng.</p>
     </main>
   );
 }
