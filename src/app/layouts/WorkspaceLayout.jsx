@@ -36,7 +36,7 @@ const roleNavigation = {
   [ROLES.CONTENT]: [
     { to: "/content", label: "Tổng quan", icon: House, end: true },
     { to: "/content/stories", label: "Truyện", icon: BookOpen },
-    { to: "/content/moderation", label: "Đề xuất kiểm duyệt", icon: ShieldCheck },
+    { to: "/content/moderation", label: "Kiểm duyệt", icon: ShieldCheck },
     { to: "/content/assets", label: "Kho tài sản", icon: Package },
     { to: "/content/statistics", label: "Hiệu quả", icon: ChartLineUp },
   ],

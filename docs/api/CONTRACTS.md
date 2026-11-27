@@ -1,5 +1,19 @@
 # Contract API — nguồn hiện hành
 
+## Delta Backend vừa pull — 27/11/2026, `main` `f0e1ffb`
+
+| API/luồng | Source hiện tại | Giới hạn cần nghiệm thu hoặc BE xử lý |
+| --- | --- | --- |
+| `GET /api/story-template/stories` | Repository chỉ trả `Status=Active`. Với JWT Child có ID parse được và profile tồn tại, service lọc theo **AllowedThemes hoặc StoryTemplateRecommends** nếu một trong hai có phần tử. | Hai collection cùng rỗng = không lọc, không phải chặn tất cả. Child ID thiếu/sai hoặc profile không tìm thấy cũng không lọc. Không suy diễn đây là entitlement server hoàn chỉnh. |
+| `GET /api/story-template/stories/education-theme/{id}` | `[FromRoute(Name="id")]` sửa binding `EduThemeId`; repository chỉ trả Active. Child có AllowedThemes khác rỗng mà không chứa theme sẽ nhận `[]`. | Route này chỉ xét AllowedThemes, không xét StoryTemplateRecommends; truyện được gợi ý ngoài theme có thể xuất hiện ở list tổng/detail nhưng vắng ở list theo theme. Cần BE chốt policy. |
+| `GET /api/story-template/stories/{id}` | Child bị lọc theo hợp AllowedThemes/recommendations khi có cấu hình. | Service vẫn chỉ loại `Inactive`, nên Parent/role khác có thể GET trực tiếp story Draft/Pending/Archived. Child không có cấu hình cũng có thể GET các trạng thái này. Cần BE gate Active cho reader và test deep link. |
+| Job hết hạn subscription | `GetActiveSubscription()` đã bỏ `AsNoTracking()`, entity trả về được EF theo dõi; service đổi `Status=Expired` rồi `CompleteAsync()`. | Lý do `AsNoTracking` cũ đã được sửa ở source, chưa có kiểm thử DB. Count chỉ tăng nếu tìm thấy FREEPLAN; plan thiếu vẫn có thể đổi status mà không trả Parent về Free. |
+| Host API | `Program.cs` dùng `app.Run()` thay cho `app.Run("http://0.0.0.0:{PORT}")`. | BE xác nhận `ASPNETCORE_URLS`/cấu hình host và healthcheck trên Render trước khi kết luận deploy chạy được. |
+
+`StoryTemplateController` có `[Authorize]` ở class, nhưng route detail không thêm role/status gate. Thay đổi local guard detail trước pull không hiện diện trong working tree sau khi giải quyết conflict; còn trong stash `codex-preserve-local-before-backend-pull-2026-11-27`. Đây là vấn đề BE cần kiểm tra, không phải thay đổi FE. FE source 27/11 vẫn đặt `VITE_PARENT_READER_PAGES_ROUTE=pages` ở cả hai env; route `/published` chỉ thấy ở BE local chưa xác nhận release. Các kết luận trên là source, chưa có build/API/runtime.
+
+Các bảng 24/11 và snapshot 18/11 bên dưới giữ vai trò lịch sử; khi có khác biệt, dùng delta 27/11 ở trên.
+
 ## Delta WF-05 / F-07 — FE source 26/11/2026
 
 - CM `/content/moderation` và Admin `/admin/moderation` dùng API sẵn có: `GET/POST/PATCH /restricted-keywords[/{id}]` và `GET/POST/PATCH /prohibited-themes[/{id}]`. GET list phải trả array hoặc `{items}` đầy đủ; create/update nhận DTO hiện hữu gồm value/name, description, matchType, severityLevel, action, status; PATCH trả 204 nên FE GET lại detail.
@@ -8,7 +22,7 @@
 - Duplicate check FE chuẩn hóa NFC, trim, không phân biệt hoa thường, trong cùng loại resource ở Draft/Pending/Active. Đây là preflight trên kết quả list, không thay unique constraint hoặc chống race trong BE.
 - Với keyword, FE chỉ cho cấu hình Contains(1) + Reject(0). Consumer local `DrawingCharacterService` kiểm tra ý tưởng nhân vật bằng substring nhưng hiện tải toàn bộ keywords và không lọc `Status == Active`; vì vậy Draft/Pending cũng có thể ảnh hưởng nếu kết nối bản BE này. ProhibitedTheme chưa có consumer local được xác minh, nên Active chỉ xác nhận trạng thái record. Không có endpoint lưu quyết định/reviewer/note/version; UI không tạo các field đó.
 - Write được kiểm tra bằng GET detail và so khớp trạng thái/nội dung. Nếu POST/PATCH đã được nhận nhưng read-back timeout hoặc không khớp, FE giữ thao tác ở trạng thái cần đối chiếu và không tự gửi lại. Runtime, auth/owner scope, duplicate race, audit và hiệu lực theme còn yêu cầu BE.
-- `VITE_WF05_MODERATION_API_MODE` mặc định `disabled` và khóa cả GET lẫn mutation ở hai màn WF-05. Chỉ đặt `real` sau khi backend đã xác minh authorization/owner scope và keyword consumer chỉ dùng Active; biến này không tự sửa hoặc bảo vệ API BE.
+- `VITE_WF05_MODERATION_API_MODE` mặc định `disabled`; `.env.development` được bật `real` ngày 27/11 để thử flow cơ bản theo yêu cầu, `.env.production` vẫn khóa. Development trỏ Render nên mutation từ UI ghi vào host đó. Cờ này chỉ khóa hai màn WF-05, không khóa API BE hoặc các màn catalog Admin cũ. Quyền/owner, lifecycle và keyword consumer vẫn chưa được BE sửa/xác minh.
 
 ## Sửa kết nối reader — 26/11/2026
 
@@ -43,7 +57,7 @@ Phần dưới mốc 18/11 là lịch sử/snapshot. Source local mới có 12 c
 | Allowed themes | `GET/PUT /api/child-profiles/{id}/allowed-themes`; GET `EducationThemeDto[]`, PUT `{ "themeIds": ["uuid"] }` | PUT xóa collection rồi thêm ID khác nhau; `null`/`[]` xóa hết; Guid rỗng 400, ID không tồn tại 404. GET/PUT không owner-check `{id}` dù có role gate Parent/Child/Admin; P0 IDOR |
 | Story recommendations | `GET/PUT /api/child-profiles/{id}/story-recommends`; GET `StoryTemplateDto[]`, PUT `{ "storyTemplateIds": ["uuid"] }` | Cùng replace/clear và owner gap; chưa lọc story Active khi ghi/đọc; không suy ra enforcement lên catalog/Mobile |
 | Daily limits | `POST /api/system-jobs/reset-daily-limits`, `X-Cron-Secret`, 200 `{message,updatedProfiles,executedAtUtc}`; reset remaining time/character về daily tương ứng | Chỉ job nội bộ, không gọi từ FE/Mobile; source không chứng minh lịch chạy, timezone hay reset atomic với usage |
-| Expired subscription | `POST /api/system-jobs/check-expire-subscriptions`, cùng secret, 200 `{message,expiredSubscriptions,executedAtUtc}` | Service chọn Active có EndDate trước ngày UTC+7 và dự định trả Parent về FREEPLAN. `GetActiveSubscription()` dùng `AsNoTracking()`; service đổi `Status` nhưng không gọi repository `Update`, nên không thể coi trạng thái Expired đã lưu. Count chỉ tăng khi tìm thấy FREEPLAN |
+| Expired subscription | `POST /api/system-jobs/check-expire-subscriptions`, cùng secret, 200 `{message,expiredSubscriptions,executedAtUtc}` | **Tại mốc 24/11**, `GetActiveSubscription()` dùng `AsNoTracking()` nên chưa thể coi trạng thái Expired đã lưu. Delta 27/11 đã bỏ `AsNoTracking()`; vẫn cần DB test và xử lý count/thiếu FREEPLAN. |
 | PayOS webhook | Thành công sau verify: transaction Success, subscription Active, ngày hiệu lực, hủy subscription Active cũ, cập nhật ParentProfile plan/credit, thêm credit log; transaction Success lặp trả true | Đây là sửa source so với 18/11, chưa runtime nghiệm thu. Chưa thấy kiểm tra amount/plan/owner của order trong nhánh webhook; parent/plan không tìm thấy vẫn có thể ghi transaction Success. Cần status Parent-owned và test callback lặp/cạnh tranh |
 
 `ChildProfileDto` nay chứa `allowedThemes: EducationThemeDto[]` và `storyTemplateRecommends: StoryTemplateDto[]`; migration quan hệ đã được thêm. `PUT /api/child-profiles/{id}` Parent vẫn chỉ cho sửa nickname/age/reading level/daily caps, không nhận hai collection này. New GET/PUT collections cần owner gate riêng. Backend source chỉ đọc trong lượt tài liệu.

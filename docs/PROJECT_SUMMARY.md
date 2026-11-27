@@ -1,11 +1,17 @@
 # SketchTale — ngữ cảnh cho chat mới
 
+## Backend vừa pull — 27/11/2026, `main` `f0e1ffb`
+
+- 4 commit sau `3c1e02f` chỉ thay 7 file. `GET /api/story-template/stories` và `/stories/education-theme/{id}` nay chỉ lấy `Status=Active`; `{id}` ở route education-theme đã bind đúng. Với JWT role Child, list và detail dùng `AllowedThemes ∪ StoryTemplateRecommends` để lọc nếu ít nhất một collection không rỗng. Nếu cả hai rỗng, code trả catalog không giới hạn. Theme list chỉ xét AllowedThemes, còn detail vẫn nhận recommendation ngoài theme; cần BE chốt policy và kiểm thử cùng dữ liệu. `GET /stories/{id}` vẫn chỉ loại `Inactive`, nên Parent và các role khác có thể đọc Draft/Pending/Archived qua ID trực tiếp. Xem [contract](api/CONTRACTS.md).
+- `SubscriptionRepository.GetActiveSubscription()` đã bỏ `AsNoTracking()`, vì vậy nguyên nhân không lưu `Expired` được ghi ngày 24/11 đã thay đổi. Chưa chạy job/DB để xác nhận; count vẫn chỉ tăng khi có FREEPLAN, thiếu plan không báo lỗi. `Program.cs` đổi từ bind `0.0.0.0:$PORT` sang `app.Run()`; BE cần xác nhận cấu hình lắng nghe của host deploy.
+- **Lưu ý local:** sau pull, `StoryTemplateController.cs` dùng bản upstream chỉ có sửa route binding; các guard chi tiết cho story từng ở thay đổi local không còn trong working tree, bản trước pull nằm trong `stash@{0}` (`codex-preserve-local-before-backend-pull-2026-11-27`). Cần BE rà lại và khôi phục phần cần thiết; không coi bản local/stash là release. Không build, gọi API hay xác nhận deploy trong lượt docs này. FE `.env.development`/`.env.production` vẫn chọn reader `pages`; không đổi sang `published` cho đến khi release xác nhận.
+
 ## WF-05 / F-07 — Manage Inappropriate Content, FE source 26/11/2026
 
 - CM có trang `/content/moderation` để tạo Draft, sửa Draft do mình tạo và gửi Pending; Admin có `/admin/moderation` để duyệt Pending thành Active hoặc trả về Draft. Admin tiếp tục quản lý trạng thái tại các danh mục keyword/theme hiện có.
 - FE chỉ hiển thị và cho CM sửa record khi `CreateBy` khớp user đăng nhập; record thiếu/không khớp chủ sở hữu bị ẩn khỏi CM. POST/PATCH được đọc lại qua GET trước khi báo đã lưu; kết quả không rõ khóa gửi lại cho đến khi đối chiếu.
 - Duplicate check FE dùng NFC, trim, không phân biệt hoa thường và xét Draft/Pending/Active trong list API đã tải; không chống được hai request đồng thời. Source consumer keyword hiện thực thi Contains + từ chối nhưng đọc cả danh sách, chưa lọc Active; ProhibitedTheme chưa có consumer được xác minh. UI không khẳng định theme Active đã có hiệu lực kiểm duyệt.
-- API WF-05 được feature-gate riêng: `VITE_WF05_MODERATION_API_MODE=disabled` mặc định; chỉ đặt `real` sau khi BE sửa/xác minh quyền, owner scope và lọc keyword Active. **Chưa nghiệm thu WF-05 end-to-end:** source FE chưa build/test/runtime trong delta này; BE không thay đổi.
+- API WF-05 được feature-gate riêng. **27/11:** `.env.development` đã đặt `VITE_WF05_MODERATION_API_MODE=real` để thử luồng CM → Admin qua API hiện có; `.env.production` vẫn dùng mặc định `disabled`. Development hiện trỏ Render, nên thao tác trong UI sẽ ghi lên Backend đó. Đây là thử flow cơ bản, chưa nghiệm thu quyền/owner, lifecycle server hoặc hiệu lực kiểm duyệt. BE không thay đổi.
 
 ## WF-04 / F-05 — Report Content, cập nhật source 26/11/2026
 
@@ -23,7 +29,7 @@
 BE `main` đã fast-forward từ `de3209f` tới `3c1e02f` (12 commit). Các thay đổi local cũ đã được giữ lại, trừ khác biệt ở `StoryTemplateRepository.cs` đang dùng bản upstream; toàn bộ bản local có trong stash `codex-preserve-local-before-backend-pull-2026-11-24`. Đây là đối chiếu source, chưa có build, request runtime hay xác nhận deploy mới.
 
 - `GET/PUT /api/child-profiles/{id}/allowed-themes` và `/story-recommends` đã có trong source. GET trả mảng DTO; PUT nhận `{themeIds}` hoặc `{storyTemplateIds}`, thay thế toàn bộ tập hợp, bỏ ID trùng; null/mảng rỗng xóa hết. **Cả bốn action chỉ có role gate ở controller, chưa ràng buộc `{id}` với Parent/Child đang đăng nhập.** Chưa bật luồng này cho dữ liệu thật trước khi BE sửa owner scope.
-- `POST /api/system-jobs/reset-daily-limits` và `/check-expire-subscriptions` dùng header `X-Cron-Secret` từ cấu hình; đây là job nội bộ. Việc có endpoint không chứng minh scheduler đã được cấu hình/chạy. Job hết hạn đọc Active subscription bằng `AsNoTracking()` rồi đổi status nhưng không gọi `Update`, cần BE xác nhận/sửa persistence.
+- `POST /api/system-jobs/reset-daily-limits` và `/check-expire-subscriptions` dùng header `X-Cron-Secret` từ cấu hình; đây là job nội bộ. Việc có endpoint không chứng minh scheduler đã được cấu hình/chạy. **Tại mốc 24/11**, job hết hạn đọc Active subscription bằng `AsNoTracking()` rồi đổi status nhưng không gọi `Update`; thay đổi 27/11 đã bỏ `AsNoTracking()`, vẫn cần BE xác nhận persistence bằng DB test.
 - Webhook PayOS đã cập nhật `ParentProfile.SubscriptionPlanId`, `RemainingMonthlyCredit` và log credit khi thanh toán thành công. Luồng payment vẫn cần xác minh runtime, idempotency và status/owner read-back; các endpoint subscription/ParentProfile chưa có owner gate.
 - DTO ChildProfile có thêm `allowedThemes` và `storyTemplateRecommends`; migration bảng liên kết có trong source. Xem [contract](api/CONTRACTS.md), [Parent](roles/PARENT.md) và [Backlog](BACKLOG.md).
 
@@ -52,7 +58,7 @@ Cuối lượt BE có thêm 2 file unstaged bên cạnh 24 file staged: create-p
 | Nguồn | Baseline đợt này |
 | --- | --- |
 | FE `SEP490sketchtale` | HEAD `ef76104851bcfd7ea39941ed74d24d58b0a313b8` |
-| BE `../SEP490Backend/sketch-tale-backend` | Hiện tại HEAD `3c1e02f` + thay đổi local đã khôi phục; snapshot lịch sử 18/11 dựa trên `de3209f`. Chỉ đọc source khi cập nhật docs |
+| BE `../SEP490Backend/sketch-tale-backend` | Hiện tại HEAD `f0e1ffb` + thay đổi local đã khôi phục, riêng guard StoryTemplate detail cũ chỉ còn trong stash 27/11; snapshot lịch sử 18/11 dựa trên `de3209f`. Chỉ đọc source khi cập nhật docs |
 | API snapshot gần nhất đọc được | [18/11](../artifacts/swagger-docs-2026-11-18.json): 120 paths / 161 operations |
 | Live Parent | 14/11 đọc catalog/pages/roles/slots/plans; 16/11 xác nhận `GET /parent-profiles/child?parentId=`; quiz own child 403; deploy khác BE local |
 

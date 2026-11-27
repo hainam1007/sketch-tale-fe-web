@@ -1,5 +1,16 @@
 # Backlog đang mở
 
+## P0 sau pull Backend 27/11/2026 (`f0e1ffb`)
+
+| ID | Cần xử lý | Điều kiện đóng |
+| --- | --- | --- |
+| STORY-READ-27 | List truyện và list theo theme chỉ trả Active, nhưng `GET /api/story-template/stories/{id}` vẫn trả Draft/Pending/Archived cho Parent và Child không có cấu hình. Guard detail từng ở thay đổi BE local trước pull không còn trong working tree, vẫn có trong stash ngày 27/11. | BE bảo vệ detail và mọi direct read theo chính sách Active; Parent/Child gọi ID Draft/Pending/Archived/Inactive nhận 403/404; xác nhận code đã lên đúng release. |
+| CHILD-CATALOG-27 | Child list tổng lọc theo `AllowedThemes ∪ StoryTemplateRecommends` khi một collection có dữ liệu; list theo theme chỉ xét AllowedThemes. Cả hai rỗng hoặc identity/profile không hợp lệ thì trả catalog không lọc. | BE chốt ngữ nghĩa rỗng và recommendation ngoài theme, xử lý identity fail closed, kiểm tra list/theme/detail nhất quán với 2 Child test. |
+| DEPLOY-PORT-27 | `Program.cs` đổi từ bind `0.0.0.0:$PORT` sang `app.Run()`; cấu hình lắng nghe trên Render chưa được xác nhận. | BE xác nhận bind host/port, healthcheck và Swagger trên release mới; công bố commit deploy. |
+| SUB-EXP-24 | Nguyên nhân `AsNoTracking()` cũ đã được sửa trong `SubscriptionRepository.GetActiveSubscription()`; chưa nghiệm thu persistence. Service vẫn chỉ tăng count khi có FREEPLAN và không báo lỗi rõ nếu thiếu plan. | Chạy job/kiểm tra DB: subscription Expired, Parent về Free, count chính xác, lần lặp idempotent, thiếu FREEPLAN có lỗi rõ và không để dữ liệu lệch; xác nhận scheduler/timezone. |
+
+Các mục 24/11 bên dưới là snapshot lịch sử; `SUB-EXP-24` được cập nhật ở bảng 27/11. FE reader trong cả hai env vẫn chọn route `pages`; chưa đổi sang `published` khi chưa xác nhận deploy. BE source và stash chỉ được đọc, không chỉnh sửa trong lượt tài liệu.
+
 ## P0 sau pull Backend 24/11/2026
 
 **FE source đã đối chiếu 24/11:** `parentProfileService.list` còn dùng `/parent-profiles/child?parentId=...`; themes/recommends chưa có caller hoặc route allowlist; subscription service chưa ưu tiên `parentProfile.id`; payment return chỉ refresh auth profile. Đây là việc FE còn mở, không phải tính năng đã nối. Xem [contract](api/CONTRACTS.md).
@@ -9,7 +20,6 @@ Source `main` 3c1e02f; không có runtime/deploy verification cho commit mới. 
 | ID | Cần xử lý | Điều kiện đóng |
 | --- | --- | --- |
 | SEC-THEME-24 | GET/PUT allowed-themes và story-recommends đã có nhưng truy cập `{id}` trực tiếp, không kiểm tra Parent/Child sở hữu profile | Parent A/Child A chỉ đọc ghi profile A; ID B trả 403/404; Admin policy rõ; không expose Draft/Inactive recommendations |
-| SUB-EXP-24 | Job hết hạn subscription dùng `AsNoTracking()` nhưng không `Update` status; count chỉ tăng khi có FREEPLAN | Chạy job trên subscription hết hạn, DB status Expired và Parent plan/credit về Free; chạy lặp idempotent, thiếu FREEPLAN có lỗi/quan sát rõ; xác nhận scheduler/timezone |
 | PAY-01 | Webhook mới đã ghi Parent plan/credit và credit log; vẫn thiếu runtime, owner status API, kiểm tra amount/plan và xử lý parent/plan thiếu | Callback thật và lặp đều nhất quán transaction/subscription/Parent/credit; return đọc lại trạng thái theo JWT; A không xem/hủy order B |
 | PAR-02/05 | GET/PUT themes/recommends có contract replace/clear; chưa có owner/enforcement, Parent list có thể thiếu nested data | BE owner gate và lọc status; FE read-back; Mobile/catalog áp dụng policy server; list/detail cùng dữ liệu |
 | FE-PAR-24 | Parent list vẫn dùng route cũ với `parentId` client; FE chưa nối themes/recommends, subscription profile ID còn fallback cũ | Sau khi BE owner gate, đổi list sang route phù hợp, nối GET/PUT + read-back, ưu tiên `parentProfile.id`; xác minh A/B và lỗi API thật |

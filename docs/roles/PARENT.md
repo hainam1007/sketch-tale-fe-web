@@ -1,5 +1,9 @@
 # Parent — trạng thái và contract sử dụng
 
+## Ảnh hưởng pull Backend 27/11/2026 (`f0e1ffb`)
+
+Parent catalog `GET /api/story-template/stories` nay chỉ nhận story Active. Route theo education theme đã sửa `{id}` binding và cũng chỉ nhận Active. Tuy nhiên detail `GET /api/story-template/stories/{id}` vẫn trả Draft/Pending/Archived khi biết ID; cần BE chặn direct read trước khi coi library an toàn. Child catalog có thêm lọc allowed themes/recommendations, nhưng khi cả hai danh sách rỗng thì vẫn trả toàn bộ Active; list theo theme không áp dụng ngoại lệ recommendation. BE cần chốt policy và kiểm thử với Parent/Child thật. FE hiện vẫn chọn reader route `pages` ở hai file env; route source `published` của BE local chưa được xác nhận trên deploy. Job hết hạn subscription đã bỏ `AsNoTracking` ở repository, còn cần DB test và xử lý trường hợp thiếu FREEPLAN. Xem [contract](../api/CONTRACTS.md).
+
 ## Nhân vật của bé — cập nhật FE 26/11/2026
 
 Parent đã nối `GET /api/characters/child-profiles/{childId}` vào tab **Nhân vật** của từng bé. Danh sách hiển thị mọi character trừ `Hidden`, kèm trạng thái; inbox chờ duyệt vẫn ở cùng tab. FE kiểm tra `childProfileId` của mọi item và tải lại sau approve/reject. BE source hiện **không gắn `[Authorize]`** lên GET này; service chỉ owner-check khi parse được user ID, nên BE cần bắt buộc Parent/Child JWT và owner scope trước khi coi dữ liệu an toàn. Chưa kiểm tra runtime endpoint deploy.
@@ -19,7 +23,7 @@ API quiz theo bé `GET /api/child-quiz-answers/child-profiles/{childProfileId}` 
 
 BE `main` 3c1e02f đã có API allowed themes và story recommendations trong source. Parent dùng `GET/PUT /api/child-profiles/{id}/allowed-themes` với `{themeIds: UUID[]}`; tương tự `/story-recommends` với `{storyTemplateIds: UUID[]}`. GET trả mảng DTO; PUT thay toàn bộ danh sách, `[]`/`null` xóa hết. ChildProfile detail cũng có hai mảng này. **Chưa nối luồng với dữ liệu thật:** bốn action chỉ kiểm tra role, không kiểm tra `{id}` thuộc Parent đang đăng nhập; recommendation cũng không lọc story Active. Cần BE sửa, sau đó kiểm tra Parent A/B và read-back.
 
-`GET /api/child-profiles` và detail/field lẻ nay có owner lookup trong source mới; trường hợp Parent list chưa include themes/recommendations cần BE xác minh nested response. Webhook PayOS nay ghi Parent plan, remaining credit và credit log khi thành công; đây là thay đổi source, chưa chứng minh payment E2E. Subscription controller vẫn thiếu owner gate và cần status/order read-back. Job expiry có nguy cơ không lưu `Expired` do `AsNoTracking()`. Xem [contract mới](../api/CONTRACTS.md), [backlog](../BACKLOG.md). Các khẳng định “local chưa có route” hoặc “webhook chưa cập nhật Parent plan” bên dưới thuộc audit 18/11, đã bị delta này thay thế.
+`GET /api/child-profiles` và detail/field lẻ nay có owner lookup trong source mới; trường hợp Parent list chưa include themes/recommendations cần BE xác minh nested response. Webhook PayOS nay ghi Parent plan, remaining credit và credit log khi thành công; đây là thay đổi source, chưa chứng minh payment E2E. Subscription controller vẫn thiếu owner gate và cần status/order read-back. Rủi ro `AsNoTracking()` của job expiry ở mốc 24/11 đã đổi theo delta 27/11 phía trên; vẫn cần DB test. Xem [contract mới](../api/CONTRACTS.md), [backlog](../BACKLOG.md). Các khẳng định “local chưa có route” hoặc “webhook chưa cập nhật Parent plan” bên dưới thuộc audit 18/11, đã bị delta này thay thế.
 
 ## Hiện trạng sau pull 18/11/2026
 

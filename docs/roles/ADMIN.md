@@ -6,7 +6,7 @@
 - `/admin/restrictions` và `/admin/prohibited-themes` vẫn quản lý danh mục. Pending bị khóa sửa/xóa/toggle tại màn cũ để quyết định đi qua hàng chờ; trạng thái keyword được hiển thị đủ Draft/Pending/Active/Inactive/Archived.
 - API không có review note, reviewer/time hay concurrency token cho hai resource này; UI không giả lập lịch sử. Admin có thể xử lý nội dung khi `CreateBy` thiếu, nhưng quyền và audit actor vẫn cần xác minh phía BE.
 - Source BE được rà có controller chưa khai báo authorization; dịch vụ keyword/theme chỉ hạn chế một số status cho role ContentManager và chưa có allowlist đầy đủ. Không bật/khẳng định WF-05 an toàn production dựa trên FE route guard.
-- Keyword consumer local đọc toàn bộ keyword list với substring Contains, chưa lọc Active; prohibited theme consumer chưa được thấy. WF-05 API vì vậy mặc định disabled bằng `VITE_WF05_MODERATION_API_MODE=disabled`; chỉ bật sau khi authorization/owner scope và Active-only filter được xác minh. Active status không đồng nghĩa đã áp dụng toàn hệ thống. Chưa có runtime/build/test trong delta này; BE không sửa.
+- Keyword consumer local đọc toàn bộ keyword list với substring Contains, chưa lọc Active; prohibited theme consumer chưa được thấy. WF-05 mặc định disabled, nhưng `.env.development` đã bật `real` ngày 27/11 để thử flow cơ bản; production vẫn khóa. Development trỏ Render. Active status không đồng nghĩa đã áp dụng toàn hệ thống; authorization/owner scope và Active-only filter vẫn là việc BE. Không gọi API mutation trong lượt bật cờ; BE không sửa.
 
 ## Delta WF-04 Report Content — source local 26/11/2026
 

@@ -1,6 +1,6 @@
 # Tài liệu SketchTale
 
-**Cập nhật source Backend 24/11/2026:** `main` đã pull tới `3c1e02f`; xem [delta API hiện hành](api/CONTRACTS.md), [Backlog](BACKLOG.md) và [tổng quan](PROJECT_SUMMARY.md). Swagger 18/11 là snapshot deploy cũ, chưa xác nhận deploy bản mới. BE chỉ được đọc để đối chiếu; không sửa logic Backend trong lượt tài liệu.
+**Cập nhật source Backend 27/11/2026:** `main` đã pull tới `f0e1ffb`; xem [delta API hiện hành](api/CONTRACTS.md), [Backlog](BACKLOG.md) và [tổng quan](PROJECT_SUMMARY.md). Pull mới lọc catalog truyện `Active`, thêm lọc theo token Child, sửa route education-theme và thay tracking subscription. Swagger 18/11 là snapshot deploy cũ, chưa xác nhận deploy bản mới. BE chỉ được đọc để đối chiếu; không sửa logic Backend trong lượt tài liệu.
 
 **Cập nhật 18/11/2026:** đã đối chiếu BE `de3209f` + staged và Swagger live **120 paths/161 operations**. Đọc [tổng quan](PROJECT_SUMMARY.md), [contract mới](api/CONTRACTS.md) và [backlog](BACKLOG.md) trước các báo cáo kiểm chứng 14–17/11. BE chỉ đọc; mọi thiếu sót/quyền/contract phải báo người dùng, không tự sửa Backend.
 

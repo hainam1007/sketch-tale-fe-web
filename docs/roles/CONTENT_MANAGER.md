@@ -7,7 +7,7 @@
 - Duplicate preflight dùng NFC + trim + so sánh không phân biệt hoa thường trên Draft/Pending/Active đã tải. Khi trùng, giữ biểu mẫu và không gửi; BE vẫn phải chặn duplicate và race.
 - Form hiện khóa policy ở Contains + Reject; severity chọn trong enum API. Keyword consumer local có substring gate ở ý tưởng nhân vật; prohibited theme chưa có consumer được xác minh. Gửi Active sau khi Admin duyệt không chứng minh nội dung mọi luồng đã được kiểm tra.
 - Sau POST/PATCH FE GET detail xác nhận owner, payload và status. Kết quả không rõ giữ form và khóa gửi lại đến khi GET đối chiếu; không lưu draft cục bộ thay cho server. Chưa runtime/build/test trong delta này; chưa dùng dữ liệu production để mutation.
-- API mặc định bị khóa bằng `VITE_WF05_MODERATION_API_MODE=disabled`: source keyword consumer hiện chưa lọc Active và các endpoint chưa xác minh owner/auth đầy đủ. Chỉ bật `real` sau khi BE đã sửa/xác nhận hai điều kiện này.
+- API WF-05 có mặc định `disabled`; ngày 27/11 `.env.development` đã bật `real` để thử flow cơ bản theo yêu cầu, còn production vẫn khóa. Development trỏ Render. Keyword consumer vẫn chưa lọc Active và endpoint chưa có quyền/owner server; không coi test UI là nghiệm thu các điều kiện đó.
 
 ## Hiện trạng sau pull 18/11/2026
 
