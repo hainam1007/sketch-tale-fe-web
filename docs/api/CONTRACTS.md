@@ -1,5 +1,29 @@
 # Contract API — nguồn hiện hành
 
+## Delta WF-05 / F-07 — FE source 26/11/2026
+
+- CM `/content/moderation` và Admin `/admin/moderation` dùng API sẵn có: `GET/POST/PATCH /restricted-keywords[/{id}]` và `GET/POST/PATCH /prohibited-themes[/{id}]`. GET list phải trả array hoặc `{items}` đầy đủ; create/update nhận DTO hiện hữu gồm value/name, description, matchType, severityLevel, action, status; PATCH trả 204 nên FE GET lại detail.
+- FE lifecycle: CM tạo Draft(0), cập nhật Draft của mình hoặc gửi Pending(1); Admin chỉ xử lý Pending thành Active(2) hoặc trả Draft(0). Admin quản lý Active/Inactive/Archived qua màn catalog. Payload lấy các field mới nhất từ GET detail và chỉ thay status khi duyệt.
+- DTO kế thừa `CreateBy`; FE so sánh field camelCase/PascalCase với ID user hiện tại. CM chỉ thấy/sửa record có owner khớp. API list chưa owner-scoped; FE filter không phải biện pháp bảo mật. Nếu owner thiếu hoặc sai, UI ẩn record và khóa sửa.
+- Duplicate check FE chuẩn hóa NFC, trim, không phân biệt hoa thường, trong cùng loại resource ở Draft/Pending/Active. Đây là preflight trên kết quả list, không thay unique constraint hoặc chống race trong BE.
+- Với keyword, FE chỉ cho cấu hình Contains(1) + Reject(0). Consumer local `DrawingCharacterService` kiểm tra ý tưởng nhân vật bằng substring nhưng hiện tải toàn bộ keywords và không lọc `Status == Active`; vì vậy Draft/Pending cũng có thể ảnh hưởng nếu kết nối bản BE này. ProhibitedTheme chưa có consumer local được xác minh, nên Active chỉ xác nhận trạng thái record. Không có endpoint lưu quyết định/reviewer/note/version; UI không tạo các field đó.
+- Write được kiểm tra bằng GET detail và so khớp trạng thái/nội dung. Nếu POST/PATCH đã được nhận nhưng read-back timeout hoặc không khớp, FE giữ thao tác ở trạng thái cần đối chiếu và không tự gửi lại. Runtime, auth/owner scope, duplicate race, audit và hiệu lực theme còn yêu cầu BE.
+- `VITE_WF05_MODERATION_API_MODE` mặc định `disabled` và khóa cả GET lẫn mutation ở hai màn WF-05. Chỉ đặt `real` sau khi backend đã xác minh authorization/owner scope và keyword consumer chỉ dùng Active; biến này không tự sửa hoặc bảo vệ API BE.
+
+## Sửa kết nối reader — 26/11/2026
+
+Swagger Render kiểm tra trực tiếp xác nhận route `/api/storypage-template/pages/{storyId}`, chưa có `/published/{storyId}` của source BE local. FE chọn qua `VITE_PARENT_READER_PAGES_ROUTE`: cấu hình Render development/production dùng `pages`; khi chạy/deploy BE source mới chuyển sang `published`. Không fallback khi gặp 404 nội dung. Caller vẫn kiểm tra story/page Active; đây không thay cho quyền và kiểm tra trạng thái phía server. Ghi chú route này thay thế mô tả caller cố định `/published` bên dưới.
+
+## Delta WF-04 Report Content — 26/11/2026, source local
+
+- `POST /api/content-reports` chỉ Parent. Body `{ targetType: 1, targetId, reason }`; BE yêu cầu target là StoryTemplate đang Active, trim và kiểm tra reason 1–1000 ký tự, tự gán reporter từ JWT và status `Pending`. Status trong body bị bỏ qua.
+- `GET /api/content-reports/users/{userId}` chỉ Parent và `{userId}` phải đúng user JWT. Trả report của Parent hiện tại, kèm title truyện để theo dõi. `GET /api/content-reports` và `GET /{id}` cho Admin; detail cũng cho Parent nếu report thuộc họ.
+- `PATCH /api/content-reports/{id}` chỉ Admin; body `{status}` chuyển Pending(0) → Processing(1) → Resolve(2)/Dismissed(3). Resolve/Dismissed yêu cầu `decisionNote` không rỗng, tối đa 1000 ký tự. Resolve Story ẩn truyện (`StoryTemplate.Status=Inactive`) cùng transaction. Optional `{suspendTargetOwner:true,suspensionDays:1..90}` khóa Content Manager tạo truyện và thu hồi refresh token; `{restoreTargetOwner:true}` trên report đã Resolve, nếu đúng lockout do report này, mở khóa tài khoản.
+- Giữ reason/target gốc bất biến. Migration mới thêm `ReviewerId`, `ReviewedAt`, `DecisionNote`, `SuspendedTargetOwnerId`, `SuspensionEndsAt`, `OwnerRestoredAt`; Admin detail trả thêm title/mô tả/bìa/owner và trạng thái lockout. FE còn tải các trang qua `GET /api/storypage-template/pages/by-story/{storyId}` (Admin only) để xem văn bản, hình nền và narration. Parent response chỉ trả title, không lộ owner/reviewer/decision note. Delete cũ chỉ bác bỏ report đang Processing, Admin only.
+- Parent reader source caller dùng `GET /storypage-template/published/{storyId}` để áp dụng server gate `StoryTemplate.Active`; release runtime vẫn cần cập nhật/xác nhận route này.
+- Controller hiện có `[Authorize]`/role gate; JWT validation kiểm tra trạng thái lockout, refresh flow từ chối tài khoản đang khóa. FE dev mode bật, production disabled.
+- Chưa compile hoặc xác minh migration/runtime; cần xác nhận migration được áp dụng, ownership A/B, unauthorized, report transitions, story direct-read bị chặn, access/refresh lockout và mở khóa trước production.
+
 ## Delta source Backend — 24/11/2026, `main` 3c1e02f
 
 ### Frontend hiện đang gọi gì — kiểm tra source 24/11
@@ -65,7 +89,7 @@ Kiểm tra FE 18/11: suite `content-integration.spec.js` 37/37 passed; lint exit
 2. **VOC-18 / audio:** `VocabularyTemplateService.UpdateVocabAsync` gán `dto.AudioUrl` vào `vocab.AudioUrlVi` (dòng 134–136), nhưng `MappingProfile` chỉ khai báo `CreateMap` mặc định DTO↔entity (dòng 130–132). Tên khác nhau nên create/read không map `AudioUrl`↔`AudioUrlVi`; create trả DTO từ entity và GET cũng map entity sang DTO. Người dùng xác nhận BE sẽ bổ sung mapping tường minh. Chưa xác minh bản sửa hoặc runtime; FE giữ audio URL, và chặn trạng thái lưu thành công nếu read-back không khớp.
 3. **RELEASE-18 (đã cập nhật 24/11):** themes/recommends nay có trong source local; reader snapshot vẫn `/pages/{storyId}` trong khi source `/published/{storyId}`. Cần commit/branch thực tế deploy, response mẫu và owner tests.
 4. **LOCAL-18 (đã cập nhật 24/11):** source mới có `ParentProfile.UserId`; báo cáo thiếu field 18/11 đã hết hiệu lực. Vẫn cần BE build và A/B owner test.
-5. **PUB-01 / DOC-API-01:** xem re-audit 18/11 phía trên. `StoryTemplateService.PublishStoryAsync` đặt story Pending/Archived Active; child Pending/Archived không cascade; `StoryPageTemplateController` local Parent route `/published/{storyId}` khác Swagger `/pages/{storyId}`; role/slot repositories không gate Active hierarchy. BE cần công bố đúng policy/trạng thái, thống nhất route/deploy và bảo vệ direct reads. FE hide hiện DELETE (Inactive), không tự thay bằng unpublish (Draft) vì khác nghiệp vụ.
+5. **PUB-01 / DOC-API-01:** xem re-audit 18/11 phía trên và delta route 26/11. `StoryTemplateService.PublishStoryAsync` đặt story Pending/Archived Active; child Pending/Archived không cascade; Parent FE source đã chuyển sang `GET /storypage-template/published/{storyId}` theo BE local, nhưng Swagger/deploy vẫn chưa xác nhận; role/slot repositories không gate Active hierarchy. BE cần công bố đúng policy/trạng thái, xác nhận release route và bảo vệ direct reads. FE hide hiện DELETE (Inactive), không tự thay bằng unpublish (Draft) vì khác nghiệp vụ.
 6. **SEC-01/SEC-ADM/PAY-01:** controllers/services credit/subscription/ParentProfile/payment cancel, audit/reports và webhook không đổi trong diff 7849600→de3209f; các blocker trước vẫn mở. Không tuyên bố đã sửa chỉ vì pull mới.
 
 Reading/quiz source hiện đã có controller mới: Child viết POST `/child-quiz-answers`, POST `/reading-logs`, PUT `/{id}/progress`, PUT `/{id}/complete`; Parent/Child đọc quiz history và GET `/reading-logs/child-profiles/{id}/completed`. Start nhận generatedStoryId; progress nhận currentPage/readDurationSeconds, **seconds là lượng cộng thêm**, retry có thể cộng lặp. Detail quiz còn thiếu Parent owner check, submit còn fallback khi không map được Child JWT và thiếu kiểm tra quiz thuộc story/upper bound option. ReadingLogService chỉ chặn owner mutation khi currentChild tìm thấy; cần fail closed khi thiếu profile. Runtime 403 cũ chưa được tái kiểm tra, không tự bật quiz/scoring.
@@ -92,7 +116,7 @@ Audit CM 14–15/11: Swagger live GET vẫn `/storypage-template/pages/{storyId}
 
 | Hạng mục | FE / snapshot 12/11 | BE local 13/11 | Kết luận |
 | --- | --- | --- | --- |
-| Page list reader | FE/Swagger 14/11 `/storypage-template/pages/{storyId}`, runtime Parent 200 | Local `/published/{storyId}` cho Parent/Child, `/pages/by-story/{storyId}` cho CM/Admin | Giữ route Swagger theo người dùng; không fallback authoring; BE cần đồng bộ release |
+| Page list reader | FE source 26/11 `/storypage-template/published/{storyId}` | Local `/published/{storyId}` cho Parent/Child, `/pages/by-story/{storyId}` cho CM/Admin; Swagger/runtime release cần xác minh | Source FE/BE đã khớp; giữ production chờ release route + published hierarchy được nghiệm thu |
 | Page detail | `/storypage-template/page/{id}` | `/page/{pageId:guid}`, CM/Admin | ID param khác tên không đổi URL; Parent không dùng token CM để đọc |
 | Mapping inbox | Không có trong snapshot; allowlist FE còn route local | `/user-story-character-mappings/child/{childProfileId}` có owner/pagination local | Local-only so với snapshot; Character adapter hiện không dùng |
 | Plan code lookup | Allowlist `/subscription-plans/code/:plan-code` | Controller `/subscription-plans/plan-code/{code}` | Sửa khi dùng lookup; list catalog hiện đã có ID |

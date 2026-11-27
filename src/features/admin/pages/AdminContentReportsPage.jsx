@@ -50,7 +50,19 @@ function formatDate(value) {
     ? "—"
     : new Intl.DateTimeFormat("vi-VN", {
         dateStyle: "medium",
-        timeZone: "Asia/Ho_Chi_Minh",
+        timeZone: "UTC",
+      }).format(date);
+}
+
+function formatEntityDateTime(value) {
+  if (!value) return "Chưa cập nhật";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : new Intl.DateTimeFormat("vi-VN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "UTC",
       }).format(date);
 }
 
@@ -226,7 +238,7 @@ export default function AdminContentReportsPage() {
                     <span>{formatDate(item.createdAt)}</span>
                   </td>
                   <td>
-                    <span>{formatDateTime(item.updatedAt)}</span>
+                    <span>{formatEntityDateTime(item.updatedAt)}</span>
                   </td>
                   <td>
                     <StatusBadge
@@ -305,6 +317,9 @@ export function AdminContentReportDetailPage() {
 
   const [feedback, setFeedback] = useState("");
   const [errorFeedback, setErrorFeedback] = useState("");
+  const [suspendTargetOwner, setSuspendTargetOwner] = useState(false);
+  const [suspensionDays, setSuspensionDays] = useState(7);
+  const [decisionNote, setDecisionNote] = useState("");
 
   const query = useQuery({
     queryKey: ["backend-content-report", user.id, reportId],
@@ -313,16 +328,23 @@ export function AdminContentReportDetailPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ nextStatus }) =>
+    mutationFn: ({ nextStatus, suspendOwner = false, restoreOwner = false }) =>
       adminService.updateContentReportStatus({
         reportId,
         status: nextStatus,
-        targetType: query.data?.targetType,
-        targetId: query.data?.targetId,
-        reason: query.data?.reason,
+        suspendTargetOwner: suspendOwner,
+        restoreTargetOwner: restoreOwner,
+        decisionNote,
+        suspensionDays,
       }),
     onSuccess: async (_, variables) => {
-      setFeedback(`Đã chuyển trạng thái báo cáo sang: "${reportStatusLabels[variables.nextStatus]}".`);
+      setFeedback(variables.restoreOwner
+        ? "Đã mở khóa tài khoản chủ truyện. Người dùng có thể đăng nhập lại."
+        : variables.nextStatus === 2
+        ? `${Number(item?.targetType) === 1 ? "Đã ẩn truyện" : "Đã giải quyết báo cáo"} và chuyển sang "${reportStatusLabels[variables.nextStatus]}"${variables.suspendOwner ? `; tài khoản chủ truyện bị khóa ${suspensionDays} ngày` : ""}.`
+        : variables.nextStatus === 3
+          ? "Đã bác bỏ báo cáo; nội dung được giữ nguyên."
+          : "Đã nhận báo cáo để xem xét.");
       setErrorFeedback("");
       await queryClient.invalidateQueries({ queryKey: ["backend-content-report", user.id, reportId] });
       queryClient.invalidateQueries({ queryKey: ["backend-content-reports", user.id] });
@@ -332,6 +354,9 @@ export function AdminContentReportDetailPage() {
     onError: (err) => {
       setErrorFeedback(err.message || "Không thể cập nhật trạng thái báo cáo.");
       setFeedback("");
+      if (err.status === 409) {
+        queryClient.invalidateQueries({ queryKey: ["backend-content-report", user.id, reportId] });
+      }
     },
   });
 
@@ -379,7 +404,7 @@ export function AdminContentReportDetailPage() {
         <dl className="admin-user-meta">
           <div>
             <dt>Loại nội dung bị báo cáo</dt>
-            <dd><strong>{formatTargetType(item.targetType)}</strong></dd>
+            <dd><strong>{formatTargetType(item.targetType)}</strong>{item.targetTitle && <span> · {item.targetTitle}</span>}</dd>
           </div>
           <div>
             <dt>Lý do khiếu nại</dt>
@@ -398,13 +423,39 @@ export function AdminContentReportDetailPage() {
           </div>
           <div>
             <dt>Thời gian gửi</dt>
-            <dd>{formatDateTime(item.createdAt)}</dd>
+            <dd>{formatEntityDateTime(item.createdAt)}</dd>
           </div>
           <div>
             <dt>Thời gian cập nhật</dt>
-            <dd>{formatDateTime(item.updatedAt)}</dd>
+            <dd>{formatEntityDateTime(item.updatedAt)}</dd>
           </div>
         </dl>
+
+        {item.targetTitle && (
+          <section className="admin-report-target-preview" aria-label="Xem trước nội dung bị báo cáo">
+            {item.targetCoverImageUrl && <img src={item.targetCoverImageUrl} alt={`Bìa truyện ${item.targetTitle}`} />}
+            <div><p className="workspace-eyebrow">NỘI DUNG BỊ BÁO CÁO · CHỈ ĐỌC</p><h2>{item.targetTitle}</h2><p>{item.targetDescription || "Không có mô tả truyện."}</p>{item.targetOwnerId && <small>Tài khoản chịu trách nhiệm: {item.targetOwnerName || displayActorId(item.targetOwnerId)}{item.targetOwnerEmail ? ` · ${item.targetOwnerEmail}` : ""} · {item.targetOwnerLockedOut ? "đang bị khóa" : "đang hoạt động"}{item.suspensionEndsAt ? ` · khóa đến ${formatDateTime(item.suspensionEndsAt)}` : ""}</small>}</div>
+          </section>
+        )}
+
+        {Number(item.targetType) === 1 && (
+          <section className="admin-report-story-pages" aria-label="Các trang truyện bị báo cáo">
+            <h2>Nội dung truyện</h2>
+            {item.targetPagesError && <p className="admin-refresh-note" role="status">Chưa tải được phần nội dung truyện: {item.targetPagesError}</p>}
+            {!item.targetPagesError && item.targetPages?.length === 0 && <p>Truyện không có trang nào để xem xét.</p>}
+            {item.targetPages?.map((page) => (
+              <article className="admin-report-story-page" key={page.id || page.pageNumber}>
+                <h3>Trang {page.pageNumber ?? "?"}</h3>
+                {page.backgroundUrl && <img src={page.backgroundUrl} alt={`Hình nền trang ${page.pageNumber ?? ""}`} loading="lazy" />}
+                <p>{page.rawText || "Trang này không có nội dung văn bản."}</p>
+                {page.audioNarrationUrl && <audio controls preload="none" src={page.audioNarrationUrl}>Trình duyệt không hỗ trợ phát âm thanh.</audio>}
+              </article>
+            ))}
+          </section>
+        )}
+
+        {Number(item.status) === 1 && item.reviewerId && <p className="admin-report-review-owner">Đang được tiếp nhận bởi {displayActorId(item.reviewerId)} · {formatDateTime(item.reviewedAt)}</p>}
+        {item.decisionNote && <section className="admin-report-decision-note"><strong>Ghi chú quyết định</strong><p>{item.decisionNote}</p>{item.reviewerId && <small>Người xử lý: {displayActorId(item.reviewerId)} · {formatDateTime(item.reviewedAt)}</small>}</section>}
 
         {query.isError && <p role="alert">Chưa đọc lại được báo cáo; dữ liệu hiển thị có thể cũ. <button type="button" onClick={() => query.refetch()}>Đọc lại trạng thái</button></p>}
         {feedback && <SuccessState>{feedback}</SuccessState>}
@@ -414,28 +465,23 @@ export function AdminContentReportDetailPage() {
         <div className="admin-report-actions-box">
           <div className="admin-report-actions-info">
             <h3>Xử lý khiếu nại nội dung</h3>
-            <p>Thao tác chỉ đổi trạng thái báo cáo; không tự ẩn hoặc xóa nội dung bị báo cáo.</p>
           </div>
           <div className="admin-report-actions-buttons">
-            <button
-              className="workspace-button"
-              type="button"
-              disabled={unknownOutcome || query.isError || query.isFetching || updateMutation.isPending || item.status === 2}
-              onClick={() => updateMutation.mutate({ nextStatus: 2 })}
-            >
-              <Check size={16} aria-hidden="true" />
-              {updateMutation.isPending ? "Đang xử lý…" : "Đã giải quyết vi phạm"}
-            </button>
-
-            <button
-              className="workspace-button workspace-button-quiet"
-              type="button"
-              disabled={unknownOutcome || query.isError || query.isFetching || updateMutation.isPending || item.status === 3}
-              onClick={() => updateMutation.mutate({ nextStatus: 3 })}
-            >
-              <X size={16} aria-hidden="true" />
-              Bác bỏ khiếu nại
-            </button>
+            {item.status === 0 && <button className="workspace-button" type="button" disabled={unknownOutcome || query.isError || query.isFetching || updateMutation.isPending} onClick={() => updateMutation.mutate({ nextStatus: 1 })}><Eye size={16} aria-hidden="true" /> Nhận xử lý</button>}
+            {Number(item.status) === 2 && item.canRestoreTargetOwner && item.targetOwnerLockedOut && <button className="workspace-button workspace-button-quiet" type="button" disabled={unknownOutcome || query.isError || query.isFetching || updateMutation.isPending} onClick={() => updateMutation.mutate({ nextStatus: 2, restoreOwner: true })}>Mở khóa tài khoản chủ truyện</button>}
+            {item.status === 1 && <>
+              <label className="admin-report-decision-field" htmlFor="report-decision-note">Ghi chú (bắt buộc)<textarea id="report-decision-note" rows={2} maxLength={1000} value={decisionNote} onChange={(event) => setDecisionNote(event.target.value)} /></label>
+              {Number(item.targetType) === 1 && <div className="admin-report-suspension-options">
+                <label><input type="checkbox" checked={suspendTargetOwner} disabled={!item.targetOwnerCanBeSuspended} onChange={(event) => setSuspendTargetOwner(event.target.checked)} /> Tạm khóa tài khoản chủ truyện</label>
+                {!item.targetOwnerId && <small>Không thể xác định tác giả từ dữ liệu truyện; tài khoản không bị khóa.</small>}
+                {item.targetOwnerId && item.targetOwnerLockedOut && <small>Tài khoản chủ truyện đang bị khóa bởi quyết định khác; không thể ghi đè thời hạn khóa này.</small>}
+                {item.targetOwnerId && !item.targetOwnerLockedOut && !item.targetOwnerCanBeSuspended && <small>Tài khoản tạo truyện không thuộc vai Content Manager đủ điều kiện tạm khóa.</small>}
+                {suspendTargetOwner && <label>Thời hạn <select value={suspensionDays} onChange={(event) => setSuspensionDays(Number(event.target.value))}><option value={1}>1 ngày</option><option value={7}>7 ngày</option><option value={30}>30 ngày</option><option value={90}>90 ngày</option></select></label>}
+              </div>}
+              <button className="workspace-button" type="button" disabled={unknownOutcome || query.isError || query.isFetching || updateMutation.isPending || !decisionNote.trim()} onClick={() => updateMutation.mutate({ nextStatus: 2, suspendOwner: suspendTargetOwner })}><Check size={16} aria-hidden="true" /> {updateMutation.isPending ? "Đang xử lý…" : "Ẩn truyện"}</button>
+              <button className="workspace-button workspace-button-quiet" type="button" disabled={unknownOutcome || query.isError || query.isFetching || updateMutation.isPending || !decisionNote.trim()} onClick={() => updateMutation.mutate({ nextStatus: 3 })}><X size={16} aria-hidden="true" /> Từ chối</button>
+            </>}
+            {[2, 3].includes(Number(item.status)) && <p className="admin-report-closed-note">Báo cáo đã kết thúc; trạng thái và biện pháp xử lý được giữ theo quyết định trước đó.</p>}
           </div>
         </div>
       </section>

@@ -26,6 +26,23 @@ function mapCharacter(value) {
 }
 
 export const parentApprovalService = {
+  async listCharactersForChild({ childId, signal }) {
+    if (typeof childId !== "string" || !childId) {
+      throw new ApiError({ status: 400, code: "CHILD_PROFILE_ID_MISSING", message: "Chưa chọn hồ sơ bé để xem nhân vật." });
+    }
+    const response = await moduleApiRequest("parentApprovals", {
+      path: `/characters/child-profiles/${encodeURIComponent(childId)}`,
+      signal,
+    });
+    if (!Array.isArray(response)) {
+      throw new ApiError({ status: 502, code: "PARENT_CHARACTERS_RESPONSE_INVALID", message: "Backend trả về danh sách nhân vật không đúng định dạng." });
+    }
+    const items = response.map(mapCharacter);
+    if (items.some((item) => item.childProfileId.toLowerCase() !== childId.toLowerCase())) {
+      throw new ApiError({ status: 502, code: "PARENT_CHARACTERS_CHILD_MISMATCH", message: "Danh sách nhân vật không khớp hồ sơ bé đang xem." });
+    }
+    return items;
+  },
   async list({ childId, status = "pending", signal }) {
     if (status !== "pending") return { items: [], total: 0 };
     const response = await moduleApiRequest("parentApprovals", { path: "/characters/pending-approval", signal });

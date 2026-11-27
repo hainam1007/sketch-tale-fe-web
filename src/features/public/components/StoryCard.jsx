@@ -1,7 +1,10 @@
+import { ArrowRight } from "@phosphor-icons/react";
+
 export default function StoryCard({
   story,
   featured = false,
   loading = "lazy",
+  onRead,
 }) {
   const cover = (
     <img
@@ -26,6 +29,16 @@ export default function StoryCard({
           {story.title}
         </h3>
         <p>{story.summary}</p>
+        {story.isDemo && (
+          <button
+            className="story-sample-action"
+            type="button"
+            onClick={() => onRead?.(story)}
+            aria-label={`Đọc truyện mẫu: ${story.title}`}
+          >
+            Đọc truyện mẫu <ArrowRight size={17} aria-hidden="true" />
+          </button>
+        )}
       </div>
     </article>
   );

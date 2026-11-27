@@ -8,6 +8,8 @@ Cập nhật 13/11/2026 theo FE và BE local, gồm thay đổi chưa commit. Đ
 
 ## Đọc theo công việc
 
+Kế hoạch nối các API thật còn mở: [API_INTEGRATION](plans/API_INTEGRATION.md). Đọc mục này trước khi bật thêm capability production.
+
 | Cần làm | Đọc theo thứ tự |
 | --- | --- |
 | Bắt đầu chat mới | [Tổng quan](PROJECT_SUMMARY.md) → [Backlog](BACKLOG.md) → đúng role bên dưới |

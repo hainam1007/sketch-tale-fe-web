@@ -1,5 +1,21 @@
 # SketchTale — ngữ cảnh cho chat mới
 
+## WF-05 / F-07 — Manage Inappropriate Content, FE source 26/11/2026
+
+- CM có trang `/content/moderation` để tạo Draft, sửa Draft do mình tạo và gửi Pending; Admin có `/admin/moderation` để duyệt Pending thành Active hoặc trả về Draft. Admin tiếp tục quản lý trạng thái tại các danh mục keyword/theme hiện có.
+- FE chỉ hiển thị và cho CM sửa record khi `CreateBy` khớp user đăng nhập; record thiếu/không khớp chủ sở hữu bị ẩn khỏi CM. POST/PATCH được đọc lại qua GET trước khi báo đã lưu; kết quả không rõ khóa gửi lại cho đến khi đối chiếu.
+- Duplicate check FE dùng NFC, trim, không phân biệt hoa thường và xét Draft/Pending/Active trong list API đã tải; không chống được hai request đồng thời. Source consumer keyword hiện thực thi Contains + từ chối nhưng đọc cả danh sách, chưa lọc Active; ProhibitedTheme chưa có consumer được xác minh. UI không khẳng định theme Active đã có hiệu lực kiểm duyệt.
+- API WF-05 được feature-gate riêng: `VITE_WF05_MODERATION_API_MODE=disabled` mặc định; chỉ đặt `real` sau khi BE sửa/xác minh quyền, owner scope và lọc keyword Active. **Chưa nghiệm thu WF-05 end-to-end:** source FE chưa build/test/runtime trong delta này; BE không thay đổi.
+
+## WF-04 / F-05 — Report Content, cập nhật source 26/11/2026
+
+- FE Parent có nút báo cáo ở reader và trang `/parent/content-reports`; development bật `VITE_PARENT_CONTENT_REPORTS_API_MODE=real`, production giữ disabled đến khi BE deploy được xác minh.
+- BE `/content-reports`: Parent tạo report `Story` với lý do bắt buộc tối đa 1000 ký tự, reporter lấy từ JWT, chặn report đang mở trùng target; Parent chỉ đọc report của mình. Admin có GET/list/detail và transition Pending → Processing → Resolve/Dismissed.
+- Resolve ẩn StoryTemplate bằng `Inactive` trong cùng transaction với report. Admin có thể chọn tạm khóa tài khoản Content Manager sở hữu truyện 1–90 ngày; access token bị từ chối khi account lock, refresh token bị thu hồi. Detail có nút mở khóa lại tài khoản.
+- Admin detail có preview cover/title/description, các trang truyện (văn bản/hình nền/narration) và decision note. Migration `20261126180000_WF04ContentReportModeration` lưu reviewer, thời gian, ghi chú và lịch sử khóa/khôi phục chủ truyện. Evidence đính kèm và report target ngoài Story chưa được triển khai.
+- Parent reader dùng route source `GET /storypage-template/published/{storyId}`, route kiểm tra story `Active`; report resolve chuyển truyện `Inactive` nên link đọc trực tiếp bị từ chối.
+- Đây là **source implementation**, chưa build/test/runtime/staging. Runtime anonymous 200 và các ảnh Admin 16/11 là bằng chứng deploy lịch sử; cần kiểm tra lại quyền/transition/ẩn truyện/khóa tài khoản trước khi bật production.
+
 ## Source Backend mới — 24/11/2026
 
 **Đối chiếu Frontend 24/11:** `parentProfileService.list` vẫn gọi `/parent-profiles/child?parentId=<user.id>`; màn chi tiết/sửa dùng `/child-profiles/{id}` và PUT rồi GET lại. FE chưa có caller/allowlist cho `allowed-themes` hoặc `story-recommends`; hai mảng mới chỉ đi qua `...value` trong mapper, chưa có UI điều chỉnh. Subscription service vẫn đọc `parentProfile.parentProfileId` cũ trước khi fallback User ID, chưa ưu tiên `parentProfile.id`. `.env.development` bật subscription real, `.env.production` tắt; checkout real cả hai. Payment return chỉ refresh `/auth/profile`, chưa có order status API. Vì vậy các endpoint BE mới **chưa được xem là đã nối FE**.

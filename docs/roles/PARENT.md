@@ -1,5 +1,18 @@
 # Parent — trạng thái và contract sử dụng
 
+## Nhân vật của bé — cập nhật FE 26/11/2026
+
+Parent đã nối `GET /api/characters/child-profiles/{childId}` vào tab **Nhân vật** của từng bé. Danh sách hiển thị mọi character trừ `Hidden`, kèm trạng thái; inbox chờ duyệt vẫn ở cùng tab. FE kiểm tra `childProfileId` của mọi item và tải lại sau approve/reject. BE source hiện **không gắn `[Authorize]`** lên GET này; service chỉ owner-check khi parse được user ID, nên BE cần bắt buộc Parent/Child JWT và owner scope trước khi coi dữ liệu an toàn. Chưa kiểm tra runtime endpoint deploy.
+
+API quiz theo bé `GET /api/child-quiz-answers/child-profiles/{childProfileId}` đã có caller/giao diện trong FE nhưng mặc định disabled; runtime cũ trả 403 với Parent sở hữu bé. `GET /api/child-quiz-answers/reading-logs/{readingLogId}` có trong BE nhưng service chưa kiểm tra Parent sở hữu bé. Chưa bật quiz production.
+
+## Delta WF-04 — báo cáo truyện, source local 26/11/2026
+
+- Reader có nút báo cáo truyện; lý do bắt buộc, trim, tối đa 1000 ký tự. Sau phản hồi thành công, Parent có thể mở trang `/parent/content-reports` để xem tên truyện, lý do, thời gian và trạng thái.
+- Catalog reader caller dùng source route `/storypage-template/published/{storyId}`, nơi BE kiểm tra truyện còn Active. Cần đồng bộ release route trước khi bật production capability.
+- FE caller `parentContentReportService` dùng `POST /content-reports` và `GET /content-reports/users/{authUserId}`. BE lấy reporter từ JWT và so userId route với JWT; Parent khác nhận 404/không được đọc report.
+- `.env.development` bật capability mới; `.env.production` để disabled tới khi BE deploy và quyền được xác minh. Source FE/BE chưa runtime-tested.
+
 ## Delta Backend 24/11/2026
 
 **FE đã kiểm tra lại 24/11:** `parentProfileService.list` gọi `/parent-profiles/child?parentId=<user.id>`; GET/PUT child detail đã nối và PUT đọc lại. Không có caller hay route allowlist cho themes/recommends, cũng chưa có UI điều chỉnh hai danh sách. `parentSubscriptionService` còn lấy field `parentProfileId` cũ trước khi fallback User ID, chưa ưu tiên DTO `id`; production tắt subscription, development bật. Checkout đã nối, return chỉ refresh auth profile. Cần cập nhật FE sau khi BE xử lý owner gate, rồi nghiệm thu runtime.
@@ -17,7 +30,7 @@ BE `main` 3c1e02f đã có API allowed themes và story recommendations trong so
 - ParentProfileDto/ChildProfileDto mới có id. Child vẫn có parentProfileId quan hệ. ParentProfileId field định danh cũ không còn là mục cần BE map; FE subscription cần ưu tiên profile.id thay fallback User.Id.
 - Source đã có ChildQuizAnswerController/ReadingLogController. Child viết, Parent/Child đọc; chưa đóng lỗi 403 cũ hoặc owner/scoring gaps. ReadDurationSeconds ở progress là delta cộng thêm, không tự retry.
 - Publish cascade và unpublish mới có trong source; runtime reader 14–15/11 chưa được tái kiểm tra. Không bật quiz/subscription production hay nới filter Active.
-- **PUB-01 recheck:** Parent FE tiếp tục dùng route `/storypage-template/pages/{storyId}` có trong snapshot Swagger; source local có route Parent/Child `/storypage-template/published/{storyId}`. FE lọc page Active và không fallback `/all-pages`; bộ lọc không thay quyền BE. Source role/slot GET không gate hierarchy Active, cần BE xử lý; chi tiết [CONTRACTS](../api/CONTRACTS.md). Intercept context sạch 18/11 đã qua, runtime/Child chưa xác minh.
+- **PUB-01 recheck 26/11:** Parent FE source nay gọi `/storypage-template/published/{storyId}` theo BE local để server chặn story không Active. Snapshot Swagger/deploy chưa xác nhận route; source role/slot GET vẫn cần gate hierarchy Active. Intercept 18/11 không xác minh runtime/Child.
 - ParentProfile/credit/subscription/payment ownership và webhook entitlement chưa được sửa trong diff mới. Staged ChildProfileRepository vẫn tham chiếu parent.UserId không có trên entity; cần BE sửa, không được xem local là build-verified.
 
 Audit cập nhật 16/11/2026; `source-wired` không đồng nghĩa runtime verified. FE HEAD `59d1efb` + working tree; BE local HEAD `7849600` + các sửa đổi staged. UI theo từng bé. Đọc [backlog](../BACKLOG.md), [API](../api/CONTRACTS.md); đặc tả màn hình ở [Parent UI](../specs/PARENT_UI_UX.md).
@@ -28,7 +41,7 @@ Audit cập nhật 16/11/2026; `source-wired` không đồng nghĩa runtime veri
 | --- | --- | --- |
 | Tạo bé | `authService` POST register/child | Xác minh childProfileId, giới hạn số bé, list sau tạo |
 | Profile list/detail/update | `parentProfileService`, real | FE source đã gọi `GET /parent-profiles/child?parentId=<auth profile id>`; query key đã đổi để buộc tải mới; ownership BE vẫn cần ràng buộc với JWT; UI browser chưa runtime recheck sau sửa |
-| Catalog + reader | `parentCatalogService` + `parentReaderModel` + `ParentReaderStage`, real | Snapshot Swagger `/pages/{storyId}`; source Parent/Child `/published/{storyId}`. FE lọc Active, giữ composition v1/roles/slots và renderer chung; route release + published hierarchy cần BE/runtime |
+| Catalog + reader | `parentCatalogService` + `parentReaderModel` + `ParentReaderStage`, real | FE source và BE local cùng `/published/{storyId}`; cần xác nhận release route và gate hierarchy roles/slots; renderer giữ composition v1 |
 | Quiz history | `parentQuizResultService`, production **disabled** | Caller đã đổi sang Swagger `/child-quiz-answers/child-profiles/{id}`; runtime trả 403 với bé thuộc Parent mẫu; route `/progress` đã nối lại, không trộn metrics demo |
 | Character approvals | `parentApprovalService` + `ParentApprovalsLive`, real | **Đã nối 4 API**; nghiệm thu quyền và refetch; chưa history/reason/revision/sensitive permission |
 | Checkout / return | `parentPaymentService`, real; `ParentPaymentReturnPage` GET lại `/auth/profile` | Checkout trả checkoutUrl; return giữ trạng thái chờ, chỉ đọc lại profile; BE local chưa đồng bộ plan vào ParentProfile sau webhook |

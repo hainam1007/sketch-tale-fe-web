@@ -427,7 +427,7 @@
   box-shadow: 0 1px 4px #2b38271a;
 }
 .library-redesign .catalog-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 390px));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   justify-content: start;
   align-items: start;
   gap: 22px;
@@ -797,6 +797,9 @@
   outline-offset: 4px;
 }
 @media (max-width: 1150px) {
+  .library-redesign .catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .library-discovery {
     grid-template-columns: minmax(0, 1.65fr) minmax(220px, 1fr);
     gap: 15px;
@@ -833,7 +836,7 @@
     display: none;
   }
   .library-redesign .catalog-grid {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 390px));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-content: start;
   }
   .library-redesign .catalog-detail-grid {
@@ -937,6 +940,7 @@
     margin-left: auto;
   }
   .library-redesign .catalog-grid {
+    grid-template-columns: 1fr;
     gap: 12px;
   }
   .library-redesign .catalog-book {

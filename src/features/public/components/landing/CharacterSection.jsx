@@ -1,12 +1,17 @@
-import {
-  ArrowRight,
-  MagicWand,
-  PencilSimple,
-  Sparkle,
-} from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react";
 import Reveal from "./Reveal";
 
 export default function CharacterSection() {
+  const showSampleStories = () => {
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    document.getElementById("stories")?.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "start",
+    });
+  };
+
   return (
     <section
       className="landing-section landing-character-section"
@@ -16,62 +21,53 @@ export default function CharacterSection() {
       <div className="landing-container landing-character-grid">
         <div className="landing-character-copy">
           <Reveal as="span" className="landing-kicker" direction="left">
-            <MagicWand size={18} weight="fill" aria-hidden="true" /> Để bé làm
-            nhân vật chính
+            Nhân vật của riêng bé
           </Reveal>
           <Reveal as="h2" id="character-title" delay={100} direction="left">
-            Nét vẽ của bé
+            Nhân vật bé vẽ,
             <br />
-            <em>thành người hùng.</em>
+            <em>đồng hành cùng bé.</em>
           </Reveal>
           <Reveal as="p" delay={200} direction="left">
-            SketchTale đặt trí tưởng tượng của bé ở trung tâm. Vẽ, đặt tên, rồi
-            nhìn nhân vật bước vào một câu chuyện.
+            Từ bức tranh ban đầu, bé có thể đặt tên cho nhân vật và gặp lại
+            bạn ấy trong những câu chuyện tương tác.
           </Reveal>
           <Reveal
-            as="a"
-            className="landing-button landing-button-primary"
-            href="#stories"
-            delay={300}
+            as="button"
+            type="button"
+            className="landing-button landing-button-primary landing-feature-cta"
+            onClick={showSampleStories}
+            delay={280}
             direction="left"
           >
-            Xem truyện gợi ý <ArrowRight size={19} aria-hidden="true" />
+            Tới kệ truyện mẫu <ArrowRight size={19} aria-hidden="true" />
           </Reveal>
         </div>
-        <div className="landing-character-flow">
-          <Reveal
-            className="landing-character-stage landing-drawing-stage"
-            direction="left"
-          >
-            <div className="landing-doodle">
-              <PencilSimple size={35} weight="duotone" aria-hidden="true" />
-              <span>Tranh của bé</span>
-              <strong>ngôi sao nhỏ</strong>
-            </div>
-          </Reveal>
-          <Reveal
-            className="landing-flow-arrow"
-            delay={120}
-            direction="up"
-          >
-            <ArrowRight size={30} aria-hidden="true" />
-            <span>Phép màu AI</span>
-            <Sparkle size={17} weight="fill" aria-hidden="true" />
-          </Reveal>
-          <Reveal
-            className="landing-character-stage landing-result-stage"
-            delay={240}
-            direction="right"
-          >
+        <Reveal as="figure" className="landing-character-showcase" delay={160} direction="right">
+          <div className="landing-character-page landing-character-page-sketch">
+            <span className="landing-character-page-label">01 / Nét vẽ</span>
             <img
-              src="/images/stars.webp"
-              alt="Mèo linh vật SketchTale nhìn ngôi sao qua kính viễn vọng."
-              width="480"
-              height="360"
+              src="/images/bobby-chinh-dien.webp"
+              alt="Tranh minh họa chú chó Bobby đứng nhìn về phía trước."
+              width="700"
+              height="620"
+              loading="lazy"
             />
-            <span>Nhân vật SketchTale</span>
-          </Reveal>
-        </div>
+            <strong>Bobby</strong>
+          </div>
+          <div className="landing-character-page landing-character-page-motion">
+            <span className="landing-character-page-label">02 / Chuyển động</span>
+            <img
+              src="/images/bobby-di-bo.webp"
+              alt="Bobby bước đi trong một tư thế khác."
+              width="700"
+              height="620"
+              loading="lazy"
+            />
+            <strong>Cùng bé khám phá</strong>
+          </div>
+          <figcaption>Hình minh họa nhân vật mẫu</figcaption>
+        </Reveal>
       </div>
     </section>
   );

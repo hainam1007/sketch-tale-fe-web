@@ -1,36 +1,35 @@
-import {
-  ArrowRight,
-  MagicWand,
-  PencilLine,
-  Sparkle,
-} from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react";
 import Reveal from "./Reveal";
 
 const steps = [
   {
     number: "01",
-    title: "Vẽ",
-    text: "Bé vẽ hoặc tải lên một bức tranh.",
-    icon: PencilLine,
-    color: "blue",
+    title: "Bắt đầu từ nét vẽ",
+    text: "Bé vẽ hoặc tải lên một bức tranh mình yêu thích.",
   },
   {
     number: "02",
-    title: "Tạo nhân vật",
-    text: "AI biến bức tranh thành nhân vật hoạt hình.",
-    icon: MagicWand,
-    color: "yellow",
+    title: "Gặp nhân vật của mình",
+    text: "Bức tranh trở thành nhân vật để bé đặt tên và khám phá.",
   },
   {
     number: "03",
-    title: "Khám phá",
-    text: "Nhân vật cùng bé bước vào những câu chuyện tương tác.",
-    icon: Sparkle,
-    color: "coral",
+    title: "Mở trang truyện đầu tiên",
+    text: "Bé cùng nhân vật đọc, nghe và trả lời những câu hỏi nhỏ.",
   },
 ];
 
 export default function HowItWorksSection() {
+  const showSampleStories = () => {
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    document.getElementById("stories")?.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "start",
+    });
+  };
+
   return (
     <section
       className="landing-section landing-feature-section"
@@ -38,41 +37,59 @@ export default function HowItWorksSection() {
       aria-labelledby="how-title"
     >
       <div className="landing-container">
-        <div className="landing-section-heading">
-          <Reveal as="span" className="landing-kicker" direction="left">
-            SketchTale hoạt động như thế nào
-          </Reveal>
-          <Reveal as="h2" id="how-title" delay={100} direction="left">
-            Từ một nét vẽ
-            <br />
-            <em>đến một cuộc phiêu lưu.</em>
-          </Reveal>
-          <Reveal as="p" delay={200} direction="left">
-            Một thói quen sáng tạo nhỏ mở ra cả thế giới mới.
+        <div className="landing-feature-intro">
+          <div className="landing-feature-copy">
+            <Reveal as="span" className="landing-kicker" direction="left">
+              Cách SketchTale hoạt động
+            </Reveal>
+            <Reveal as="h2" id="how-title" delay={100} direction="left">
+              Một bức vẽ nhỏ.
+              <br />
+              <em>Một thế giới riêng.</em>
+            </Reveal>
+            <Reveal as="p" delay={180} direction="left">
+              Từ ý tưởng của bé đến những trang truyện có thể đọc cùng nhau.
+              Mọi thứ bắt đầu bằng một nét vẽ.
+            </Reveal>
+            <Reveal
+              as="button"
+              type="button"
+              className="landing-button landing-button-primary landing-feature-cta"
+              onClick={showSampleStories}
+              delay={240}
+              direction="left"
+            >
+              Tới kệ truyện mẫu <ArrowRight size={19} aria-hidden="true" />
+            </Reveal>
+          </div>
+          <Reveal as="figure" className="landing-feature-visual" delay={160} direction="right">
+            <img
+              src="/images/seed.webp"
+              alt="Mầm cây nhỏ đón nắng và nước trong truyện mẫu Hạt mầm nhỏ."
+              width="960"
+              height="720"
+              loading="lazy"
+            />
+            <figcaption>
+              <span>Trong kệ truyện</span>
+              <strong>Hạt mầm nhỏ</strong>
+            </figcaption>
           </Reveal>
         </div>
-        <div className="landing-step-grid">
-          {steps.map(({ number, title, text, icon: Icon, color }, index) => (
+        <div className="landing-step-grid" aria-label="Ba bước khám phá SketchTale">
+          {steps.map(({ number, title, text }, index) => (
             <Reveal
               as="article"
-              key={title}
-              className={`landing-step landing-step-${color}`}
-              delay={index * 120}
+              key={number}
+              className="landing-step"
+              delay={index * 100}
               direction="up"
             >
-              <div className="landing-step-icon">
-                <Icon size={32} weight="duotone" aria-hidden="true" />
-              </div>
               <span className="landing-step-number">{number}</span>
-              <h3>{title}</h3>
-              <p>{text}</p>
-              {index < steps.length - 1 && (
-                <ArrowRight
-                  className="landing-step-arrow"
-                  size={28}
-                  aria-hidden="true"
-                />
-              )}
+              <div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </div>
             </Reveal>
           ))}
         </div>
